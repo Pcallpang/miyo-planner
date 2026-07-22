@@ -7,7 +7,7 @@ import express from 'express';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-const { initDb, getUserById } = await import('./lib/db.js');
+const { initDb, getUserById, getUserGeminiKeyEnc } = await import('./lib/db.js');
 const { isGoogleConfigured, hasTokensForUser } = await import('./lib/google.js');
 const { sessionUserId } = await import('./lib/auth.js');
 const { default: authRouter } = await import('./routes/auth.js');
@@ -36,9 +36,12 @@ function requireAuth(req, res, next) {
 app.get('/api/status', async (req, res) => {
   const userId = sessionUserId(req);
   const user = userId ? await getUserById(userId) : null;
+  const geminiUserKey = userId ? Boolean(await getUserGeminiKeyEnc(userId)) : false;
   res.json({
     googleConfigured: isGoogleConfigured(),
-    geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
+    // 사용자 본인 키 또는 서버 기본 키가 있으면 사용 가능
+    geminiConfigured: geminiUserKey || Boolean(process.env.GEMINI_API_KEY),
+    geminiUserKey,
     authenticated: Boolean(userId),
     connected: userId ? await hasTokensForUser(userId) : false,
     email: user?.email ?? null,

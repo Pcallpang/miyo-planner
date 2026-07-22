@@ -13,6 +13,8 @@ export const pool = new pg.Pool({
 export async function initDb() {
   const schema = fs.readFileSync(path.resolve(__dirname, '../db/schema.sql'), 'utf-8');
   await pool.query(schema);
+  // 사용자별 Gemini API 키 저장용 컬럼(암호화). 기존 테이블에도 안전하게 추가.
+  await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS gemini_key_enc text');
 }
 
 export async function upsertUser({ googleSub, email, name }) {
@@ -48,6 +50,19 @@ export async function deleteUserTokens(userId) {
 export async function getUserById(userId) {
   const { rows } = await pool.query('SELECT id, email, name FROM users WHERE id=$1', [userId]);
   return rows[0] || null;
+}
+
+export async function saveUserGeminiKey(userId, encKey) {
+  await pool.query('UPDATE users SET gemini_key_enc=$2 WHERE id=$1', [userId, encKey]);
+}
+
+export async function getUserGeminiKeyEnc(userId) {
+  const { rows } = await pool.query('SELECT gemini_key_enc FROM users WHERE id=$1', [userId]);
+  return rows[0]?.gemini_key_enc || null;
+}
+
+export async function deleteUserGeminiKey(userId) {
+  await pool.query('UPDATE users SET gemini_key_enc=NULL WHERE id=$1', [userId]);
 }
 
 export async function getAppState(userId) {

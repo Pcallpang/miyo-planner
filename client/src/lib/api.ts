@@ -70,4 +70,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ text }),
     }),
+
+  setGeminiKey: (key: string) =>
+    request<{ ok: true }>('/api/gemini/key', { method: 'POST', body: JSON.stringify({ key }) }),
+  deleteGeminiKey: () => request<{ ok: true }>('/api/gemini/key', { method: 'DELETE' }),
 };

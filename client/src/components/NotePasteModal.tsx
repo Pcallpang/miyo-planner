@@ -34,6 +34,7 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [cards, setCards] = useState<Card[] | null>(null);
   const [addedTodos, setAddedTodos] = useState<ParsedTodo[]>([]);
+  const [otherTodos, setOtherTodos] = useState<{ todo: ParsedTodo; added: boolean }[]>([]);
   const [retryIn, setRetryIn] = useState(0); // 429 한도 초과 시 남은 대기 초
 
   const connected = Boolean(status?.connected);
@@ -75,6 +76,8 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
         showToast('success', `오늘 할 일 ${todayTodos.length}개를 데일리 To-Do에 추가했습니다.`);
       }
       setAddedTodos(todayTodos);
+      // 오늘이 아닌(미래·날짜 미정) 할 일은 사용자가 원하면 추가하도록 따로 보여준다
+      setOtherTodos(todos.filter((t) => t.dueDate !== today).map((todo) => ({ todo, added: false })));
       setCards(events.map((event) => ({ event, status: { state: 'idle' } })));
     } catch (e) {
       if (e instanceof ApiError && e.status === 429) {
@@ -84,6 +87,27 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
     } finally {
       setAnalyzing(false);
     }
+  }
+
+  function addOtherTodo(index: number) {
+    const item = otherTodos[index];
+    if (!item || item.added) return;
+    const t = item.todo;
+    update((prev) => ({
+      todos: [
+        ...prev.todos,
+        {
+          id: crypto.randomUUID(),
+          text: t.text,
+          category: t.category,
+          done: false,
+          dueDate: t.dueDate ?? undefined,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    }));
+    setOtherTodos((prev) => prev.map((o, i) => (i === index ? { ...o, added: true } : o)));
+    showToast('success', '데일리 To-Do에 추가했습니다.');
   }
 
   function updateEvent(index: number, patch: Partial<ParsedEvent>) {
@@ -229,6 +253,41 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
                   <p className="mt-2 text-[11px] text-slate-400">
                     체크리스트에서 확인·수정할 수 있습니다.
                   </p>
+                </div>
+              )}
+
+              {/* 오늘이 아닌(미래·날짜 미정) 할 일: 원하면 개별 추가 */}
+              {otherTodos.length > 0 && (
+                <div className="rounded-2xl border border-slate-200 p-4">
+                  <p className="mb-2 text-sm font-semibold text-slate-600">
+                    추가로 발견된 할 일 ({otherTodos.length})
+                    <span className="ml-1 text-xs font-normal text-slate-400">— 오늘 날짜가 아니라 자동 추가되지 않았습니다</span>
+                  </p>
+                  <ul className="space-y-1.5">
+                    {otherTodos.map(({ todo: t, added }, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${TODO_BADGE[t.category]}`}>
+                          {t.category}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{t.text}</span>
+                        <span className="shrink-0 text-xs text-slate-400">
+                          {t.dueDate ? t.dueDate.slice(5).replace('-', '/') : '날짜 미정'}
+                        </span>
+                        {added ? (
+                          <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-mint-600">
+                            <CheckCircle2 size={14} /> 추가됨
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => addOtherTodo(i)}
+                            className="shrink-0 rounded-lg border border-mint-300 px-2.5 py-1 text-xs font-semibold text-mint-600 transition hover:bg-mint-50"
+                          >
+                            추가
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 

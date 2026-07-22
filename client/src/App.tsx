@@ -5,7 +5,9 @@ import Sidebar from './components/Sidebar';
 import LoginScreen from './components/LoginScreen';
 import NotePasteModal from './components/NotePasteModal';
 import { useApp } from './context/AppContext';
+import { useData } from './context/DataContext';
 import { useReminders } from './hooks/useReminders';
+import { useTodoReminders } from './hooks/useTodoReminders';
 import DashboardView from './views/DashboardView';
 import ChecklistView from './views/ChecklistView';
 import MemoView from './views/MemoView';
@@ -24,8 +26,10 @@ export default function App() {
   const [view, setView] = useState<ViewId>('dashboard');
   const [noteOpen, setNoteOpen] = useState(false);
   const { status, toasts, events, settings } = useApp();
+  const { data } = useData();
 
   useReminders(events, settings.reminderMinutes);
+  useTodoReminders(data.todos, settings.reminderMinutes > 0);
 
   // 로그인 게이트: 구글 로그인 전이면 로그인 화면만 표시
   if (status && !status.authenticated) {
