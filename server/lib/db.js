@@ -45,6 +45,11 @@ export async function deleteUserTokens(userId) {
   await pool.query('DELETE FROM google_tokens WHERE user_id=$1', [userId]);
 }
 
+export async function getUserById(userId) {
+  const { rows } = await pool.query('SELECT id, email, name FROM users WHERE id=$1', [userId]);
+  return rows[0] || null;
+}
+
 export async function getAppState(userId) {
   const { rows } = await pool.query('SELECT state FROM app_state WHERE user_id=$1', [userId]);
   return rows[0] ? rows[0].state : null;

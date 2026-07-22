@@ -7,13 +7,19 @@ import express from 'express';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-const { initDb, getAppState } = await import('./lib/db.js');
+const { initDb, getUserById } = await import('./lib/db.js');
 const { isGoogleConfigured, hasTokensForUser } = await import('./lib/google.js');
 const { sessionUserId } = await import('./lib/auth.js');
 const { default: authRouter } = await import('./routes/auth.js');
 const { default: calendarRouter } = await import('./routes/calendar.js');
 const { default: geminiRouter } = await import('./routes/gemini.js');
 const { default: dataRouter } = await import('./routes/data.js');
+
+if (process.env.NODE_ENV === 'production') {
+  for (const k of ['SESSION_SECRET', 'TOKEN_ENC_KEY', 'DATABASE_URL']) {
+    if (!process.env[k]) { console.error(`[server] 필수 환경변수 ${k}가 없습니다.`); process.exit(1); }
+  }
+}
 
 await initDb();
 
@@ -29,11 +35,13 @@ function requireAuth(req, res, next) {
 
 app.get('/api/status', async (req, res) => {
   const userId = sessionUserId(req);
+  const user = userId ? await getUserById(userId) : null;
   res.json({
     googleConfigured: isGoogleConfigured(),
     geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
     authenticated: Boolean(userId),
     connected: userId ? await hasTokensForUser(userId) : false,
+    email: user?.email ?? null,
   });
 });
 

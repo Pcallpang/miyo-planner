@@ -38,6 +38,7 @@ export const api = {
 
   authUrl: () => request<{ url: string }>('/api/auth/url'),
   logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
+  disconnect: () => request<{ ok: true }>('/api/auth/disconnect', { method: 'POST' }),
 
   calendars: () => request<{ calendars: CalendarInfo[] }>('/api/calendar/calendars'),
 

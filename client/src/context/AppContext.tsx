@@ -123,7 +123,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const disconnectGoogle = useCallback(async () => {
     try {
-      await api.logout();
+      await api.disconnect();
       setEvents([]);
       setCalendars([]);
       rangeRef.current = null;
