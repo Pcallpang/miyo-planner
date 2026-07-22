@@ -86,6 +86,7 @@ if (fs.existsSync(INDEX_HTML)) {
 }
 
 const port = Number(process.env.PORT) || 3001;
-app.listen(port, () => {
-  console.log(`[server] http://localhost:${port} 에서 실행 중`);
+// 0.0.0.0에 명시적으로 바인딩해야 Render 등 호스트가 포트를 감지·라우팅할 수 있다.
+app.listen(port, '0.0.0.0', () => {
+  console.log(`[server] 포트 ${port} 에서 실행 중 (0.0.0.0)`);
 });
