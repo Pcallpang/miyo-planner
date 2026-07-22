@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, CalendarPlus, CheckCircle2, Clock, Loader2, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, CalendarPlus, CheckCircle2, Clock, ListChecks, Loader2, Sparkles, X } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useApp } from '../context/AppContext';
-import type { ParsedEvent } from '../types';
+import { useData } from '../context/DataContext';
+import type { ParsedEvent, ParsedTodo, Todo, TodoCategory } from '../types';
 
 type CardStatus = { state: 'idle' | 'saving' | 'done' } | { state: 'error'; message: string };
 
@@ -11,12 +12,20 @@ interface Card {
   status: CardStatus;
 }
 
+const TODO_BADGE: Record<TodoCategory, string> = {
+  업무: 'bg-mint-100 text-mint-700',
+  교과: 'bg-emerald-100 text-emerald-700',
+  개인: 'bg-amber-100 text-amber-700',
+};
+
 export default function NotePasteModal({ onClose }: { onClose: () => void }) {
   const { status, settings, showToast, refreshEvents } = useApp();
+  const { update } = useData();
   const [text, setText] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [cards, setCards] = useState<Card[] | null>(null);
+  const [addedTodos, setAddedTodos] = useState<ParsedTodo[]>([]);
   const [retryIn, setRetryIn] = useState(0); // 429 한도 초과 시 남은 대기 초
 
   const connected = Boolean(status?.connected);
@@ -36,13 +45,27 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
     setAnalyzing(true);
     setAnalyzeError(null);
     try {
-      const { events } = await api.parseNote(text);
-      if (events.length === 0) {
-        setAnalyzeError('쪽지에서 일정을 찾지 못했습니다. 내용을 확인해 주세요.');
+      const { events, todos } = await api.parseNote(text);
+      if (events.length === 0 && todos.length === 0) {
+        setAnalyzeError('쪽지에서 일정·할 일을 찾지 못했습니다. 내용을 확인해 주세요.');
         setCards(null);
-      } else {
-        setCards(events.map((event) => ({ event, status: { state: 'idle' } })));
+        return;
       }
+      // 추출된 할 일을 업무/교과/개인으로 분류해 데일리 To-Do에 자동 추가
+      if (todos.length > 0) {
+        const newTodos: Todo[] = todos.map((t) => ({
+          id: crypto.randomUUID(),
+          text: t.text,
+          category: t.category,
+          done: false,
+          dueDate: t.dueDate ?? undefined,
+          createdAt: new Date().toISOString(),
+        }));
+        update((prev) => ({ todos: [...prev.todos, ...newTodos] }));
+        showToast('success', `할 일 ${todos.length}개를 데일리 To-Do에 자동 추가했습니다.`);
+      }
+      setAddedTodos(todos);
+      setCards(events.map((event) => ({ event, status: { state: 'idle' } })));
     } catch (e) {
       if (e instanceof ApiError && e.status === 429) {
         setRetryIn(e.retryAfter && e.retryAfter > 0 ? e.retryAfter : 30);
@@ -171,9 +194,39 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
 
           {cards && (
             <>
+              {/* 자동 분류되어 데일리 To-Do에 추가된 할 일 */}
+              {addedTodos.length > 0 && (
+                <div className="rounded-2xl border border-mint-200 bg-mint-50/50 p-4">
+                  <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-mint-700">
+                    <ListChecks size={16} />
+                    데일리 To-Do에 자동 추가됨 ({addedTodos.length})
+                  </p>
+                  <ul className="space-y-1.5">
+                    {addedTodos.map((t, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${TODO_BADGE[t.category]}`}>
+                          {t.category}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">{t.text}</span>
+                        {t.dueDate && (
+                          <span className="shrink-0 text-xs text-slate-400">
+                            {t.dueDate.slice(5).replace('-', '/')}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-2 text-[11px] text-slate-400">
+                    체크리스트에서 확인·수정할 수 있습니다.
+                  </p>
+                </div>
+              )}
+
               <div className="flex items-center justify-between">
                 <p className="text-sm text-slate-500">
-                  {cards.length}건의 일정을 찾았습니다. 내용을 확인·수정한 뒤 등록하세요.
+                  {cards.length > 0
+                    ? `${cards.length}건의 일정을 찾았습니다. 내용을 확인·수정한 뒤 등록하세요.`
+                    : '등록할 일정은 없습니다.'}
                 </p>
                 <button
                   onClick={() => setCards(null)}

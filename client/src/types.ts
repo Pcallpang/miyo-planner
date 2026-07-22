@@ -79,6 +79,12 @@ export interface ParsedEvent {
   needsConfirmation: boolean;
 }
 
+export interface ParsedTodo {
+  text: string;
+  category: TodoCategory;
+  dueDate: string | null;
+}
+
 export interface ServerStatus {
   googleConfigured: boolean;
   geminiConfigured: boolean;

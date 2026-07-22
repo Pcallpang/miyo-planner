@@ -1,4 +1,4 @@
-import type { CalendarInfo, EventInput, GEvent, ParsedEvent, ServerStatus } from '../types';
+import type { CalendarInfo, EventInput, GEvent, ParsedEvent, ParsedTodo, ServerStatus } from '../types';
 
 export class ApiError extends Error {
   status: number;
@@ -66,7 +66,7 @@ export const api = {
     ),
 
   parseNote: (text: string) =>
-    request<{ events: ParsedEvent[] }>('/api/gemini/parse', {
+    request<{ events: ParsedEvent[]; todos: ParsedTodo[] }>('/api/gemini/parse', {
       method: 'POST',
       body: JSON.stringify({ text }),
     }),

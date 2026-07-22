@@ -21,12 +21,16 @@ function todayInSeoul() {
 
 function buildPrompt(text) {
   const { date, weekday } = todayInSeoul();
-  return `당신은 학교 행정 쪽지·안내문에서 일정을 추출하는 비서입니다.
+  return `당신은 학교 행정 쪽지·안내문을 분석해 (1)일정과 (2)해야 할 일(To-Do)을 추출하는 교사 비서입니다.
 오늘 날짜는 ${date} (${weekday})입니다. '다음 주 화요일', '내일' 같은 상대적 표현은 이 날짜를 기준으로 실제 날짜로 변환하세요.
 
-아래 쪽지 원문에서 일정을 모두 추출해 JSON **배열**로만 응답하세요. 하나의 쪽지에 여러 일정이 있으면 각각 별도 항목으로 분리하세요.
+아래 쪽지 원문에서 일정과 할 일을 추출해 다음 JSON **객체**로만 응답하세요:
+{
+  "events": [ 일정 배열 ],
+  "todos": [ 할 일 배열 ]
+}
 
-각 항목의 스키마:
+events 각 항목 스키마:
 {
   "title": "간결한 일정 제목 (한국어)",
   "date": "YYYY-MM-DD",
@@ -38,10 +42,23 @@ function buildPrompt(text) {
   "needsConfirmation": true/false (날짜·시간을 추정했거나 애매하면 true)
 }
 
+todos 각 항목 스키마 (교사가 직접 준비·처리해야 하는 행동 항목):
+{
+  "text": "할 일 (한국어, 간결하게)",
+  "category": "업무" | "교과" | "개인",
+  "dueDate": "YYYY-MM-DD 또는 null (마감·기한이 있으면)"
+}
+
+category 분류 기준:
+- "업무": 공문·제출물·행정 처리·회의 준비·설문·명단 제출 등 학교 행정/업무
+- "교과": 수업 준비·평가·채점·교재·수행평가·시험 출제 등 교과 수업 관련
+- "개인": 위에 해당하지 않는 개인적인 준비·기타
+
 규칙:
-- 날짜를 추정해야 했다면(예: 요일만 있음, 애매한 표현) needsConfirmation을 true로 하세요.
-- 일정이 하나도 없으면 빈 배열 []을 반환하세요.
-- JSON 배열 외의 다른 텍스트는 절대 출력하지 마세요.
+- 일정(날짜/행사)은 events로, 교사가 능동적으로 해야 하는 행동은 todos로 넣으세요. 하나의 문장이 둘 다에 해당하면 양쪽에 넣어도 됩니다.
+- 해당 항목이 없으면 그 배열은 빈 배열 []로 두세요.
+- events가 날짜를 추정했으면 needsConfirmation을 true로 하세요.
+- JSON 객체 외의 다른 텍스트는 절대 출력하지 마세요.
 
 쪽지 원문:
 """
@@ -65,6 +82,17 @@ function normalizeEvent(raw) {
     memo: typeof raw.memo === 'string' ? raw.memo : '',
     needsConfirmation: raw.needsConfirmation === true,
   };
+}
+
+const TODO_CATEGORIES = ['업무', '교과', '개인'];
+
+function normalizeTodo(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const text = typeof raw.text === 'string' ? raw.text.trim() : '';
+  if (!text) return null;
+  const category = TODO_CATEGORIES.includes(raw.category) ? raw.category : '업무';
+  const dueDate = typeof raw.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.dueDate) ? raw.dueDate : null;
+  return { text, category, dueDate };
 }
 
 router.post('/parse', async (req, res) => {
@@ -92,9 +120,11 @@ router.post('/parse', async (req, res) => {
     } catch {
       return res.status(502).json({ error: 'Gemini 응답을 해석하지 못했습니다. 다시 시도해 주세요.' });
     }
-    const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.events) ? parsed.events : [];
-    const events = list.map(normalizeEvent).filter(Boolean);
-    res.json({ events });
+    const eventList = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.events) ? parsed.events : [];
+    const todoList = Array.isArray(parsed?.todos) ? parsed.todos : [];
+    const events = eventList.map(normalizeEvent).filter(Boolean);
+    const todos = todoList.map(normalizeTodo).filter(Boolean);
+    res.json({ events, todos });
   } catch (e) {
     console.error('[gemini]', e.message);
     if (isQuotaError(e)) {
