@@ -2,6 +2,7 @@ import { useState, type Dispatch, type FormEvent, type SetStateAction } from 're
 import { addDays, format } from 'date-fns';
 import { CalendarClock, Link as LinkIcon, ListChecks, Pencil, Plus, Trash2, Wand2, X } from 'lucide-react';
 import DateField from '../DateField';
+import EmptyMiyo from '../EmptyMiyo';
 import TodayEvents from './TodayEvents';
 import type { Todo, TodoCategory } from '../../types';
 
@@ -118,7 +119,11 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
       </div>
 
       <ul className="mb-3 max-h-64 space-y-1.5 overflow-y-auto">
-        {visible.length === 0 && <li className="py-2 text-sm text-slate-400">항목이 없습니다.</li>}
+        {visible.length === 0 && (
+          <li>
+            <EmptyMiyo message="항목이 없습니다." size={52} />
+          </li>
+        )}
         {visible.map((todo) => (
           <li
             key={todo.id}

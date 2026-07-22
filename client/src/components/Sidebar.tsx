@@ -3,11 +3,14 @@ import {
   CheckSquare,
   ClipboardPaste,
   LayoutDashboard,
+  LogOut,
   NotebookPen,
   Settings,
   Sun,
   Table,
 } from 'lucide-react';
+import { api } from '../lib/api';
+import { useApp } from '../context/AppContext';
 import type { ViewId } from '../types';
 
 const MENU: { group: string; items: { id: ViewId; label: string; icon: typeof Sun }[] }[] = [
@@ -34,12 +37,17 @@ interface Props {
 }
 
 export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
+  const { status, refreshStatus } = useApp();
+
+  async function logout() {
+    await api.logout();
+    await refreshStatus();
+  }
+
   return (
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-slate-200/70 bg-white/80 backdrop-blur">
       <div className="flex items-center gap-2.5 px-6 pt-6 pb-4">
-        <span className="grid h-9 w-9 place-items-center rounded-2xl bg-mint-100 text-mint-600">
-          <Sun size={20} />
-        </span>
+        <img src="/miyo.png" alt="미요" width={36} height={36} className="shrink-0" draggable={false} />
         <span className="text-lg font-bold tracking-tight text-mint-700">미요 플래너</span>
       </div>
 
@@ -77,6 +85,23 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
           </div>
         ))}
       </nav>
+
+      {status?.authenticated && (
+        <div className="border-t border-slate-100 px-4 py-3">
+          {status.email && (
+            <p className="truncate px-2 pb-1.5 text-xs text-slate-400" title={status.email}>
+              {status.email}
+            </p>
+          )}
+          <button
+            onClick={() => void logout()}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+          >
+            <LogOut size={16} className="text-slate-400" />
+            로그아웃
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

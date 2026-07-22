@@ -2,6 +2,7 @@ import { type Dispatch, type SetStateAction } from 'react';
 import { FileText, Link as LinkIcon, Pencil, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useApp } from '../../context/AppContext';
+import EmptyMiyo from '../EmptyMiyo';
 import type { Meeting } from '../../types';
 
 interface Props {
@@ -39,7 +40,11 @@ export default function MeetingsCard({ meetings, setMeetings, onAdd, onEdit }: P
       </h2>
 
       <ul className="mb-3 max-h-64 space-y-1.5 overflow-y-auto">
-        {sorted.length === 0 && <li className="py-2 text-sm text-slate-400">등록된 항목이 없습니다.</li>}
+        {sorted.length === 0 && (
+          <li>
+            <EmptyMiyo message="등록된 항목이 없습니다." size={52} />
+          </li>
+        )}
         {sorted.map((m) => (
           <li key={m.id} className="group rounded-xl px-2 py-2 transition hover:bg-slate-50">
             <div className="flex items-center gap-2">

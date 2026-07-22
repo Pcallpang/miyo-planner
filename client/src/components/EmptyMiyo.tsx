@@ -1,0 +1,16 @@
+/** 빈 화면에 미요 캐릭터와 안내 문구를 표시한다. */
+export default function EmptyMiyo({ message, size = 64 }: { message: string; size?: number }) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-6 text-center">
+      <img
+        src="/miyo.png"
+        alt="미요"
+        width={size}
+        height={size}
+        className="opacity-80"
+        draggable={false}
+      />
+      <p className="text-sm text-slate-400">{message}</p>
+    </div>
+  );
+}

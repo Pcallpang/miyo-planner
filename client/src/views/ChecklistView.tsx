@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import TodoModal from '../components/TodoModal';
 import DateField from '../components/DateField';
+import EmptyMiyo from '../components/EmptyMiyo';
 import TodayEvents from '../components/dashboard/TodayEvents';
 import type { Todo, TodoCategory } from '../types';
 
@@ -122,7 +123,11 @@ export default function ChecklistView() {
         </div>
 
         <ul className="mb-4 divide-y divide-slate-50">
-          {visible.length === 0 && <li className="py-6 text-center text-sm text-slate-400">항목이 없습니다.</li>}
+          {visible.length === 0 && (
+            <li>
+              <EmptyMiyo message="아직 할 일이 없어요. 미요와 함께 시작해볼까요?" size={80} />
+            </li>
+          )}
           {visible.map((todo) => (
             <li key={todo.id} className="group flex items-center gap-3 py-3">
               <input
