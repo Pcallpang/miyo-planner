@@ -125,7 +125,7 @@ export default function ChecklistView() {
         <ul className="mb-4 divide-y divide-slate-50">
           {visible.length === 0 && (
             <li>
-              <EmptyMiyo message="아직 할 일이 없어요. 미요와 함께 시작해볼까요?" size={80} />
+              <EmptyMiyo message="아직 할 일이 없어요. 미요와 함께 시작해볼까요?" size={96} src="/mudduk-miyo.png" />
             </li>
           )}
           {visible.map((todo) => (

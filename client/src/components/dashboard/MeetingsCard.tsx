@@ -42,7 +42,7 @@ export default function MeetingsCard({ meetings, setMeetings, onAdd, onEdit }: P
       <ul className="mb-3 max-h-64 space-y-1.5 overflow-y-auto">
         {sorted.length === 0 && (
           <li>
-            <EmptyMiyo message="등록된 항목이 없습니다." size={52} />
+            <EmptyMiyo message="등록된 항목이 없습니다." size={64} src="/gatmiyo.png" />
           </li>
         )}
         {sorted.map((m) => (

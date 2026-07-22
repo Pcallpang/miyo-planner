@@ -5,3 +5,5 @@ server/data/
 *.log
 *.png
 !client/public/miyo.png
+!client/public/gatmiyo.png
+!client/public/mudduk-miyo.png
