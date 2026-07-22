@@ -63,8 +63,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setSettings = useCallback(
-    (updater: (prev: Settings) => Settings) => update({ settings: updater(settings) }),
-    [update, settings],
+    (updater: (prev: Settings) => Settings) =>
+      update((prev) => ({ settings: updater(prev.settings) })),
+    [update],
   );
 
   const refreshStatus = useCallback(async () => {

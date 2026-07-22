@@ -18,9 +18,9 @@ export default function DashboardView() {
   const todos = data.todos;
   const meetings = data.meetings;
   const setTodos: Dispatch<SetStateAction<Todo[]>> = (next) =>
-    update({ todos: typeof next === 'function' ? next(data.todos) : next });
+    update((prev) => ({ todos: typeof next === 'function' ? next(prev.todos) : next }));
   const setMeetings: Dispatch<SetStateAction<Meeting[]>> = (next) =>
-    update({ meetings: typeof next === 'function' ? next(data.meetings) : next });
+    update((prev) => ({ meetings: typeof next === 'function' ? next(prev.meetings) : next }));
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState(() => new Date());
 

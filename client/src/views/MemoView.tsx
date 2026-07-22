@@ -9,7 +9,7 @@ export default function MemoView() {
   const { data, update } = useData();
   const memos = data.memos;
   const setMemos = (updater: (prev: MemoNote[]) => MemoNote[]) =>
-    update({ memos: updater(data.memos) });
+    update((prev) => ({ memos: updater(prev.memos) }));
 
   function addMemo() {
     setMemos((prev) => [

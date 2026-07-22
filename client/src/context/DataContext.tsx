@@ -1,12 +1,22 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { api, ApiError } from '../lib/api';
 import { defaultAppData, collectLocalStorage } from '../lib/appData';
+import { normalizeSettings } from '../lib/storage';
 import type { AppData } from '../types';
 
 interface DataValue {
   data: AppData;
   loading: boolean;
-  update: (patch: Partial<AppData>) => void;
+  update: (patch: Partial<AppData> | ((prev: AppData) => Partial<AppData>)) => void;
 }
 const Ctx = createContext<DataValue | null>(null);
 
@@ -15,6 +25,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef<Partial<AppData>>({});
+
+  const scheduleFlush = useCallback(() => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      const toSend = pending.current;
+      pending.current = {};
+      api.putData(toSend).catch(() => {
+        // 실패분을 다시 대기열에 병합(최신 pending이 우선) 후 재시도 예약
+        pending.current = { ...toSend, ...pending.current };
+        scheduleFlush();
+      });
+    }, 800);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,11 +54,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
           Object.keys(state.timetable).length === 0 &&
           state.meetings.length === 0;
         if (local && serverEmpty) {
-          const migrated = { ...state, ...local };
-          if (!cancelled) setData(migrated);
-          await api.putData(local);
+          const migrated = {
+            ...state,
+            ...local,
+            settings: normalizeSettings({ ...state.settings, ...(local.settings ?? {}) }),
+          };
+          if (!cancelled) {
+            setData(migrated);
+            await api.putData({ ...local, settings: migrated.settings });
+          }
         } else if (!cancelled) {
-          setData(state);
+          setData({ ...state, settings: normalizeSettings(state.settings) });
         }
       } catch (e) {
         // 미인증(401)이면 기본값으로 두고 조용히 넘어간다. 로그인 후 재마운트되어 다시 로드된다.
@@ -51,18 +81,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  function update(patch: Partial<AppData>) {
-    setData((prev) => ({ ...prev, ...patch }));
-    pending.current = { ...pending.current, ...patch };
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      const toSend = pending.current;
-      pending.current = {};
-      void api.putData(toSend);
-    }, 800);
-  }
+  const update = useCallback(
+    (patch: Partial<AppData> | ((prev: AppData) => Partial<AppData>)) => {
+      setData((prev) => {
+        const p = typeof patch === 'function' ? patch(prev) : patch;
+        pending.current = { ...pending.current, ...p };
+        return { ...prev, ...p };
+      });
+      scheduleFlush();
+    },
+    [scheduleFlush],
+  );
 
-  return <Ctx.Provider value={{ data, loading, update }}>{children}</Ctx.Provider>;
+  const value = useMemo<DataValue>(() => ({ data, loading, update }), [data, loading, update]);
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
 export function useData() {

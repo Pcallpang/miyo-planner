@@ -18,7 +18,7 @@ export default function TimetableView() {
   const { data, update } = useData();
   const timetable = data.timetable;
   const setTimetable = (updater: (prev: Timetable) => Timetable) =>
-    update({ timetable: updater(data.timetable) });
+    update((prev) => ({ timetable: updater(prev.timetable) }));
   const today = new Date().getDay();
   const [day, setDay] = useState(today >= 1 && today <= 5 ? today : 1);
 
