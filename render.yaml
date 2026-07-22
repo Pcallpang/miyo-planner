@@ -17,15 +17,15 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
-      # 앱 접속 비밀번호 (원하는 값으로 설정)
-      - key: APP_PASSWORD
+      # Supabase 연결 문자열 — Session pooler(5432) 사용 (Transaction pooler 6543은 인증 거부됨)
+      - key: DATABASE_URL
         sync: false
       # 세션 서명 키 — Render가 자동 생성
       - key: SESSION_SECRET
         generateValue: true
+      # 저장 토큰(OAuth) 암호화 키 — Render가 자동 생성
+      - key: TOKEN_ENC_KEY
+        generateValue: true
       # ── 기본값 ──────────────────────────────────────────────
       - key: GEMINI_MODEL
         value: gemini-flash-lite-latest
-      # (선택) 재배포에도 구글 연동 유지하려면 값 입력
-      - key: GOOGLE_REFRESH_TOKEN
-        sync: false

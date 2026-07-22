@@ -32,15 +32,13 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export const api = {
   status: () => request<ServerStatus>('/api/status'),
 
-  sessionLogin: (password: string) =>
-    request<{ ok: true }>('/api/session/login', {
-      method: 'POST',
-      body: JSON.stringify({ password }),
-    }),
-  sessionLogout: () => request<{ ok: true }>('/api/session/logout', { method: 'POST' }),
+  getData: () => request<{ state: import('../types').AppData }>('/api/data'),
+  putData: (state: Partial<import('../types').AppData>) =>
+    request<{ ok: true }>('/api/data', { method: 'PUT', body: JSON.stringify({ state }) }),
 
   authUrl: () => request<{ url: string }>('/api/auth/url'),
   logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
+  disconnect: () => request<{ ok: true }>('/api/auth/disconnect', { method: 'POST' }),
 
   calendars: () => request<{ calendars: CalendarInfo[] }>('/api/calendar/calendars'),
 

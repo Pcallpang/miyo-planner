@@ -1,14 +1,17 @@
 import { LogOut, Settings as SettingsIcon, Unplug } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useData } from '../context/DataContext';
 import { api } from '../lib/api';
+import { defaultAppData } from '../lib/appData';
 import { clearAppData, defaultSettings } from '../lib/storage';
 
 export default function SettingsView() {
   const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
     useApp();
+  const { update } = useData();
 
   async function appLogout() {
-    await api.sessionLogout();
+    await api.logout();
     await refreshStatus();
   }
 
@@ -32,9 +35,10 @@ export default function SettingsView() {
 
   function resetData() {
     if (!window.confirm('시간표·메모·To-Do·설정 등 앱에 저장된 모든 데이터를 초기화할까요?\n(구글 캘린더의 일정은 삭제되지 않습니다)')) return;
+    update({ ...defaultAppData() });
     clearAppData();
     showToast('info', '앱 데이터가 초기화되었습니다. 새로고침합니다.');
-    setTimeout(() => window.location.reload(), 800);
+    setTimeout(() => window.location.reload(), 1200);
   }
 
   const rowCls = 'flex items-center justify-between gap-4 py-4';
@@ -204,11 +208,11 @@ export default function SettingsView() {
             </button>
           </div>
 
-          {status?.authRequired && (
+          {status?.authenticated && (
             <div className={rowCls}>
               <div>
                 <p className={labelCls}>앱 로그아웃</p>
-                <p className={descCls}>이 기기에서 로그아웃합니다. 다시 사용하려면 비밀번호를 입력해야 합니다.</p>
+                <p className={descCls}>이 기기에서 로그아웃합니다. 다시 사용하려면 구글 계정으로 로그인해야 합니다.</p>
               </div>
               <button
                 onClick={() => void appLogout()}

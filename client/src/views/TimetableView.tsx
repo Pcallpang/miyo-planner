@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Table } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { STORAGE_KEYS, useLocalStorage } from '../lib/storage';
+import { useData } from '../context/DataContext';
 import { getDayPhase } from '../lib/schedule';
 import type { Timetable } from '../types';
 
@@ -15,7 +15,10 @@ const WEEKDAYS = [
 
 export default function TimetableView() {
   const { settings, setSettings } = useApp();
-  const [timetable, setTimetable] = useLocalStorage<Timetable>(STORAGE_KEYS.timetable, {});
+  const { data, update } = useData();
+  const timetable = data.timetable;
+  const setTimetable = (updater: (prev: Timetable) => Timetable) =>
+    update((prev) => ({ timetable: updater(prev.timetable) }));
   const today = new Date().getDay();
   const [day, setDay] = useState(today >= 1 && today <= 5 ? today : 1);
 

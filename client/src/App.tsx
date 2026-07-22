@@ -27,8 +27,8 @@ export default function App() {
 
   useReminders(events, settings.reminderMinutes);
 
-  // 비밀번호 게이트: 인증이 필요한데 아직 로그인하지 않았으면 로그인 화면만 표시
-  if (status?.authRequired && !status.authenticated) {
+  // 로그인 게이트: 구글 로그인 전이면 로그인 화면만 표시
+  if (status && !status.authenticated) {
     return <LoginScreen />;
   }
 

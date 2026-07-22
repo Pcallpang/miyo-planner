@@ -2,12 +2,15 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { AppProvider } from './context/AppContext';
+import { DataProvider } from './context/DataContext';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AppProvider>
-      <App />
-    </AppProvider>
+    <DataProvider>
+      <AppProvider>
+        <App />
+      </AppProvider>
+    </DataProvider>
   </StrictMode>,
 );
