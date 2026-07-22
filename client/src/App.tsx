@@ -7,6 +7,7 @@ import NotePasteModal from './components/NotePasteModal';
 import { useApp } from './context/AppContext';
 import { useReminders } from './hooks/useReminders';
 import DashboardView from './views/DashboardView';
+import ChecklistView from './views/ChecklistView';
 import MemoView from './views/MemoView';
 import MonthlyView from './views/MonthlyView';
 import SettingsView from './views/SettingsView';
@@ -39,6 +40,7 @@ export default function App() {
         <Header />
         <main className="flex-1 px-6 py-6 lg:px-8">
           {view === 'dashboard' && <DashboardView />}
+          {view === 'checklist' && <ChecklistView />}
           {view === 'timetable' && <TimetableView />}
           {view === 'monthly' && <MonthlyView />}
           {view === 'memo' && <MemoView />}

@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  CheckSquare,
   ClipboardPaste,
   LayoutDashboard,
   NotebookPen,
@@ -14,6 +15,7 @@ const MENU: { group: string; items: { id: ViewId; label: string; icon: typeof Su
     group: '나의 하루',
     items: [
       { id: 'dashboard', label: '대시보드', icon: LayoutDashboard },
+      { id: 'checklist', label: '체크리스트', icon: CheckSquare },
       { id: 'timetable', label: '오늘의 시간표', icon: Table },
       { id: 'monthly', label: '월간 일정', icon: CalendarDays },
       { id: 'memo', label: '간단 메모', icon: NotebookPen },

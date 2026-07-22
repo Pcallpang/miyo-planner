@@ -128,11 +128,20 @@ export default function TodoCard({ todos, setTodos, onAdd }: Props) {
               }
               className={`h-4 w-4 shrink-0 rounded border-2 accent-mint-500 ${CATEGORY_COLORS[todo.category]}`}
             />
-            <span
-              className={`flex-1 truncate text-sm ${todo.done ? 'text-slate-300 line-through' : 'text-slate-700'}`}
-              title={todo.memo || undefined}
-            >
-              {todo.text}
+            <span className="relative min-w-0 flex-1">
+              <span
+                className={`block truncate text-sm transition-colors duration-300 ${
+                  todo.done ? 'text-slate-300' : 'text-slate-700'
+                }`}
+                title={todo.memo || undefined}
+              >
+                {todo.text}
+              </span>
+              <span
+                className={`pointer-events-none absolute top-1/2 left-0 h-px w-full origin-left bg-slate-400 transition-transform duration-300 ease-out ${
+                  todo.done ? 'scale-x-100' : 'scale-x-0'
+                }`}
+              />
             </span>
             {todo.link && (
               <a
