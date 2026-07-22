@@ -12,10 +12,10 @@ const DEFAULT_SETTINGS = {
 };
 
 export function defaultAppState() {
-  return { todos: [], meetings: [], memos: [], timetable: {}, settings: { ...DEFAULT_SETTINGS } };
+  return { todos: [], meetings: [], memos: [], timetable: {}, settings: { ...DEFAULT_SETTINGS }, holidays: {} };
 }
 
-const KEYS = ['todos', 'meetings', 'memos', 'timetable', 'settings'];
+const KEYS = ['todos', 'meetings', 'memos', 'timetable', 'settings', 'holidays'];
 
 export function mergeAppState(existing, patch) {
   if (!patch || typeof patch !== 'object' || Object.keys(patch).length === 0) return existing;

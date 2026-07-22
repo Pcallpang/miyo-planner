@@ -10,7 +10,6 @@ import DashboardView from './views/DashboardView';
 import MemoView from './views/MemoView';
 import MonthlyView from './views/MonthlyView';
 import SettingsView from './views/SettingsView';
-import TimerView from './views/TimerView';
 import TimetableView from './views/TimetableView';
 import type { ViewId } from './types';
 
@@ -43,7 +42,6 @@ export default function App() {
           {view === 'timetable' && <TimetableView />}
           {view === 'monthly' && <MonthlyView />}
           {view === 'memo' && <MemoView />}
-          {view === 'timer' && <TimerView />}
           {view === 'settings' && <SettingsView />}
         </main>
       </div>

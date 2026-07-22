@@ -1,16 +1,18 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { format } from 'date-fns';
-import { ko } from 'date-fns/locale';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
-import { eventsOnDay, eventTimeLabel } from '../lib/events';
 import { reconcileMeetings } from '../lib/meetingSync';
+import { getHoliday } from '../lib/holidays';
 import MonthCalendar from '../components/MonthCalendar';
 import LiveStatusCard from '../components/dashboard/LiveStatusCard';
 import MeetingsCard from '../components/dashboard/MeetingsCard';
 import TodoCard from '../components/dashboard/TodoCard';
 import WeeklySummary from '../components/dashboard/WeeklySummary';
-import type { Meeting, Todo } from '../types';
+import TodoModal from '../components/TodoModal';
+import MeetingModal from '../components/MeetingModal';
+import DateActionModal from '../components/DateActionModal';
+import type { Meeting, Todo, TodoCategory } from '../types';
 
 export default function DashboardView() {
   const { events, eventsRange, settings, ensureEvents, showToast } = useApp();
@@ -21,8 +23,12 @@ export default function DashboardView() {
     update((prev) => ({ todos: typeof next === 'function' ? next(prev.todos) : next }));
   const setMeetings: Dispatch<SetStateAction<Meeting[]>> = (next) =>
     update((prev) => ({ meetings: typeof next === 'function' ? next(prev.meetings) : next }));
+
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState(() => new Date());
+  const [dateAction, setDateAction] = useState<Date | null>(null);
+  const [todoModal, setTodoModal] = useState<{ category: TodoCategory; date?: string } | null>(null);
+  const [meetingModal, setMeetingModal] = useState<{ editing?: Meeting; date?: string } | null>(null);
 
   useEffect(() => {
     void ensureEvents(month);
@@ -42,7 +48,26 @@ export default function DashboardView() {
     }
   }, [events, eventsRange, meetings, setMeetings, showToast]);
 
-  const selectedEvents = eventsOnDay(events, selected);
+  function selectDate(day: Date) {
+    setSelected(day);
+    setDateAction(day);
+  }
+
+  function toggleHoliday(day: Date) {
+    const key = format(day, 'yyyy-MM-dd');
+    update((prev) => {
+      const h = { ...(prev.holidays ?? {}) };
+      if (h[key]) {
+        delete h[key];
+        showToast('info', '휴일 지정을 해제했습니다.');
+      } else {
+        h[key] = '재량휴업일';
+        showToast('success', '휴일로 지정했습니다.');
+      }
+      return { holidays: h };
+    });
+    setDateAction(null);
+  }
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -55,39 +80,66 @@ export default function DashboardView() {
             month={month}
             onMonthChange={setMonth}
             selected={selected}
-            onSelect={setSelected}
+            onSelect={selectDate}
             events={events}
             weekStartsOn={settings.weekStartsOn}
-            compact
+            holidays={data.holidays}
           />
-          <div className="mt-4 border-t border-slate-100 pt-4">
-            <p className="mb-2 text-sm font-semibold text-slate-600">
-              {format(selected, 'M월 d일 (EEE)', { locale: ko })} 일정
-            </p>
-            {selectedEvents.length === 0 ? (
-              <p className="text-sm text-slate-400">일정이 없습니다.</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {selectedEvents.map((ev) => (
-                  <li key={ev.id} className="flex items-center gap-2 text-sm">
-                    <span className="w-24 shrink-0 text-xs font-medium text-mint-600">
-                      {eventTimeLabel(ev)}
-                    </span>
-                    <span className="truncate text-slate-700">{ev.title}</span>
-                    {ev.location && <span className="truncate text-xs text-slate-400">@ {ev.location}</span>}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
         </section>
       </div>
 
       <div className="space-y-6">
         <LiveStatusCard />
-        <TodoCard todos={todos} setTodos={setTodos} />
-        <MeetingsCard meetings={meetings} setMeetings={setMeetings} />
+        <TodoCard todos={todos} setTodos={setTodos} onAdd={(category) => setTodoModal({ category })} />
+        <MeetingsCard
+          meetings={meetings}
+          setMeetings={setMeetings}
+          onAdd={() => setMeetingModal({})}
+          onEdit={(m) => setMeetingModal({ editing: m })}
+        />
       </div>
+
+      {/* 날짜 클릭 팝업 */}
+      {dateAction && (
+        <DateActionModal
+          date={dateAction}
+          holidayLabel={getHoliday(format(dateAction, 'yyyy-MM-dd'), data.holidays)}
+          onClose={() => setDateAction(null)}
+          onAddTodo={() => {
+            setTodoModal({ category: '업무', date: format(dateAction, 'yyyy-MM-dd') });
+            setDateAction(null);
+          }}
+          onAddMeeting={() => {
+            setMeetingModal({ date: format(dateAction, 'yyyy-MM-dd') });
+            setDateAction(null);
+          }}
+          onToggleHoliday={() => toggleHoliday(dateAction)}
+        />
+      )}
+
+      {/* 새 할 일 추가 모달 */}
+      {todoModal && (
+        <TodoModal
+          defaultCategory={todoModal.category}
+          defaultDate={todoModal.date}
+          onClose={() => setTodoModal(null)}
+          onSave={(todo) => setTodos((prev) => [...prev, todo])}
+        />
+      )}
+
+      {/* 새 회의 추가/수정 모달 */}
+      {meetingModal && (
+        <MeetingModal
+          editing={meetingModal.editing}
+          defaultDate={meetingModal.date}
+          onClose={() => setMeetingModal(null)}
+          onCommit={(meeting, isNew) =>
+            setMeetings((prev) =>
+              isNew ? [...prev, meeting] : prev.map((m) => (m.id === meeting.id ? meeting : m)),
+            )
+          }
+        />
+      )}
     </div>
   );
 }

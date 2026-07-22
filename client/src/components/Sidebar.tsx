@@ -6,7 +6,6 @@ import {
   Settings,
   Sun,
   Table,
-  Timer,
 } from 'lucide-react';
 import type { ViewId } from '../types';
 
@@ -18,7 +17,6 @@ const MENU: { group: string; items: { id: ViewId; label: string; icon: typeof Su
       { id: 'timetable', label: '오늘의 시간표', icon: Table },
       { id: 'monthly', label: '월간 일정', icon: CalendarDays },
       { id: 'memo', label: '간단 메모', icon: NotebookPen },
-      { id: 'timer', label: '타이머', icon: Timer },
     ],
   },
   {
