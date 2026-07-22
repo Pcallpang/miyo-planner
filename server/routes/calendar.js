@@ -58,7 +58,7 @@ function mapEvent(item, calendarId) {
 
 router.get('/calendars', async (req, res) => {
   try {
-    const api = getCalendarApi();
+    const api = await getCalendarApi(req.userId);
     const { data } = await api.calendarList.list({ maxResults: 100 });
     const calendars = (data.items || [])
       .filter((c) => c.accessRole === 'owner' || c.accessRole === 'writer')
@@ -72,7 +72,7 @@ router.get('/calendars', async (req, res) => {
 router.get('/events', async (req, res) => {
   const { calendarId = 'primary', timeMin, timeMax } = req.query;
   try {
-    const api = getCalendarApi();
+    const api = await getCalendarApi(req.userId);
     const { data } = await api.events.list({
       calendarId: String(calendarId),
       timeMin: String(timeMin),
@@ -90,7 +90,7 @@ router.get('/events', async (req, res) => {
 router.post('/events', async (req, res) => {
   const { calendarId = 'primary' } = req.body;
   try {
-    const api = getCalendarApi();
+    const api = await getCalendarApi(req.userId);
     const { data } = await api.events.insert({
       calendarId,
       requestBody: toResource(req.body),
@@ -104,7 +104,7 @@ router.post('/events', async (req, res) => {
 router.patch('/events/:id', async (req, res) => {
   const { calendarId = 'primary' } = req.body;
   try {
-    const api = getCalendarApi();
+    const api = await getCalendarApi(req.userId);
     const { data } = await api.events.patch({
       calendarId,
       eventId: req.params.id,
@@ -119,7 +119,7 @@ router.patch('/events/:id', async (req, res) => {
 router.delete('/events/:id', async (req, res) => {
   const { calendarId = 'primary' } = req.query;
   try {
-    const api = getCalendarApi();
+    const api = await getCalendarApi(req.userId);
     await api.events.delete({ calendarId: String(calendarId), eventId: req.params.id });
     res.json({ ok: true });
   } catch (e) {
