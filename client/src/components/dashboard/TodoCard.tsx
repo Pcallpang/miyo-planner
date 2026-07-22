@@ -1,6 +1,6 @@
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
 import { addDays, format } from 'date-fns';
-import { CalendarClock, ListChecks, Plus, Trash2, Wand2, X } from 'lucide-react';
+import { CalendarClock, Link as LinkIcon, ListChecks, Plus, Trash2, Wand2, X } from 'lucide-react';
 import type { Todo, TodoCategory } from '../../types';
 
 const CATEGORIES: TodoCategory[] = ['업무', '교과', '개인'];
@@ -14,36 +14,18 @@ const CATEGORY_COLORS: Record<TodoCategory, string> = {
 interface Props {
   todos: Todo[];
   setTodos: Dispatch<SetStateAction<Todo[]>>;
+  /** "추가" 버튼 클릭 시 현재 탭 분류로 모달을 연다 */
+  onAdd: (category: TodoCategory) => void;
 }
 
-export default function TodoCard({ todos, setTodos }: Props) {
+export default function TodoCard({ todos, setTodos, onAdd }: Props) {
   const [tab, setTab] = useState<TodoCategory>('업무');
-  const [text, setText] = useState('');
-  const [dueDate, setDueDate] = useState('');
   const [templateOpen, setTemplateOpen] = useState(false);
   const [goal, setGoal] = useState('');
   const [deadline, setDeadline] = useState('');
 
   const visible = todos.filter((t) => t.category === tab);
   const countOf = (c: TodoCategory) => todos.filter((t) => t.category === c && !t.done).length;
-
-  function addTodo(e: FormEvent) {
-    e.preventDefault();
-    if (!text.trim()) return;
-    setTodos((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        text: text.trim(),
-        category: tab,
-        done: false,
-        dueDate: dueDate || undefined,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
-    setText('');
-    setDueDate('');
-  }
 
   function applyTemplate(e: FormEvent) {
     e.preventDefault();
@@ -57,10 +39,7 @@ export default function TodoCard({ todos, setTodos }: Props) {
       { offset: 0, label: '제출/실행' },
     ];
     const items: Todo[] = steps
-      .map(({ offset, label }) => ({
-        due: format(addDays(end, offset), 'yyyy-MM-dd'),
-        label,
-      }))
+      .map(({ offset, label }) => ({ due: format(addDays(end, offset), 'yyyy-MM-dd'), label }))
       .filter(({ due }) => due >= today)
       .map(({ due, label }) => ({
         id: crypto.randomUUID(),
@@ -145,17 +124,28 @@ export default function TodoCard({ todos, setTodos }: Props) {
               type="checkbox"
               checked={todo.done}
               onChange={() =>
-                setTodos((prev) =>
-                  prev.map((t) => (t.id === todo.id ? { ...t, done: !t.done } : t)),
-                )
+                setTodos((prev) => prev.map((t) => (t.id === todo.id ? { ...t, done: !t.done } : t)))
               }
               className={`h-4 w-4 shrink-0 rounded border-2 accent-mint-500 ${CATEGORY_COLORS[todo.category]}`}
             />
             <span
-              className={`flex-1 text-sm ${todo.done ? 'text-slate-300 line-through' : 'text-slate-700'}`}
+              className={`flex-1 truncate text-sm ${todo.done ? 'text-slate-300 line-through' : 'text-slate-700'}`}
+              title={todo.memo || undefined}
             >
               {todo.text}
             </span>
+            {todo.link && (
+              <a
+                href={todo.link}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="shrink-0 text-slate-300 transition hover:text-mint-500"
+                aria-label="관련 링크 열기"
+              >
+                <LinkIcon size={13} />
+              </a>
+            )}
             {todo.dueDate && (
               <span className="flex shrink-0 items-center gap-1 text-[11px] text-slate-400">
                 <CalendarClock size={11} />
@@ -173,28 +163,12 @@ export default function TodoCard({ todos, setTodos }: Props) {
         ))}
       </ul>
 
-      <form onSubmit={addTodo} className="flex gap-2">
-        <input
-          className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none transition focus:border-mint-400 focus:ring-2 focus:ring-mint-100"
-          placeholder="할 일 추가…"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <input
-          type="date"
-          className="w-32 rounded-xl border border-slate-200 px-2 py-2 text-xs text-slate-500 outline-none focus:border-mint-400"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          title="마감일 (선택)"
-        />
-        <button
-          type="submit"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-mint-500 text-white transition hover:bg-mint-600"
-          aria-label="추가"
-        >
-          <Plus size={16} />
-        </button>
-      </form>
+      <button
+        onClick={() => onAdd(tab)}
+        className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-mint-300 py-2.5 text-sm font-medium text-mint-600 transition hover:bg-mint-50"
+      >
+        <Plus size={16} /> 추가
+      </button>
     </section>
   );
 }

@@ -1,4 +1,4 @@
-export type ViewId = 'dashboard' | 'timetable' | 'monthly' | 'memo' | 'timer' | 'settings';
+export type ViewId = 'dashboard' | 'timetable' | 'monthly' | 'memo' | 'settings';
 
 export type TodoCategory = '업무' | '교과' | '개인';
 
@@ -8,6 +8,8 @@ export interface Todo {
   category: TodoCategory;
   done: boolean;
   dueDate?: string; // YYYY-MM-DD
+  link?: string; // 관련 링크(URL)
+  memo?: string; // 상세 메모
   createdAt: string;
 }
 
@@ -17,6 +19,7 @@ export interface Meeting {
   date: string; // YYYY-MM-DD
   time?: string; // HH:mm
   memo: string;
+  link?: string; // 관련 링크(URL)
   googleEventId?: string;
 }
 
@@ -91,6 +94,8 @@ export interface AppData {
   memos: MemoNote[];
   timetable: Timetable;
   settings: Settings;
+  /** 사용자가 지정한 휴일(재량휴업일 등). YYYY-MM-DD → 라벨 */
+  holidays: Record<string, string>;
 }
 
 export interface EventInput {

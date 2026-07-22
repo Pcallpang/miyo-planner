@@ -12,6 +12,7 @@ import {
 } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { eventsOnDay } from '../lib/events';
+import { getHoliday } from '../lib/holidays';
 import { WEEKDAY_LABELS } from '../lib/schedule';
 import type { GEvent } from '../types';
 
@@ -22,8 +23,10 @@ interface Props {
   onSelect: (d: Date) => void;
   events: GEvent[];
   weekStartsOn: 0 | 1;
-  /** true면 칩 대신 점으로 표시 (대시보드용) */
+  /** true면 칩 대신 점으로 표시 (좁은 영역용) */
   compact?: boolean;
+  /** 사용자 지정 휴일(재량휴업일 등). YYYY-MM-DD → 라벨 */
+  holidays?: Record<string, string>;
 }
 
 export default function MonthCalendar({
@@ -34,6 +37,7 @@ export default function MonthCalendar({
   events,
   weekStartsOn,
   compact = false,
+  holidays,
 }: Props) {
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(month), { weekStartsOn }),
@@ -89,31 +93,45 @@ export default function MonthCalendar({
           const inMonth = isSameMonth(day, month);
           const isSel = isSameDay(day, selected);
           const dow = day.getDay();
+          const holiday = getHoliday(format(day, 'yyyy-MM-dd'), holidays);
+          const isCustomHoliday = Boolean(holidays?.[format(day, 'yyyy-MM-dd')]);
+          // 날짜 숫자 색상: 공휴일·일요일 → 빨강, 토요일 → 파랑
+          const numColor = !inMonth
+            ? 'text-slate-300'
+            : holiday || dow === 0
+              ? 'text-rose-500'
+              : dow === 6
+                ? 'text-sky-500'
+                : 'text-slate-600';
           return (
             <button
               key={day.toISOString()}
               onClick={() => onSelect(day)}
-              className={`flex flex-col items-stretch rounded-xl border p-1.5 text-left transition ${
+              className={`relative flex flex-col items-stretch rounded-xl border p-1.5 text-left transition ${
                 isSel
                   ? 'border-mint-400 bg-mint-50'
                   : 'border-transparent hover:border-slate-200 hover:bg-slate-50'
-              } ${compact ? 'min-h-14' : 'min-h-20'}`}
+              } ${compact ? 'min-h-14' : 'min-h-24'}`}
             >
-              <span
-                className={`mx-auto grid h-6 w-6 place-items-center rounded-full text-xs font-semibold ${
-                  isToday(day)
-                    ? 'bg-mint-500 text-white'
-                    : !inMonth
-                      ? 'text-slate-300'
-                      : dow === 0
-                        ? 'text-rose-400'
-                        : dow === 6
-                          ? 'text-sky-500'
-                          : 'text-slate-600'
-                }`}
-              >
-                {format(day, 'd')}
-              </span>
+              <div className="flex items-start justify-between">
+                <span
+                  className={`grid h-6 w-6 place-items-center rounded-full text-xs font-semibold ${
+                    isToday(day) ? 'bg-mint-500 text-white' : numColor
+                  }`}
+                >
+                  {format(day, 'd')}
+                </span>
+                {holiday && (
+                  <span
+                    className={`max-w-[64px] truncate pt-0.5 text-[10px] font-medium ${
+                      isCustomHoliday ? 'text-rose-400' : 'text-rose-500'
+                    }`}
+                    title={holiday}
+                  >
+                    {holiday}
+                  </span>
+                )}
+              </div>
               {compact ? (
                 <span className="mt-1 flex justify-center gap-0.5">
                   {dayEvents.slice(0, 3).map((ev) => (

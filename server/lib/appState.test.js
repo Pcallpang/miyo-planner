@@ -2,11 +2,18 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { defaultAppState, mergeAppState } from './appState.js';
 
-test('defaultAppState는 5개 키를 가진다', () => {
+test('defaultAppState는 6개 키를 가진다', () => {
   const s = defaultAppState();
-  assert.deepEqual(Object.keys(s).sort(), ['meetings','memos','settings','timetable','todos']);
+  assert.deepEqual(Object.keys(s).sort(), ['holidays','meetings','memos','settings','timetable','todos']);
   assert.deepEqual(s.todos, []);
+  assert.deepEqual(s.holidays, {});
   assert.equal(s.settings.periodCount, 7);
+});
+
+test('mergeAppState는 holidays 패치를 반영한다', () => {
+  const base = defaultAppState();
+  const merged = mergeAppState(base, { holidays: { '2026-07-22': '재량휴업일' } });
+  assert.deepEqual(merged.holidays, { '2026-07-22': '재량휴업일' });
 });
 
 test('mergeAppState는 patch의 키만 덮어쓴다', () => {
