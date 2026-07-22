@@ -4,16 +4,22 @@ import { ko } from 'date-fns/locale';
 import { LogIn } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getDayPhase } from '../lib/schedule';
+import { STORAGE_KEYS, loadFromStorage } from '../lib/storage';
+import type { PeriodTime, Timetable } from '../types';
 
-function phaseLabel(now: Date, periodTimes: { start: string; end: string }[], count: number) {
+function phaseLabel(now: Date, periodTimes: PeriodTime[], count: number, timetable: Timetable) {
   const phase = getDayPhase(now, periodTimes, count);
   switch (phase.kind) {
     case 'weekend':
       return '주말';
     case 'before':
       return '일과 전';
-    case 'period':
-      return `${phase.index + 1}교시`;
+    case 'period': {
+      // 현재 교시의 과목·교실을 함께 표시. 둘 다 비어 있으면 '공강'.
+      const slot = timetable[now.getDay()]?.[phase.index];
+      const parts = [slot?.subject, slot?.room].filter((s): s is string => Boolean(s && s.trim()));
+      return `${phase.index + 1}교시 · ${parts.length ? parts.join(' · ') : '공강'}`;
+    }
     case 'break':
       return '쉬는 시간';
     case 'after':
@@ -40,7 +46,12 @@ export default function Header() {
           {format(now, 'HH:mm:ss')}
         </span>
         <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-600">
-          {phaseLabel(now, settings.periodTimes, settings.periodCount)}
+          {phaseLabel(
+            now,
+            settings.periodTimes,
+            settings.periodCount,
+            loadFromStorage<Timetable>(STORAGE_KEYS.timetable, {}),
+          )}
         </span>
       </div>
 
