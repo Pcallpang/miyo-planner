@@ -81,10 +81,16 @@ export interface ServerStatus {
   geminiConfigured: boolean;
   connected: boolean;
   email: string | null;
-  /** 비밀번호 게이트가 켜져 있는지 */
-  authRequired: boolean;
-  /** 현재 세션이 인증되었는지 */
+  /** 현재 세션이 인증되었는지 (구글 로그인 완료 여부) */
   authenticated: boolean;
+}
+
+export interface AppData {
+  todos: Todo[];
+  meetings: Meeting[];
+  memos: MemoNote[];
+  timetable: Timetable;
+  settings: Settings;
 }
 
 export interface EventInput {

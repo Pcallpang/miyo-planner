@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useApp } from '../context/AppContext';
-import { STORAGE_KEYS, useLocalStorage } from '../lib/storage';
+import { useData } from '../context/DataContext';
 import { eventsOnDay, eventTimeLabel } from '../lib/events';
 import { reconcileMeetings } from '../lib/meetingSync';
 import MonthCalendar from '../components/MonthCalendar';
@@ -14,8 +14,13 @@ import type { Meeting, Todo } from '../types';
 
 export default function DashboardView() {
   const { events, eventsRange, settings, ensureEvents, showToast } = useApp();
-  const [todos, setTodos] = useLocalStorage<Todo[]>(STORAGE_KEYS.todos, []);
-  const [meetings, setMeetings] = useLocalStorage<Meeting[]>(STORAGE_KEYS.meetings, []);
+  const { data, update } = useData();
+  const todos = data.todos;
+  const meetings = data.meetings;
+  const setTodos: Dispatch<SetStateAction<Todo[]>> = (next) =>
+    update({ todos: typeof next === 'function' ? next(data.todos) : next });
+  const setMeetings: Dispatch<SetStateAction<Meeting[]>> = (next) =>
+    update({ meetings: typeof next === 'function' ? next(data.meetings) : next });
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState(() => new Date());
 

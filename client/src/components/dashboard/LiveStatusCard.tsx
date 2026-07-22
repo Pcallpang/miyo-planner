@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { STORAGE_KEYS, loadFromStorage } from '../../lib/storage';
+import { useData } from '../../context/DataContext';
 import { getDayPhase } from '../../lib/schedule';
-import type { Timetable } from '../../types';
 
 export default function LiveStatusCard() {
   const { settings } = useApp();
+  const { data } = useData();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -14,7 +14,7 @@ export default function LiveStatusCard() {
     return () => clearInterval(id);
   }, []);
 
-  const timetable = loadFromStorage<Timetable>(STORAGE_KEYS.timetable, {});
+  const timetable = data.timetable;
   const phase = getDayPhase(now, settings.periodTimes, settings.periodCount);
   const todaySlots = timetable[now.getDay()] ?? [];
 

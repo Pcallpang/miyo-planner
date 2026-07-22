@@ -3,8 +3,8 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { LogIn } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useData } from '../context/DataContext';
 import { getDayPhase } from '../lib/schedule';
-import { STORAGE_KEYS, loadFromStorage } from '../lib/storage';
 import type { PeriodTime, Timetable } from '../types';
 
 function phaseLabel(now: Date, periodTimes: PeriodTime[], count: number, timetable: Timetable) {
@@ -29,6 +29,7 @@ function phaseLabel(now: Date, periodTimes: PeriodTime[], count: number, timetab
 
 export default function Header() {
   const { status, connectGoogle, settings } = useApp();
+  const { data } = useData();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -46,12 +47,7 @@ export default function Header() {
           {format(now, 'HH:mm:ss')}
         </span>
         <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-600">
-          {phaseLabel(
-            now,
-            settings.periodTimes,
-            settings.periodCount,
-            loadFromStorage<Timetable>(STORAGE_KEYS.timetable, {}),
-          )}
+          {phaseLabel(now, settings.periodTimes, settings.periodCount, data.timetable)}
         </span>
       </div>
 

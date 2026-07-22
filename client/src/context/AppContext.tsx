@@ -10,7 +10,7 @@ import {
 } from 'react';
 import { addMonths, endOfMonth, startOfMonth } from 'date-fns';
 import { api } from '../lib/api';
-import { STORAGE_KEYS, defaultSettings, normalizeSettings, useLocalStorage } from '../lib/storage';
+import { useData } from './DataContext';
 import type { CalendarInfo, GEvent, ServerStatus, Settings } from '../types';
 
 export interface Toast {
@@ -46,12 +46,9 @@ const AppContext = createContext<AppContextValue | null>(null);
 let toastSeq = 0;
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { data, update } = useData();
+  const settings = data.settings;
   const [status, setStatus] = useState<ServerStatus | null>(null);
-  const [rawSettings, setSettingsState] = useLocalStorage<Settings>(
-    STORAGE_KEYS.settings,
-    defaultSettings(),
-  );
-  const settings = useMemo(() => normalizeSettings(rawSettings), [rawSettings]);
   const [calendars, setCalendars] = useState<CalendarInfo[]>([]);
   const [events, setEvents] = useState<GEvent[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -66,9 +63,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setSettings = useCallback(
-    (updater: (prev: Settings) => Settings) =>
-      setSettingsState((prev) => updater(normalizeSettings(prev))),
-    [setSettingsState],
+    (updater: (prev: Settings) => Settings) => update({ settings: updater(settings) }),
+    [update, settings],
   );
 
   const refreshStatus = useCallback(async () => {

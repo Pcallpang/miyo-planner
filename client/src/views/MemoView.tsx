@@ -1,12 +1,15 @@
 import { format, parseISO } from 'date-fns';
 import { NotebookPen, Plus, Trash2 } from 'lucide-react';
-import { STORAGE_KEYS, useLocalStorage } from '../lib/storage';
+import { useData } from '../context/DataContext';
 import type { MemoNote } from '../types';
 
 const CARD_TINTS = ['bg-mint-50', 'bg-sky-50', 'bg-amber-50', 'bg-rose-50', 'bg-violet-50'];
 
 export default function MemoView() {
-  const [memos, setMemos] = useLocalStorage<MemoNote[]>(STORAGE_KEYS.memos, []);
+  const { data, update } = useData();
+  const memos = data.memos;
+  const setMemos = (updater: (prev: MemoNote[]) => MemoNote[]) =>
+    update({ memos: updater(data.memos) });
 
   function addMemo() {
     setMemos((prev) => [
