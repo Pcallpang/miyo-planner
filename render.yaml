@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: miyo-planner
+    runtime: node
+    plan: free
+    # 빌드: 워크스페이스 의존성 설치(devDependencies 포함) 후 프론트 빌드
+    buildCommand: npm install --include=dev && npm run build
+    # 실행: Express가 API와 빌드된 프론트엔드를 같은 주소에서 서빙
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # ── 비밀(대시보드에서 값 입력) ───────────────────────────
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      # 앱 접속 비밀번호 (원하는 값으로 설정)
+      - key: APP_PASSWORD
+        sync: false
+      # 세션 서명 키 — Render가 자동 생성
+      - key: SESSION_SECRET
+        generateValue: true
+      # ── 기본값 ──────────────────────────────────────────────
+      - key: GEMINI_MODEL
+        value: gemini-flash-lite-latest
+      # (선택) 재배포에도 구글 연동 유지하려면 값 입력
+      - key: GOOGLE_REFRESH_TOKEN
+        sync: false

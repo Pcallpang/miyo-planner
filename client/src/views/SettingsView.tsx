@@ -1,0 +1,225 @@
+import { LogOut, Settings as SettingsIcon, Unplug } from 'lucide-react';
+import { useApp } from '../context/AppContext';
+import { api } from '../lib/api';
+import { clearAppData, defaultSettings } from '../lib/storage';
+
+export default function SettingsView() {
+  const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
+    useApp();
+
+  async function appLogout() {
+    await api.sessionLogout();
+    await refreshStatus();
+  }
+
+  function setPeriodCount(count: number) {
+    const n = Math.max(1, Math.min(10, count));
+    setSettings((prev) => {
+      const times = [...prev.periodTimes];
+      const defaults = defaultSettings().periodTimes;
+      while (times.length < n) {
+        const last = times[times.length - 1];
+        times.push(
+          defaults[times.length] ?? {
+            start: last ? last.end : '09:00',
+            end: last ? last.end : '09:50',
+          },
+        );
+      }
+      return { ...prev, periodCount: n, periodTimes: times };
+    });
+  }
+
+  function resetData() {
+    if (!window.confirm('시간표·메모·To-Do·설정 등 앱에 저장된 모든 데이터를 초기화할까요?\n(구글 캘린더의 일정은 삭제되지 않습니다)')) return;
+    clearAppData();
+    showToast('info', '앱 데이터가 초기화되었습니다. 새로고침합니다.');
+    setTimeout(() => window.location.reload(), 800);
+  }
+
+  const rowCls = 'flex items-center justify-between gap-4 py-4';
+  const labelCls = 'text-sm font-medium text-slate-700';
+  const descCls = 'mt-0.5 text-xs text-slate-400';
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-6">
+      <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+        <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-slate-800">
+          <SettingsIcon size={18} className="text-mint-500" />
+          환경 설정
+        </h2>
+
+        <div className="divide-y divide-slate-100">
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>교시 수</p>
+              <p className={descCls}>하루 일과의 교시 수 (1~10). 교시별 시간은 시간표 화면에서 수정합니다.</p>
+            </div>
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={settings.periodCount}
+              onChange={(e) => setPeriodCount(Number(e.target.value) || 1)}
+              className="w-20 rounded-xl border border-slate-200 px-3 py-2 text-center text-sm outline-none focus:border-mint-400"
+            />
+          </div>
+
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>주 시작 요일</p>
+              <p className={descCls}>캘린더의 첫 번째 열에 표시할 요일입니다.</p>
+            </div>
+            <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+              {([0, 1] as const).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setSettings((prev) => ({ ...prev, weekStartsOn: d }))}
+                  className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${
+                    settings.weekStartsOn === d
+                      ? 'bg-white text-mint-700 shadow-sm'
+                      : 'text-slate-500'
+                  }`}
+                >
+                  {d === 0 ? '일요일' : '월요일'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>일정 알림</p>
+              <p className={descCls}>
+                시간이 지정된 일정 시작 전에 브라우저 알림을 띄웁니다. 처음 사용 시 알림 권한을 허용해야 합니다.
+              </p>
+            </div>
+            <select
+              value={settings.reminderMinutes}
+              onChange={(e) =>
+                setSettings((prev) => ({ ...prev, reminderMinutes: Number(e.target.value) }))
+              }
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-mint-400"
+            >
+              <option value={0}>끔</option>
+              <option value={5}>5분 전</option>
+              <option value={10}>10분 전</option>
+              <option value={15}>15분 전</option>
+              <option value={30}>30분 전</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+        <h3 className="mb-2 text-base font-bold text-slate-800">구글 캘린더 연동</h3>
+
+        <div className="divide-y divide-slate-100">
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>연동 상태</p>
+              <p className={descCls}>
+                {!status
+                  ? '서버에 연결할 수 없습니다.'
+                  : !status.googleConfigured
+                    ? '.env에 구글 OAuth 키가 설정되지 않았습니다. README를 참고하세요.'
+                    : status.connected
+                      ? `${status.email ?? '알 수 없는 계정'}으로 연동되어 있습니다.`
+                      : '연동되어 있지 않습니다.'}
+              </p>
+            </div>
+            {status?.connected ? (
+              <button
+                onClick={() => void disconnectGoogle()}
+                className="flex shrink-0 items-center gap-1.5 rounded-xl border border-rose-200 px-3.5 py-2 text-sm font-medium text-rose-500 transition hover:bg-rose-50"
+              >
+                <Unplug size={14} /> 연동 해제
+              </button>
+            ) : (
+              <button
+                onClick={() => void connectGoogle()}
+                disabled={!status?.googleConfigured}
+                className="shrink-0 rounded-xl bg-mint-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-40"
+              >
+                구글 계정 연동
+              </button>
+            )}
+          </div>
+
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>사용할 캘린더</p>
+              <p className={descCls}>앱에서 만든 일정이 등록될 구글 캘린더입니다.</p>
+            </div>
+            <select
+              value={settings.calendarId}
+              onChange={(e) => setSettings((prev) => ({ ...prev, calendarId: e.target.value }))}
+              disabled={!status?.connected}
+              className="max-w-52 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-mint-400 disabled:opacity-40"
+            >
+              <option value="primary">기본 캘린더</option>
+              {calendars
+                .filter((c) => !c.primary)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>Gemini API</p>
+              <p className={descCls}>
+                {status?.geminiConfigured
+                  ? '설정되어 있습니다. 쪽지 붙여넣기 기능을 사용할 수 있습니다.'
+                  : '.env에 GEMINI_API_KEY가 설정되지 않았습니다. README를 참고하세요.'}
+              </p>
+            </div>
+            <span
+              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                status?.geminiConfigured ? 'bg-mint-500' : 'bg-slate-300'
+              }`}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+        <h3 className="mb-2 text-base font-bold text-slate-800">데이터</h3>
+        <div className="divide-y divide-slate-100">
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>데이터 초기화</p>
+              <p className={descCls}>
+                브라우저에 저장된 To-Do·시간표·메모·설정을 모두 삭제합니다. 구글 캘린더는 영향받지 않습니다.
+              </p>
+            </div>
+            <button
+              onClick={resetData}
+              className="shrink-0 rounded-xl border border-rose-200 px-4 py-2 text-sm font-medium text-rose-500 transition hover:bg-rose-50"
+            >
+              초기화
+            </button>
+          </div>
+
+          {status?.authRequired && (
+            <div className={rowCls}>
+              <div>
+                <p className={labelCls}>앱 로그아웃</p>
+                <p className={descCls}>이 기기에서 로그아웃합니다. 다시 사용하려면 비밀번호를 입력해야 합니다.</p>
+              </div>
+              <button
+                onClick={() => void appLogout()}
+                className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              >
+                <LogOut size={14} /> 로그아웃
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
