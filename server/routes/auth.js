@@ -1,57 +1,54 @@
 import { Router } from 'express';
 import {
-  isGoogleConfigured,
-  createOAuthClient,
-  SCOPES,
-  saveTokens,
-  disconnect,
+  isGoogleConfigured, createOAuthClient, SCOPES, profileFromIdToken, saveTokensForUser,
 } from '../lib/google.js';
-import { clientUrl } from '../lib/urls.js';
+import { upsertUser, deleteUserTokens } from '../lib/db.js';
+import { makeSessionToken, sessionUserId } from '../lib/auth.js';
+import { clientUrl, isSecureOrigin } from '../lib/urls.js';
 
 const router = Router();
 
+function setSessionCookie(res, userId) {
+  const parts = [`session=${makeSessionToken(userId)}`, 'HttpOnly', 'Path=/', 'SameSite=Lax',
+    `Max-Age=${30 * 24 * 60 * 60}`];
+  if (isSecureOrigin()) parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+}
+
 router.get('/url', (req, res) => {
-  if (!isGoogleConfigured()) {
-    return res.status(503).json({
-      error: '구글 OAuth 키가 설정되지 않았습니다. .env의 GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET을 확인하세요.',
-    });
-  }
+  if (!isGoogleConfigured()) return res.status(503).json({ error: '구글 OAuth 키가 설정되지 않았습니다.' });
   const url = createOAuthClient().generateAuthUrl({
-    access_type: 'offline',
-    prompt: 'consent',
-    scope: SCOPES,
+    access_type: 'offline', prompt: 'consent', scope: SCOPES,
   });
   res.json({ url });
 });
 
 router.get('/google/callback', async (req, res) => {
   const { code, error } = req.query;
-  if (error || !code) {
-    return res.redirect(`${clientUrl()}/?auth=error&message=${encodeURIComponent(String(error || '인증 코드가 없습니다.'))}`);
-  }
+  if (error || !code) return res.redirect(`${clientUrl()}/?auth=error`);
   try {
     const { tokens } = await createOAuthClient().getToken(String(code));
-    saveTokens(tokens);
-    // 임시 디스크 호스트(예: Render 무료)에서는 재배포 시 토큰이 사라진다.
-    // GOOGLE_REFRESH_TOKEN 환경변수로 고정하면 재로그인 없이 유지된다.
-    if (tokens.refresh_token) {
-      if (process.env.LOG_REFRESH_TOKEN === '1') {
-        console.log(`[auth] GOOGLE_REFRESH_TOKEN=${tokens.refresh_token}`);
-      } else {
-        console.log(
-          '[auth] refresh_token 확보됨. 재배포에도 유지하려면 LOG_REFRESH_TOKEN=1로 한 번 로그인해 값을 확인한 뒤 GOOGLE_REFRESH_TOKEN에 설정하세요.',
-        );
-      }
-    }
+    const { sub, email, name } = profileFromIdToken(tokens.id_token);
+    if (!sub) throw new Error('id_token 없음');
+    const user = await upsertUser({ googleSub: sub, email, name });
+    await saveTokensForUser(user.id, tokens);
+    setSessionCookie(res, user.id);
     res.redirect(`${clientUrl()}/?auth=success`);
   } catch (e) {
-    console.error('[auth] 토큰 교환 실패:', e.message);
-    res.redirect(`${clientUrl()}/?auth=error&message=${encodeURIComponent('토큰 교환에 실패했습니다.')}`);
+    console.error('[auth] 로그인 실패:', e.message);
+    res.redirect(`${clientUrl()}/?auth=error`);
   }
 });
 
 router.post('/logout', (req, res) => {
-  disconnect();
+  res.setHeader('Set-Cookie', 'session=; HttpOnly; Path=/; Max-Age=0');
+  res.json({ ok: true });
+});
+
+router.post('/disconnect', async (req, res) => {
+  const userId = sessionUserId(req);
+  if (userId) await deleteUserTokens(userId);
+  res.setHeader('Set-Cookie', 'session=; HttpOnly; Path=/; Max-Age=0');
   res.json({ ok: true });
 });
 
