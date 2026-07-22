@@ -84,6 +84,17 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
             </ul>
           </div>
         ))}
+
+        {/* 미요툰 보러가기 */}
+        <a
+          href="https://www.instagram.com/me_yotoon?igsh=MXNidXNrcnNjZGY3Zw=="
+          target="_blank"
+          rel="noreferrer"
+          className="mt-6 flex flex-col items-center gap-1.5 rounded-2xl bg-mint-50 p-3 text-center transition hover:bg-mint-100"
+        >
+          <img src="/miyo.png" alt="미요" width={48} height={48} draggable={false} />
+          <span className="text-xs font-semibold text-mint-700">미요툰 보러가기 →</span>
+        </a>
       </nav>
 
       {status?.authenticated && (
