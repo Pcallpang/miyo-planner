@@ -87,7 +87,10 @@ export interface ParsedTodo {
 
 export interface ServerStatus {
   googleConfigured: boolean;
+  /** 본인 키 또는 서버 기본 키로 Gemini 사용 가능한지 */
   geminiConfigured: boolean;
+  /** 사용자가 본인 Gemini 키를 등록했는지 */
+  geminiUserKey: boolean;
   connected: boolean;
   email: string | null;
   /** 현재 세션이 인증되었는지 (구글 로그인 완료 여부) */

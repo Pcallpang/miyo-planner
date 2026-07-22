@@ -1,8 +1,27 @@
 import { Router } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { isQuotaError, parseRetryAfterSeconds } from '../lib/geminiErrors.js';
+import { encrypt, decrypt, deriveKey } from '../lib/crypto.js';
+import { saveUserGeminiKey, getUserGeminiKeyEnc, deleteUserGeminiKey } from '../lib/db.js';
 
 const router = Router();
+
+function encKey() {
+  return deriveKey(process.env.TOKEN_ENC_KEY || 'dev-key');
+}
+
+/** 로그인 사용자의 Gemini 키(있으면) 또는 서버 기본 키를 반환. 없으면 null. */
+async function resolveGeminiKey(userId) {
+  const enc = await getUserGeminiKeyEnc(userId);
+  if (enc) {
+    try {
+      return decrypt(enc, encKey());
+    } catch {
+      /* 복호화 실패 시 서버 키로 폴백 */
+    }
+  }
+  return process.env.GEMINI_API_KEY || null;
+}
 
 function todayInSeoul() {
   const now = new Date();
@@ -95,18 +114,43 @@ function normalizeTodo(raw) {
   return { text, category, dueDate };
 }
 
+// 사용자 Gemini 키 저장(암호화)
+router.post('/key', async (req, res) => {
+  const key = typeof req.body?.key === 'string' ? req.body.key.trim() : '';
+  if (!key) return res.status(400).json({ error: 'Gemini API 키를 입력해 주세요.' });
+  try {
+    await saveUserGeminiKey(req.userId, encrypt(key, encKey()));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[gemini] 키 저장 실패:', e.message);
+    res.status(500).json({ error: '키 저장에 실패했습니다.' });
+  }
+});
+
+// 사용자 Gemini 키 연결 해제
+router.delete('/key', async (req, res) => {
+  try {
+    await deleteUserGeminiKey(req.userId);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[gemini] 키 삭제 실패:', e.message);
+    res.status(500).json({ error: '키 삭제에 실패했습니다.' });
+  }
+});
+
 router.post('/parse', async (req, res) => {
   const { text } = req.body || {};
-  if (!process.env.GEMINI_API_KEY) {
+  const geminiKey = await resolveGeminiKey(req.userId);
+  if (!geminiKey) {
     return res.status(503).json({
-      error: 'Gemini API 키가 설정되지 않았습니다. .env의 GEMINI_API_KEY를 확인하세요.',
+      error: 'Gemini API 키가 없습니다. 환경 설정에서 본인의 Gemini API 키를 연결해 주세요.',
     });
   }
   if (!text || typeof text !== 'string' || !text.trim()) {
     return res.status(400).json({ error: '쪽지 내용을 입력해 주세요.' });
   }
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(geminiKey);
     const model = genAI.getGenerativeModel({
       model: process.env.GEMINI_MODEL || 'gemini-flash-lite-latest',
       generationConfig: { responseMimeType: 'application/json' },

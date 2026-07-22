@@ -1,6 +1,6 @@
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
 import { addDays, format } from 'date-fns';
-import { CalendarClock, Link as LinkIcon, Plus, Trash2, Wand2, X } from 'lucide-react';
+import { CalendarClock, Link as LinkIcon, Pencil, Plus, Trash2, Wand2, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import TodoModal from '../components/TodoModal';
@@ -27,7 +27,7 @@ export default function ChecklistView() {
   const [templateOpen, setTemplateOpen] = useState(false);
   const [goal, setGoal] = useState('');
   const [deadline, setDeadline] = useState('');
-  const [addOpen, setAddOpen] = useState(false);
+  const [modal, setModal] = useState<{ editing?: Todo } | null>(null);
 
   const visible = todos.filter((t) => t.category === tab);
   const countOf = (c: TodoCategory) => todos.filter((t) => t.category === c && !t.done).length;
@@ -167,6 +167,13 @@ export default function ChecklistView() {
                 </span>
               )}
               <button
+                onClick={() => setModal({ editing: todo })}
+                className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-mint-500"
+                aria-label="수정"
+              >
+                <Pencil size={14} />
+              </button>
+              <button
                 onClick={() => setTodos((prev) => prev.filter((t) => t.id !== todo.id))}
                 className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
                 aria-label="삭제"
@@ -178,18 +185,23 @@ export default function ChecklistView() {
         </ul>
 
         <button
-          onClick={() => setAddOpen(true)}
+          onClick={() => setModal({})}
           className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-mint-300 py-3 text-sm font-medium text-mint-600 transition hover:bg-mint-50"
         >
           <Plus size={16} /> 추가
         </button>
       </section>
 
-      {addOpen && (
+      {modal && (
         <TodoModal
+          editing={modal.editing}
           defaultCategory={tab}
-          onClose={() => setAddOpen(false)}
-          onSave={(todo) => setTodos((prev) => [...prev, todo])}
+          onClose={() => setModal(null)}
+          onSave={(todo) =>
+            setTodos((prev) =>
+              modal.editing ? prev.map((t) => (t.id === todo.id ? todo : t)) : [...prev, todo],
+            )
+          }
         />
       )}
     </div>

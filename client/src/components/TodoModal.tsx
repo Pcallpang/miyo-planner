@@ -7,19 +7,21 @@ import type { Todo, TodoCategory } from '../types';
 const CATEGORIES: TodoCategory[] = ['업무', '교과', '개인'];
 
 interface Props {
+  /** 수정 시 기존 할 일, 추가 시 undefined */
+  editing?: Todo;
   defaultCategory?: TodoCategory;
   defaultDate?: string; // YYYY-MM-DD
   onClose: () => void;
   onSave: (todo: Todo) => void;
 }
 
-export default function TodoModal({ defaultCategory = '업무', defaultDate, onClose, onSave }: Props) {
+export default function TodoModal({ editing, defaultCategory = '업무', defaultDate, onClose, onSave }: Props) {
   const { showToast } = useApp();
-  const [category, setCategory] = useState<TodoCategory>(defaultCategory);
-  const [title, setTitle] = useState('');
-  const [dueDate, setDueDate] = useState(defaultDate ?? '');
-  const [link, setLink] = useState('');
-  const [memo, setMemo] = useState('');
+  const [category, setCategory] = useState<TodoCategory>(editing?.category ?? defaultCategory);
+  const [title, setTitle] = useState(editing?.text ?? '');
+  const [dueDate, setDueDate] = useState(editing?.dueDate ?? defaultDate ?? '');
+  const [link, setLink] = useState(editing?.link ?? '');
+  const [memo, setMemo] = useState(editing?.memo ?? '');
 
   function submit(e: FormEvent, close: () => void) {
     e.preventDefault();
@@ -28,14 +30,14 @@ export default function TodoModal({ defaultCategory = '업무', defaultDate, onC
       return;
     }
     onSave({
-      id: crypto.randomUUID(),
+      id: editing?.id ?? crypto.randomUUID(),
       text: title.trim(),
       category,
-      done: false,
+      done: editing?.done ?? false,
       dueDate: dueDate || undefined,
       link: link.trim() || undefined,
       memo: memo.trim() || undefined,
-      createdAt: new Date().toISOString(),
+      createdAt: editing?.createdAt ?? new Date().toISOString(),
     });
     close();
   }
@@ -45,7 +47,7 @@ export default function TodoModal({ defaultCategory = '업무', defaultDate, onC
   const labelCls = 'mb-1.5 block text-sm font-semibold text-slate-700';
 
   return (
-    <SlidePanel title="새 할 일 추가" onClose={onClose}>
+    <SlidePanel title={editing ? '할 일 수정' : '새 할 일 추가'} onClose={onClose}>
       {(close) => (
         <form onSubmit={(e) => submit(e, close)} className="space-y-4">
           <div>

@@ -27,7 +27,7 @@ export default function DashboardView() {
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState(() => new Date());
   const [dateAction, setDateAction] = useState<Date | null>(null);
-  const [todoModal, setTodoModal] = useState<{ category: TodoCategory; date?: string } | null>(null);
+  const [todoModal, setTodoModal] = useState<{ category: TodoCategory; date?: string; editing?: Todo } | null>(null);
   const [meetingModal, setMeetingModal] = useState<{ editing?: Meeting; date?: string } | null>(null);
 
   useEffect(() => {
@@ -90,7 +90,12 @@ export default function DashboardView() {
 
       <div className="space-y-6">
         <LiveStatusCard />
-        <TodoCard todos={todos} setTodos={setTodos} onAdd={(category) => setTodoModal({ category })} />
+        <TodoCard
+          todos={todos}
+          setTodos={setTodos}
+          onAdd={(category) => setTodoModal({ category })}
+          onEdit={(todo) => setTodoModal({ category: todo.category, editing: todo })}
+        />
         <MeetingsCard
           meetings={meetings}
           setMeetings={setMeetings}
@@ -117,13 +122,18 @@ export default function DashboardView() {
         />
       )}
 
-      {/* 새 할 일 추가 모달 */}
+      {/* 새 할 일 추가/수정 모달 */}
       {todoModal && (
         <TodoModal
+          editing={todoModal.editing}
           defaultCategory={todoModal.category}
           defaultDate={todoModal.date}
           onClose={() => setTodoModal(null)}
-          onSave={(todo) => setTodos((prev) => [...prev, todo])}
+          onSave={(todo) =>
+            setTodos((prev) =>
+              todoModal.editing ? prev.map((t) => (t.id === todo.id ? todo : t)) : [...prev, todo],
+            )
+          }
         />
       )}
 

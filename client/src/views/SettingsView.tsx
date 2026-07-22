@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { LogOut, Settings as SettingsIcon, Unplug } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
@@ -9,10 +10,37 @@ export default function SettingsView() {
   const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
     useApp();
   const { update } = useData();
+  const [geminiKeyInput, setGeminiKeyInput] = useState('');
+  const [savingKey, setSavingKey] = useState(false);
 
   async function appLogout() {
     await api.logout();
     await refreshStatus();
+  }
+
+  async function saveGeminiKey() {
+    if (!geminiKeyInput.trim()) return;
+    setSavingKey(true);
+    try {
+      await api.setGeminiKey(geminiKeyInput.trim());
+      setGeminiKeyInput('');
+      await refreshStatus();
+      showToast('success', 'Gemini API 키가 연결되었습니다.');
+    } catch (e) {
+      showToast('error', e instanceof Error ? e.message : '키 저장에 실패했습니다.');
+    } finally {
+      setSavingKey(false);
+    }
+  }
+
+  async function removeGeminiKey() {
+    try {
+      await api.deleteGeminiKey();
+      await refreshStatus();
+      showToast('info', 'Gemini API 키 연결을 해제했습니다.');
+    } catch (e) {
+      showToast('error', e instanceof Error ? e.message : '해제에 실패했습니다.');
+    }
   }
 
   function setPeriodCount(count: number) {
@@ -172,20 +200,56 @@ export default function SettingsView() {
             </select>
           </div>
 
-          <div className={rowCls}>
-            <div>
-              <p className={labelCls}>Gemini API</p>
-              <p className={descCls}>
-                {status?.geminiConfigured
-                  ? '설정되어 있습니다. 쪽지 붙여넣기 기능을 사용할 수 있습니다.'
-                  : '.env에 GEMINI_API_KEY가 설정되지 않았습니다. README를 참고하세요.'}
-              </p>
+          <div className="py-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className={labelCls}>Gemini API 키</p>
+                <p className={descCls}>
+                  {status?.geminiUserKey
+                    ? '본인 Gemini API 키를 사용 중입니다. (쪽지 분석이 개인 할당량으로 처리됩니다)'
+                    : status?.geminiConfigured
+                      ? '서버 기본 키를 사용 중입니다. 본인 키를 연결하면 개인 할당량으로 사용합니다.'
+                      : '키가 없습니다. 본인 Gemini API 키를 연결해야 쪽지 분석 기능을 쓸 수 있습니다.'}
+                </p>
+              </div>
+              <span
+                className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                  status?.geminiConfigured ? 'bg-mint-500' : 'bg-slate-300'
+                }`}
+              />
             </div>
-            <span
-              className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                status?.geminiConfigured ? 'bg-mint-500' : 'bg-slate-300'
-              }`}
-            />
+            <div className="mt-3 flex gap-2">
+              <input
+                type="password"
+                value={geminiKeyInput}
+                onChange={(e) => setGeminiKeyInput(e.target.value)}
+                placeholder={status?.geminiUserKey ? '새 키로 교체하려면 입력' : 'AI Studio에서 발급한 Gemini API 키'}
+                className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-mint-400"
+              />
+              <button
+                onClick={() => void saveGeminiKey()}
+                disabled={savingKey || !geminiKeyInput.trim()}
+                className="shrink-0 rounded-xl bg-mint-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-40"
+              >
+                {savingKey ? '저장 중…' : '연결'}
+              </button>
+              {status?.geminiUserKey && (
+                <button
+                  onClick={() => void removeGeminiKey()}
+                  className="shrink-0 rounded-xl border border-rose-200 px-4 py-2 text-sm font-medium text-rose-500 transition hover:bg-rose-50"
+                >
+                  연결 해제
+                </button>
+              )}
+            </div>
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block text-xs text-mint-600 underline-offset-2 hover:underline"
+            >
+              Gemini API 키 발급받기 (Google AI Studio) →
+            </a>
           </div>
         </div>
       </section>

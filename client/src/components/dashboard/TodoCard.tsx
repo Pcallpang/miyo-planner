@@ -1,6 +1,6 @@
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
 import { addDays, format } from 'date-fns';
-import { CalendarClock, Link as LinkIcon, ListChecks, Plus, Trash2, Wand2, X } from 'lucide-react';
+import { CalendarClock, Link as LinkIcon, ListChecks, Pencil, Plus, Trash2, Wand2, X } from 'lucide-react';
 import DateField from '../DateField';
 import TodayEvents from './TodayEvents';
 import type { Todo, TodoCategory } from '../../types';
@@ -18,9 +18,10 @@ interface Props {
   setTodos: Dispatch<SetStateAction<Todo[]>>;
   /** "추가" 버튼 클릭 시 현재 탭 분류로 모달을 연다 */
   onAdd: (category: TodoCategory) => void;
+  onEdit: (todo: Todo) => void;
 }
 
-export default function TodoCard({ todos, setTodos, onAdd }: Props) {
+export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
   const [tab, setTab] = useState<TodoCategory>('업무');
   const [templateOpen, setTemplateOpen] = useState(false);
   const [goal, setGoal] = useState('');
@@ -164,6 +165,13 @@ export default function TodoCard({ todos, setTodos, onAdd }: Props) {
                 {todo.dueDate.slice(5).replace('-', '/')}
               </span>
             )}
+            <button
+              onClick={() => onEdit(todo)}
+              className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-mint-500"
+              aria-label="수정"
+            >
+              <Pencil size={13} />
+            </button>
             <button
               onClick={() => setTodos((prev) => prev.filter((t) => t.id !== todo.id))}
               className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
