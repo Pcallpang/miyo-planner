@@ -3,6 +3,8 @@ import { X } from 'lucide-react';
 import { api } from '../lib/api';
 import { eventToForm } from '../lib/events';
 import { useApp } from '../context/AppContext';
+import { useEscapeKey } from '../hooks/useEscapeKey';
+import DateField from './DateField';
 import type { GEvent } from '../types';
 
 interface Props {
@@ -16,6 +18,7 @@ interface Props {
 
 export default function EventModal({ event, defaultDate, onClose, onSaved }: Props) {
   const { settings, showToast, refreshEvents } = useApp();
+  useEscapeKey(onClose);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(() =>
     event
@@ -113,12 +116,7 @@ export default function EventModal({ event, defaultDate, onClose, onSaved }: Pro
             autoFocus
           />
           <div className="flex items-center gap-3">
-            <input
-              type="date"
-              className={inputCls}
-              value={form.date}
-              onChange={(e) => set('date', e.target.value)}
-            />
+            <DateField className={inputCls} value={form.date} onChange={(v) => set('date', v)} />
             <label className="flex shrink-0 items-center gap-1.5 text-sm text-slate-600">
               <input
                 type="checkbox"

@@ -1,6 +1,8 @@
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
 import { addDays, format } from 'date-fns';
 import { CalendarClock, Link as LinkIcon, ListChecks, Plus, Trash2, Wand2, X } from 'lucide-react';
+import DateField from '../DateField';
+import TodayEvents from './TodayEvents';
 import type { Todo, TodoCategory } from '../../types';
 
 const CATEGORIES: TodoCategory[] = ['업무', '교과', '개인'];
@@ -80,11 +82,10 @@ export default function TodoCard({ todos, setTodos, onAdd }: Props) {
             onChange={(e) => setGoal(e.target.value)}
           />
           <div className="flex gap-2">
-            <input
-              type="date"
+            <DateField
               className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm outline-none focus:border-mint-400"
               value={deadline}
-              onChange={(e) => setDeadline(e.target.value)}
+              onChange={setDeadline}
             />
             <button
               type="submit"
@@ -98,6 +99,8 @@ export default function TodoCard({ todos, setTodos, onAdd }: Props) {
           </p>
         </form>
       )}
+
+      <TodayEvents />
 
       <div className="mb-3 flex gap-1 rounded-xl bg-slate-100 p-1">
         {CATEGORIES.map((c) => (

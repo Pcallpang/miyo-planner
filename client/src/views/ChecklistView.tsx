@@ -4,6 +4,8 @@ import { CalendarClock, Link as LinkIcon, Plus, Trash2, Wand2, X } from 'lucide-
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import TodoModal from '../components/TodoModal';
+import DateField from '../components/DateField';
+import TodayEvents from '../components/dashboard/TodayEvents';
 import type { Todo, TodoCategory } from '../types';
 
 const CATEGORIES: TodoCategory[] = ['업무', '교과', '개인'];
@@ -84,11 +86,10 @@ export default function ChecklistView() {
               onChange={(e) => setGoal(e.target.value)}
             />
             <div className="flex gap-2">
-              <input
-                type="date"
+              <DateField
                 className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-mint-400"
                 value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
+                onChange={setDeadline}
               />
               <button
                 type="submit"
@@ -102,6 +103,8 @@ export default function ChecklistView() {
             </p>
           </form>
         )}
+
+        <TodayEvents />
 
         {/* 언더라인 탭 */}
         <div className="mb-2 flex gap-6 border-b border-slate-100">

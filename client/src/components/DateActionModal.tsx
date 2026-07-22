@@ -1,5 +1,6 @@
 import { CalendarOff, FileText, ListChecks, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { useEscapeKey } from '../hooks/useEscapeKey';
 
 interface Props {
   date: Date;
@@ -19,6 +20,7 @@ export default function DateActionModal({
   onAddMeeting,
   onToggleHoliday,
 }: Props) {
+  useEscapeKey(onClose);
   const btn =
     'flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-mint-300 hover:bg-mint-50';
 

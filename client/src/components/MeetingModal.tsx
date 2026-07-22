@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import SlidePanel from './SlidePanel';
+import DateField from './DateField';
 import { api } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import type { Meeting } from '../types';
@@ -99,7 +100,7 @@ export default function MeetingModal({ editing, defaultDate, onClose, onCommit }
           <div>
             <label className={labelCls}>일정 및 시간 설정</label>
             <div className="flex gap-2">
-              <input type="date" className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} />
+              <DateField className={inputCls} value={date} onChange={setDate} />
               <input type="time" className={inputCls} value={time} onChange={(e) => setTime(e.target.value)} />
             </div>
           </div>

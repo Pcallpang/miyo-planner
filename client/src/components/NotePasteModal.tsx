@@ -3,7 +3,14 @@ import { AlertTriangle, CalendarPlus, CheckCircle2, Clock, ListChecks, Loader2, 
 import { api, ApiError } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
+import { useEscapeKey } from '../hooks/useEscapeKey';
+import DateField from './DateField';
 import type { ParsedEvent, ParsedTodo, Todo, TodoCategory } from '../types';
+
+/** 서울 기준 오늘 날짜 YYYY-MM-DD */
+function todaySeoul(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+}
 
 type CardStatus = { state: 'idle' | 'saving' | 'done' } | { state: 'error'; message: string };
 
@@ -21,6 +28,7 @@ const TODO_BADGE: Record<TodoCategory, string> = {
 export default function NotePasteModal({ onClose }: { onClose: () => void }) {
   const { status, settings, showToast, refreshEvents } = useApp();
   const { update } = useData();
+  useEscapeKey(onClose);
   const [text, setText] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
@@ -51,9 +59,11 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
         setCards(null);
         return;
       }
-      // 추출된 할 일을 업무/교과/개인으로 분류해 데일리 To-Do에 자동 추가
-      if (todos.length > 0) {
-        const newTodos: Todo[] = todos.map((t) => ({
+      // 데일리 To-Do에는 '오늘 날짜'의 할 일만 자동 분류해 추가
+      const today = todaySeoul();
+      const todayTodos = todos.filter((t) => t.dueDate === today);
+      if (todayTodos.length > 0) {
+        const newTodos: Todo[] = todayTodos.map((t) => ({
           id: crypto.randomUUID(),
           text: t.text,
           category: t.category,
@@ -62,9 +72,9 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
           createdAt: new Date().toISOString(),
         }));
         update((prev) => ({ todos: [...prev.todos, ...newTodos] }));
-        showToast('success', `할 일 ${todos.length}개를 데일리 To-Do에 자동 추가했습니다.`);
+        showToast('success', `오늘 할 일 ${todayTodos.length}개를 데일리 To-Do에 추가했습니다.`);
       }
-      setAddedTodos(todos);
+      setAddedTodos(todayTodos);
       setCards(events.map((event) => ({ event, status: { state: 'idle' } })));
     } catch (e) {
       if (e instanceof ApiError && e.status === 429) {
@@ -261,11 +271,10 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
                     )}
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="date"
+                    <DateField
                       className={inputCls}
                       value={ev.date}
-                      onChange={(e) => updateEvent(i, { date: e.target.value })}
+                      onChange={(v) => updateEvent(i, { date: v })}
                     />
                     <label className="flex items-center gap-1.5 text-sm text-slate-600">
                       <input

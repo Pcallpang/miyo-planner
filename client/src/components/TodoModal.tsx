@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import SlidePanel from './SlidePanel';
+import DateField from './DateField';
 import { useApp } from '../context/AppContext';
 import type { Todo, TodoCategory } from '../types';
 
@@ -78,7 +79,7 @@ export default function TodoModal({ defaultCategory = '업무', defaultDate, onC
 
           <div>
             <label className={labelCls}>마감일 설정</label>
-            <input type="date" className={inputCls} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <DateField className={inputCls} value={dueDate} onChange={setDueDate} />
           </div>
 
           <div>
