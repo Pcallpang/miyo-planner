@@ -49,7 +49,9 @@ export async function getAuthedClient(userId) {
   const credentials = JSON.parse(decrypt(rec.encTokens, key()));
   const client = createOAuthClient();
   client.setCredentials(credentials);
-  client.on('tokens', (t) => { void saveTokensForUser(userId, t); });
+  client.on('tokens', (t) => {
+    saveTokensForUser(userId, t).catch((e) => console.error('[google] 토큰 저장 실패:', e.message));
+  });
   return client;
 }
 
