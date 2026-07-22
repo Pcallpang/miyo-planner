@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { X } from 'lucide-react';
+import SlidePanel from './SlidePanel';
 import { useApp } from '../context/AppContext';
 import type { Todo, TodoCategory } from '../types';
 
@@ -20,7 +20,7 @@ export default function TodoModal({ defaultCategory = '업무', defaultDate, onC
   const [link, setLink] = useState('');
   const [memo, setMemo] = useState('');
 
-  function submit(e: FormEvent) {
+  function submit(e: FormEvent, close: () => void) {
     e.preventDefault();
     if (!title.trim()) {
       showToast('error', '제목을 입력해 주세요.');
@@ -36,7 +36,7 @@ export default function TodoModal({ defaultCategory = '업무', defaultDate, onC
       memo: memo.trim() || undefined,
       createdAt: new Date().toISOString(),
     });
-    onClose();
+    close();
   }
 
   const inputCls =
@@ -44,19 +44,9 @@ export default function TodoModal({ defaultCategory = '업무', defaultDate, onC
   const labelCls = 'mb-1.5 block text-sm font-semibold text-slate-700';
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-900/30 p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800">새 할 일 추가</h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
-            <X size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={submit} className="space-y-4">
+    <SlidePanel title="새 할 일 추가" onClose={onClose}>
+      {(close) => (
+        <form onSubmit={(e) => submit(e, close)} className="space-y-4">
           <div>
             <span className={labelCls}>분류</span>
             <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
@@ -88,12 +78,7 @@ export default function TodoModal({ defaultCategory = '업무', defaultDate, onC
 
           <div>
             <label className={labelCls}>마감일 설정</label>
-            <input
-              type="date"
-              className={inputCls}
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
+            <input type="date" className={inputCls} value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
           </div>
 
           <div>
@@ -124,7 +109,7 @@ export default function TodoModal({ defaultCategory = '업무', defaultDate, onC
             저장
           </button>
         </form>
-      </div>
-    </div>
+      )}
+    </SlidePanel>
   );
 }

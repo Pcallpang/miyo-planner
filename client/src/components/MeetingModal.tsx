@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { X } from 'lucide-react';
+import SlidePanel from './SlidePanel';
 import { api } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import type { Meeting } from '../types';
@@ -24,7 +24,7 @@ export default function MeetingModal({ editing, defaultDate, onClose, onCommit }
   const [syncGoogle, setSyncGoogle] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent, close: () => void) {
     e.preventDefault();
     if (!title.trim() || !date) {
       showToast('error', '제목과 일정 날짜를 입력해 주세요.');
@@ -63,9 +63,13 @@ export default function MeetingModal({ editing, defaultDate, onClose, onCommit }
       onCommit(meeting, !editing);
       showToast(
         'success',
-        editing ? '회의록이 수정되었습니다.' : googleEventId ? '회의록이 저장되고 구글 캘린더에 등록되었습니다.' : '회의록이 저장되었습니다.',
+        editing
+          ? '회의록이 수정되었습니다.'
+          : googleEventId
+            ? '회의록이 저장되고 구글 캘린더에 등록되었습니다.'
+            : '회의록이 저장되었습니다.',
       );
-      onClose();
+      close();
     } catch (err) {
       showToast('error', err instanceof Error ? err.message : '저장에 실패했습니다.');
     } finally {
@@ -78,19 +82,9 @@ export default function MeetingModal({ editing, defaultDate, onClose, onCommit }
   const labelCls = 'mb-1.5 block text-sm font-semibold text-slate-700';
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-900/30 p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800">{editing ? '회의 수정' : '새 회의 추가'}</h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
-            <X size={18} />
-          </button>
-        </div>
-
-        <form onSubmit={submit} className="space-y-4">
+    <SlidePanel title={editing ? '회의 수정' : '새 회의 추가'} onClose={onClose}>
+      {(close) => (
+        <form onSubmit={(e) => submit(e, close)} className="space-y-4">
           <div>
             <label className={labelCls}>제목</label>
             <input
@@ -152,7 +146,7 @@ export default function MeetingModal({ editing, defaultDate, onClose, onCommit }
             {saving ? '저장 중…' : '저장'}
           </button>
         </form>
-      </div>
-    </div>
+      )}
+    </SlidePanel>
   );
 }
