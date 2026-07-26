@@ -135,7 +135,7 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
       <ul className="mb-3 max-h-64 space-y-1.5 overflow-y-auto">
         {visible.length === 0 && (
           <li>
-            <EmptyMiyo message="항목이 없습니다." size={52} />
+            <EmptyMiyo message="항목이 없습니다." size={52} src="/sachungi-miyo.png" />
           </li>
         )}
         {visible.map((todo) => {

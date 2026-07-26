@@ -13,10 +13,10 @@ export interface QuadrantMeta {
 
 /** 화면 배치 순서(왼쪽 위 → 오른쪽 아래) */
 export const QUADRANTS: QuadrantMeta[] = [
-  { id: 'do', title: '지금 하기', hint: '중요하고 급함', important: true, urgent: true },
-  { id: 'plan', title: '계획 세우기', hint: '중요하지만 급하지 않음', important: true, urgent: false },
-  { id: 'quick', title: '빨리 처리하기', hint: '급하지만 중요하지 않음', important: false, urgent: true },
-  { id: 'later', title: '나중에 / 줄이기', hint: '급하지도 중요하지도 않음', important: false, urgent: false },
+  { id: 'do', title: '지금 급해요!', hint: '중요하고 급함', important: true, urgent: true },
+  { id: 'plan', title: '미리 챙겨둬요', hint: '중요하지만 급하지 않음', important: true, urgent: false },
+  { id: 'quick', title: '후딱 해치워요', hint: '급하지만 중요하지 않음', important: false, urgent: true },
+  { id: 'later', title: '천천히 해도 돼요', hint: '급하지도 중요하지도 않음', important: false, urgent: false },
 ];
 
 /**

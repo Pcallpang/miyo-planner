@@ -241,7 +241,11 @@ export default function MatrixView() {
 
       {visible.length === 0 && (
         <div className="mt-6">
-          <EmptyMiyo message="할 일을 추가하면 여기에 분류됩니다." size={72} />
+          <EmptyMiyo
+            message="할 일을 추가하면 여기에 분류됩니다."
+            size={72}
+            src="/hunsu-miyo.png"
+          />
         </div>
       )}
 
