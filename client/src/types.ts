@@ -1,4 +1,4 @@
-export type ViewId = 'dashboard' | 'timetable' | 'memo' | 'settings';
+export type ViewId = 'dashboard' | 'matrix' | 'timetable' | 'memo' | 'settings';
 
 export type TodoCategory = '업무' | '교과' | '개인';
 
@@ -10,6 +10,10 @@ export interface Todo {
   dueDate?: string; // YYYY-MM-DD
   link?: string; // 관련 링크(URL)
   memo?: string; // 상세 메모
+  /** 아이젠하워 매트릭스 세로축. 없으면 '중요하지 않음' */
+  important?: boolean;
+  /** 가로축 수동 고정. 없으면 마감일 기준 자동 판정 */
+  urgentOverride?: boolean;
   createdAt: string;
 }
 
@@ -49,6 +53,8 @@ export interface Settings {
   calendarId: string;
   /** 일정 시작 몇 분 전에 브라우저 알림을 띄울지. 0이면 끔. */
   reminderMinutes: number;
+  /** 마감이 며칠 안쪽이면 '긴급'으로 볼지 (우선순위 매트릭스) */
+  urgentDays: number;
 }
 
 export interface GEvent {

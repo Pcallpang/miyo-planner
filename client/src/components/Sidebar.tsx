@@ -1,6 +1,7 @@
 import {
   ClipboardPaste,
   LayoutDashboard,
+  LayoutGrid,
   LogOut,
   NotebookPen,
   Settings,
@@ -16,6 +17,7 @@ const MENU: { group: string; items: { id: ViewId; label: string; icon: typeof Su
     group: '나의 하루',
     items: [
       { id: 'dashboard', label: '대시보드', icon: LayoutDashboard },
+      { id: 'matrix', label: '우선순위 매트릭스', icon: LayoutGrid },
       { id: 'timetable', label: '오늘의 시간표', icon: Table },
       { id: 'memo', label: '간단 메모', icon: NotebookPen },
     ],

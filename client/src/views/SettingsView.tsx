@@ -140,6 +140,27 @@ export default function SettingsView() {
               <option value={30}>30분 전</option>
             </select>
           </div>
+
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>긴급 기준</p>
+              <p className={descCls}>
+                마감이 며칠 안쪽으로 들어오면 우선순위 매트릭스에서 '긴급함'으로 볼지 정합니다.
+                마감일이 지난 할 일은 항상 긴급으로 표시됩니다.
+              </p>
+            </div>
+            <select
+              value={settings.urgentDays}
+              onChange={(e) => setSettings((prev) => ({ ...prev, urgentDays: Number(e.target.value) }))}
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-mint-400"
+            >
+              <option value={1}>당일</option>
+              <option value={2}>2일 전</option>
+              <option value={3}>3일 전</option>
+              <option value={5}>5일 전</option>
+              <option value={7}>7일 전</option>
+            </select>
+          </div>
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Star } from 'lucide-react';
 import SlidePanel from './SlidePanel';
 import DateField from './DateField';
 import { useApp } from '../context/AppContext';
@@ -22,6 +23,7 @@ export default function TodoModal({ editing, defaultCategory = '업무', default
   const [dueDate, setDueDate] = useState(editing?.dueDate ?? defaultDate ?? '');
   const [link, setLink] = useState(editing?.link ?? '');
   const [memo, setMemo] = useState(editing?.memo ?? '');
+  const [important, setImportant] = useState(editing?.important ?? false);
 
   function submit(e: FormEvent, close: () => void) {
     e.preventDefault();
@@ -29,7 +31,7 @@ export default function TodoModal({ editing, defaultCategory = '업무', default
       showToast('error', '제목을 입력해 주세요.');
       return;
     }
-    onSave({
+    const next: Todo = {
       id: editing?.id ?? crypto.randomUUID(),
       text: title.trim(),
       category,
@@ -37,8 +39,15 @@ export default function TodoModal({ editing, defaultCategory = '업무', default
       dueDate: dueDate || undefined,
       link: link.trim() || undefined,
       memo: memo.trim() || undefined,
+      important: important || undefined,
       createdAt: editing?.createdAt ?? new Date().toISOString(),
-    });
+    };
+    // 마감일을 바꾸지 않았을 때만 긴급도 수동 고정을 유지한다.
+    // 날짜가 바뀌면 옛 고정이 남아 헷갈리므로 자동 판정으로 되돌린다.
+    if (editing?.urgentOverride !== undefined && (editing.dueDate ?? '') === dueDate) {
+      next.urgentOverride = editing.urgentOverride;
+    }
+    onSave(next);
     close();
   }
 
@@ -82,6 +91,26 @@ export default function TodoModal({ editing, defaultCategory = '업무', default
           <div>
             <label className={labelCls}>마감일 설정</label>
             <DateField className={inputCls} value={dueDate} onChange={setDueDate} />
+          </div>
+
+          <div>
+            <span className={labelCls}>우선순위</span>
+            <button
+              type="button"
+              onClick={() => setImportant((v) => !v)}
+              aria-pressed={important}
+              className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
+                important
+                  ? 'border-amber-300 bg-amber-50 text-amber-700'
+                  : 'border-slate-200 text-slate-500 hover:border-amber-200 hover:bg-amber-50/50'
+              }`}
+            >
+              <Star size={16} fill={important ? 'currentColor' : 'none'} />
+              중요함
+            </button>
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              긴급도는 마감일 기준으로 자동 판정됩니다 · 우선순위 매트릭스에서 끌어다 바꿀 수 있어요
+            </p>
           </div>
 
           <div>

@@ -24,6 +24,7 @@ export function defaultSettings(): Settings {
     weekStartsOn: 0,
     calendarId: 'primary',
     reminderMinutes: 10,
+    urgentDays: 3,
   };
 }
 

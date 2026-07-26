@@ -7,6 +7,7 @@ import {
   ListChecks,
   Pencil,
   Plus,
+  Star,
   StickyNote,
   Trash2,
   Wand2,
@@ -161,6 +162,9 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
                     hasMemo ? 'cursor-pointer' : 'cursor-default'
                   }`}
                 >
+                  {todo.important && (
+                    <Star size={11} className="shrink-0 text-amber-400" fill="currentColor" />
+                  )}
                   <span
                     className={`block truncate text-sm transition-colors duration-300 ${
                       todo.done ? 'text-slate-300' : 'text-slate-700'
