@@ -2,9 +2,12 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { format } from 'date-fns';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
+import { api } from '../lib/api';
 import { reconcileMeetings } from '../lib/meetingSync';
+import { eventsOnDay } from '../lib/events';
 import { getHoliday } from '../lib/holidays';
 import MonthCalendar from '../components/MonthCalendar';
+import EventModal from '../components/EventModal';
 import LiveStatusCard from '../components/dashboard/LiveStatusCard';
 import MeetingsCard from '../components/dashboard/MeetingsCard';
 import TodoCard from '../components/dashboard/TodoCard';
@@ -12,10 +15,10 @@ import WeeklySummary from '../components/dashboard/WeeklySummary';
 import TodoModal from '../components/TodoModal';
 import MeetingModal from '../components/MeetingModal';
 import DateActionModal from '../components/DateActionModal';
-import type { Meeting, Todo, TodoCategory } from '../types';
+import type { GEvent, Meeting, Todo, TodoCategory } from '../types';
 
 export default function DashboardView() {
-  const { events, eventsRange, settings, ensureEvents, showToast } = useApp();
+  const { events, eventsRange, settings, status, ensureEvents, refreshEvents, showToast } = useApp();
   const { data, update } = useData();
   const todos = data.todos;
   const meetings = data.meetings;
@@ -29,6 +32,9 @@ export default function DashboardView() {
   const [dateAction, setDateAction] = useState<Date | null>(null);
   const [todoModal, setTodoModal] = useState<{ category: TodoCategory; date?: string; editing?: Todo } | null>(null);
   const [meetingModal, setMeetingModal] = useState<{ editing?: Meeting; date?: string } | null>(null);
+  const [eventModal, setEventModal] = useState<
+    { mode: 'new'; date: string } | { mode: 'edit'; event: GEvent } | null
+  >(null);
 
   useEffect(() => {
     void ensureEvents(month);
@@ -67,6 +73,37 @@ export default function DashboardView() {
       return { holidays: h };
     });
     setDateAction(null);
+  }
+
+  /** 구글 캘린더 일정 삭제 */
+  async function deleteEvent(ev: GEvent) {
+    if (!window.confirm(`'${ev.title}' 일정을 구글 캘린더에서 삭제할까요?`)) return;
+    try {
+      await api.deleteEvent(ev.id, ev.calendarId);
+      await refreshEvents();
+      showToast('success', '일정이 삭제되었습니다.');
+    } catch (err) {
+      showToast('error', err instanceof Error ? err.message : '삭제에 실패했습니다.');
+    }
+  }
+
+  /** 회의록&일정 삭제 (구글 연동돼 있으면 캘린더 일정도 함께) */
+  async function deleteMeeting(m: Meeting) {
+    if (!window.confirm(`'${m.title}'을(를) 삭제할까요?`)) return;
+    if (m.googleEventId && status?.connected) {
+      try {
+        await api.deleteEvent(m.googleEventId, settings.calendarId);
+        await refreshEvents();
+      } catch {
+        showToast('error', '구글 캘린더 일정 삭제에는 실패했습니다. 캘린더에서 직접 확인해 주세요.');
+      }
+    }
+    setMeetings((prev) => prev.filter((x) => x.id !== m.id));
+  }
+
+  function deleteTodo(todo: Todo) {
+    if (!window.confirm(`'${todo.text}'을(를) 삭제할까요?`)) return;
+    setTodos((prev) => prev.filter((t) => t.id !== todo.id));
   }
 
   return (
@@ -109,6 +146,29 @@ export default function DashboardView() {
         <DateActionModal
           date={dateAction}
           holidayLabel={getHoliday(format(dateAction, 'yyyy-MM-dd'), data.holidays)}
+          events={eventsOnDay(events, dateAction)}
+          todos={todos.filter((t) => t.dueDate === format(dateAction, 'yyyy-MM-dd'))}
+          meetings={meetings.filter((m) => m.date === format(dateAction, 'yyyy-MM-dd'))}
+          connected={Boolean(status?.connected)}
+          onAddEvent={() => {
+            setEventModal({ mode: 'new', date: format(dateAction, 'yyyy-MM-dd') });
+            setDateAction(null);
+          }}
+          onEditEvent={(ev) => {
+            setEventModal({ mode: 'edit', event: ev });
+            setDateAction(null);
+          }}
+          onDeleteEvent={(ev) => void deleteEvent(ev)}
+          onEditTodo={(todo) => {
+            setTodoModal({ category: todo.category, editing: todo });
+            setDateAction(null);
+          }}
+          onDeleteTodo={deleteTodo}
+          onEditMeeting={(m) => {
+            setMeetingModal({ editing: m });
+            setDateAction(null);
+          }}
+          onDeleteMeeting={(m) => void deleteMeeting(m)}
           onClose={() => setDateAction(null)}
           onAddTodo={() => {
             setTodoModal({ category: '업무', date: format(dateAction, 'yyyy-MM-dd') });
@@ -148,6 +208,16 @@ export default function DashboardView() {
               isNew ? [...prev, meeting] : prev.map((m) => (m.id === meeting.id ? meeting : m)),
             )
           }
+        />
+      )}
+
+      {/* 구글 캘린더 일정 추가/수정 모달 */}
+      {eventModal && (
+        <EventModal
+          event={eventModal.mode === 'edit' ? eventModal.event : undefined}
+          defaultDate={eventModal.mode === 'new' ? eventModal.date : undefined}
+          onClose={() => setEventModal(null)}
+          onSaved={() => setEventModal(null)}
         />
       )}
     </div>

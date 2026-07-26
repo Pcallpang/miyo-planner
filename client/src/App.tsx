@@ -9,9 +9,7 @@ import { useData } from './context/DataContext';
 import { useReminders } from './hooks/useReminders';
 import { useTodoReminders } from './hooks/useTodoReminders';
 import DashboardView from './views/DashboardView';
-import ChecklistView from './views/ChecklistView';
 import MemoView from './views/MemoView';
-import MonthlyView from './views/MonthlyView';
 import SettingsView from './views/SettingsView';
 import TimetableView from './views/TimetableView';
 import type { ViewId } from './types';
@@ -44,9 +42,7 @@ export default function App() {
         <Header />
         <main className="flex-1 px-6 py-6 lg:px-8">
           {view === 'dashboard' && <DashboardView />}
-          {view === 'checklist' && <ChecklistView />}
           {view === 'timetable' && <TimetableView />}
-          {view === 'monthly' && <MonthlyView />}
           {view === 'memo' && <MemoView />}
           {view === 'settings' && <SettingsView />}
         </main>

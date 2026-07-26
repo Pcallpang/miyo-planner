@@ -1,6 +1,17 @@
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
 import { addDays, format } from 'date-fns';
-import { CalendarClock, Link as LinkIcon, ListChecks, Pencil, Plus, Trash2, Wand2, X } from 'lucide-react';
+import {
+  CalendarClock,
+  ChevronDown,
+  Link as LinkIcon,
+  ListChecks,
+  Pencil,
+  Plus,
+  StickyNote,
+  Trash2,
+  Wand2,
+  X,
+} from 'lucide-react';
 import DateField from '../DateField';
 import EmptyMiyo from '../EmptyMiyo';
 import TodayEvents from './TodayEvents';
@@ -25,6 +36,8 @@ interface Props {
 export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
   const [tab, setTab] = useState<TodoCategory>('업무');
   const [templateOpen, setTemplateOpen] = useState(false);
+  /** 메모를 펼쳐 놓은 할 일 id */
+  const [openMemoId, setOpenMemoId] = useState<string | null>(null);
   const [goal, setGoal] = useState('');
   const [deadline, setDeadline] = useState('');
 
@@ -124,68 +137,95 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
             <EmptyMiyo message="항목이 없습니다." size={52} />
           </li>
         )}
-        {visible.map((todo) => (
-          <li
-            key={todo.id}
-            className="group flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition hover:bg-slate-50"
-          >
-            <input
-              type="checkbox"
-              checked={todo.done}
-              onChange={() =>
-                setTodos((prev) => prev.map((t) => (t.id === todo.id ? { ...t, done: !t.done } : t)))
-              }
-              className={`h-4 w-4 shrink-0 rounded border-2 accent-mint-500 ${CATEGORY_COLORS[todo.category]}`}
-            />
-            <span className="relative min-w-0 flex-1">
-              <span
-                className={`block truncate text-sm transition-colors duration-300 ${
-                  todo.done ? 'text-slate-300' : 'text-slate-700'
-                }`}
-                title={todo.memo || undefined}
-              >
-                {todo.text}
-              </span>
-              <span
-                className={`pointer-events-none absolute top-1/2 left-0 h-px w-full origin-left bg-slate-400 transition-transform duration-300 ease-out ${
-                  todo.done ? 'scale-x-100' : 'scale-x-0'
-                }`}
-              />
-            </span>
-            {todo.link && (
-              <a
-                href={todo.link}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0 text-slate-300 transition hover:text-mint-500"
-                aria-label="관련 링크 열기"
-              >
-                <LinkIcon size={13} />
-              </a>
-            )}
-            {todo.dueDate && (
-              <span className="flex shrink-0 items-center gap-1 text-[11px] text-slate-400">
-                <CalendarClock size={11} />
-                {todo.dueDate.slice(5).replace('-', '/')}
-              </span>
-            )}
-            <button
-              onClick={() => onEdit(todo)}
-              className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-mint-500"
-              aria-label="수정"
-            >
-              <Pencil size={13} />
-            </button>
-            <button
-              onClick={() => setTodos((prev) => prev.filter((t) => t.id !== todo.id))}
-              className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
-              aria-label="삭제"
-            >
-              <Trash2 size={14} />
-            </button>
-          </li>
-        ))}
+        {visible.map((todo) => {
+          const hasMemo = Boolean(todo.memo?.trim());
+          const memoOpen = hasMemo && openMemoId === todo.id;
+          return (
+            <li key={todo.id} className="group rounded-xl transition hover:bg-slate-50">
+              <div className="flex items-center gap-2.5 px-2 py-1.5">
+                <input
+                  type="checkbox"
+                  checked={todo.done}
+                  onChange={() =>
+                    setTodos((prev) =>
+                      prev.map((t) => (t.id === todo.id ? { ...t, done: !t.done } : t)),
+                    )
+                  }
+                  className={`h-4 w-4 shrink-0 rounded border-2 accent-mint-500 ${CATEGORY_COLORS[todo.category]}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => hasMemo && setOpenMemoId(memoOpen ? null : todo.id)}
+                  aria-expanded={hasMemo ? memoOpen : undefined}
+                  className={`relative flex min-w-0 flex-1 items-center gap-1 text-left ${
+                    hasMemo ? 'cursor-pointer' : 'cursor-default'
+                  }`}
+                >
+                  <span
+                    className={`block truncate text-sm transition-colors duration-300 ${
+                      todo.done ? 'text-slate-300' : 'text-slate-700'
+                    }`}
+                  >
+                    {todo.text}
+                  </span>
+                  {hasMemo && (
+                    <>
+                      <StickyNote size={11} className="shrink-0 text-mint-400" />
+                      <ChevronDown
+                        size={12}
+                        className={`shrink-0 text-slate-300 transition-transform duration-200 ${
+                          memoOpen ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </>
+                  )}
+                  <span
+                    className={`pointer-events-none absolute top-1/2 left-0 h-px w-full origin-left bg-slate-400 transition-transform duration-300 ease-out ${
+                      todo.done ? 'scale-x-100' : 'scale-x-0'
+                    }`}
+                  />
+                </button>
+                {todo.link && (
+                  <a
+                    href={todo.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="shrink-0 text-slate-300 transition hover:text-mint-500"
+                    aria-label="관련 링크 열기"
+                  >
+                    <LinkIcon size={13} />
+                  </a>
+                )}
+                {todo.dueDate && (
+                  <span className="flex shrink-0 items-center gap-1 text-[11px] text-slate-400">
+                    <CalendarClock size={11} />
+                    {todo.dueDate.slice(5).replace('-', '/')}
+                  </span>
+                )}
+                <button
+                  onClick={() => onEdit(todo)}
+                  className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-mint-500"
+                  aria-label="수정"
+                >
+                  <Pencil size={13} />
+                </button>
+                <button
+                  onClick={() => setTodos((prev) => prev.filter((t) => t.id !== todo.id))}
+                  className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
+                  aria-label="삭제"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              {memoOpen && (
+                <p className="mr-2 mb-1.5 ml-9 rounded-lg bg-slate-50 px-3 py-2 text-xs whitespace-pre-wrap text-slate-500">
+                  {todo.memo}
+                </p>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <button
