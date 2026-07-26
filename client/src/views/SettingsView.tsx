@@ -5,6 +5,7 @@ import { useData } from '../context/DataContext';
 import { api } from '../lib/api';
 import { defaultAppData } from '../lib/appData';
 import { clearAppData, defaultSettings } from '../lib/storage';
+import SchoolPicker from '../components/SchoolPicker';
 
 export default function SettingsView() {
   const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
@@ -161,6 +162,8 @@ export default function SettingsView() {
               <option value={7}>7일 전</option>
             </select>
           </div>
+
+          <SchoolPicker />
         </div>
       </section>
 

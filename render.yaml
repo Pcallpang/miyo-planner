@@ -17,6 +17,9 @@ services:
         sync: false
       - key: GEMINI_API_KEY
         sync: false
+      # 나이스 급식·학사일정 — 비워두면 샘플키로 동작(일일 한도 낮음)
+      - key: NEIS_API_KEY
+        sync: false
       # Supabase 연결 문자열 — Session pooler(5432) 사용 (Transaction pooler 6543은 인증 거부됨)
       - key: DATABASE_URL
         sync: false

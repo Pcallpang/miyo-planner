@@ -1,4 +1,14 @@
-import type { CalendarInfo, EventInput, GEvent, ParsedEvent, ParsedTodo, ServerStatus } from '../types';
+import type {
+  CalendarInfo,
+  EventInput,
+  GEvent,
+  Meal,
+  ParsedEvent,
+  ParsedTodo,
+  School,
+  SchoolScheduleItem,
+  ServerStatus,
+} from '../types';
 
 export class ApiError extends Error {
   status: number;
@@ -27,6 +37,15 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     throw new ApiError(body.error || '요청에 실패했습니다.', res.status, body.retryAfter);
   }
   return body as T;
+}
+
+function schoolQuery(school: School, from: string, to: string) {
+  return new URLSearchParams({
+    atptCode: school.atptCode,
+    schoolCode: school.schoolCode,
+    from,
+    to,
+  }).toString();
 }
 
 export const api = {
@@ -70,6 +89,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ text }),
     }),
+
+  searchSchools: (name: string) =>
+    request<{ schools: School[] }>(`/api/school/search?name=${encodeURIComponent(name)}`),
+
+  meals: (school: School, from: string, to: string) =>
+    request<{ meals: Meal[] }>(`/api/school/meals?${schoolQuery(school, from, to)}`),
+
+  schoolSchedule: (school: School, from: string, to: string) =>
+    request<{ schedule: SchoolScheduleItem[] }>(`/api/school/schedule?${schoolQuery(school, from, to)}`),
 
   setGeminiKey: (key: string) =>
     request<{ ok: true }>('/api/gemini/key', { method: 'POST', body: JSON.stringify({ key }) }),

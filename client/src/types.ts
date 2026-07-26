@@ -1,4 +1,4 @@
-export type ViewId = 'dashboard' | 'matrix' | 'timetable' | 'memo' | 'settings';
+export type ViewId = 'dashboard' | 'matrix' | 'school' | 'timetable' | 'memo' | 'settings';
 
 export type TodoCategory = '업무' | '교과' | '개인';
 
@@ -55,6 +55,40 @@ export interface Settings {
   reminderMinutes: number;
   /** 마감이 며칠 안쪽이면 '긴급'으로 볼지 (우선순위 매트릭스) */
   urgentDays: number;
+  /** 나이스에서 급식·학사일정을 가져올 학교. 미선택이면 undefined */
+  school?: School;
+}
+
+/** 나이스 학교 식별 정보 */
+export interface School {
+  atptCode: string; // 시도교육청코드
+  schoolCode: string; // 표준학교코드
+  name: string;
+  kind?: string; // 학교종류명 (초등학교/중학교/고등학교…)
+  region?: string; // 소재지명
+  address?: string;
+}
+
+export interface MealDish {
+  name: string;
+  /** 알레르기 유발식품 번호 */
+  allergens: string[];
+}
+
+export interface Meal {
+  date: string; // YYYY-MM-DD
+  type: string; // 조식/중식/석식
+  dishes: MealDish[];
+  calorie: string;
+  origin: string[];
+}
+
+export interface SchoolScheduleItem {
+  date: string; // YYYY-MM-DD
+  name: string;
+  content: string;
+  /** 수업이 없는 날(휴업일 등) */
+  noClass: boolean;
 }
 
 export interface GEvent {

@@ -14,6 +14,7 @@ const { default: authRouter } = await import('./routes/auth.js');
 const { default: calendarRouter } = await import('./routes/calendar.js');
 const { default: geminiRouter } = await import('./routes/gemini.js');
 const { default: dataRouter } = await import('./routes/data.js');
+const { default: schoolRouter } = await import('./routes/school.js');
 
 if (process.env.NODE_ENV === 'production') {
   for (const k of ['SESSION_SECRET', 'TOKEN_ENC_KEY', 'DATABASE_URL']) {
@@ -52,6 +53,7 @@ app.use('/api/auth', authRouter);            // /url, /callback은 공개; 나�
 app.use('/api/calendar', requireAuth, calendarRouter);
 app.use('/api/gemini', requireAuth, geminiRouter);
 app.use('/api/data', requireAuth, dataRouter);
+app.use('/api/school', requireAuth, schoolRouter);
 
 app.use((err, req, res, next) => { console.error(err); res.status(500).json({ error: '서버 오류가 발생했습니다.' }); });
 

@@ -11,6 +11,7 @@ import { useTodoReminders } from './hooks/useTodoReminders';
 import DashboardView from './views/DashboardView';
 import MatrixView from './views/MatrixView';
 import MemoView from './views/MemoView';
+import SchoolView from './views/SchoolView';
 import SettingsView from './views/SettingsView';
 import TimetableView from './views/TimetableView';
 import type { ViewId } from './types';
@@ -45,6 +46,7 @@ export default function App() {
           {view === 'dashboard' && <DashboardView />}
           {view === 'matrix' && <MatrixView />}
           {view === 'timetable' && <TimetableView />}
+          {view === 'school' && <SchoolView />}
           {view === 'memo' && <MemoView />}
           {view === 'settings' && <SettingsView />}
         </main>
