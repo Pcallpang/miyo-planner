@@ -1,11 +1,13 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { format } from 'date-fns';
+import { CalendarRange } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { api } from '../lib/api';
 import { reconcileMeetings } from '../lib/meetingSync';
 import { eventsOnDay } from '../lib/events';
 import { getHoliday } from '../lib/holidays';
+import { useSchoolSchedule } from '../hooks/useSchoolSchedule';
 import MonthCalendar from '../components/MonthCalendar';
 import EventModal from '../components/EventModal';
 import LiveStatusCard from '../components/dashboard/LiveStatusCard';
@@ -18,7 +20,8 @@ import DateActionModal from '../components/DateActionModal';
 import type { GEvent, Meeting, Todo, TodoCategory } from '../types';
 
 export default function DashboardView() {
-  const { events, eventsRange, settings, status, ensureEvents, refreshEvents, showToast } = useApp();
+  const { events, eventsRange, settings, setSettings, status, ensureEvents, refreshEvents, showToast } =
+    useApp();
   const { data, update } = useData();
   const todos = data.todos;
   const meetings = data.meetings;
@@ -39,6 +42,8 @@ export default function DashboardView() {
   useEffect(() => {
     void ensureEvents(month);
   }, [month, ensureEvents]);
+
+  const schoolSchedule = useSchoolSchedule(settings.school, month, settings.showSchoolSchedule);
 
   // 구글 캘린더 변경(수정·삭제)을 연동된 회의록에 반영
   useEffect(() => {
@@ -112,7 +117,25 @@ export default function DashboardView() {
         <WeeklySummary todos={todos} meetings={meetings} />
 
         <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
-          <h2 className="mb-4 text-lg font-bold text-slate-800">캘린더</h2>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h2 className="text-lg font-bold text-slate-800">캘린더</h2>
+            {settings.school && (
+              <button
+                onClick={() =>
+                  setSettings((prev) => ({ ...prev, showSchoolSchedule: !prev.showSchoolSchedule }))
+                }
+                aria-pressed={settings.showSchoolSchedule}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  settings.showSchoolSchedule
+                    ? 'border-amber-300 bg-amber-50 text-amber-700'
+                    : 'border-slate-200 text-slate-500 hover:border-amber-200 hover:text-amber-600'
+                }`}
+              >
+                <CalendarRange size={12} />
+                학사일정 겹쳐보기
+              </button>
+            )}
+          </div>
           <MonthCalendar
             month={month}
             onMonthChange={setMonth}
@@ -121,6 +144,7 @@ export default function DashboardView() {
             events={events}
             weekStartsOn={settings.weekStartsOn}
             holidays={data.holidays}
+            schoolSchedule={schoolSchedule}
           />
         </section>
       </div>
@@ -149,6 +173,7 @@ export default function DashboardView() {
           events={eventsOnDay(events, dateAction)}
           todos={todos.filter((t) => t.dueDate === format(dateAction, 'yyyy-MM-dd'))}
           meetings={meetings.filter((m) => m.date === format(dateAction, 'yyyy-MM-dd'))}
+          schoolSchedule={schoolSchedule.filter((s) => s.date === format(dateAction, 'yyyy-MM-dd'))}
           connected={Boolean(status?.connected)}
           onAddEvent={() => {
             setEventModal({ mode: 'new', date: format(dateAction, 'yyyy-MM-dd') });

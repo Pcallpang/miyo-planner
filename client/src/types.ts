@@ -57,6 +57,8 @@ export interface Settings {
   urgentDays: number;
   /** 나이스에서 급식·학사일정을 가져올 학교. 미선택이면 undefined */
   school?: School;
+  /** 대시보드 캘린더에 학사일정을 겹쳐서 표시할지 */
+  showSchoolSchedule: boolean;
 }
 
 /** 나이스 학교 식별 정보 */

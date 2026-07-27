@@ -1,8 +1,17 @@
-import { CalendarDays, CalendarOff, FileText, ListChecks, Plus, Trash2, X } from 'lucide-react';
+import {
+  CalendarDays,
+  CalendarOff,
+  CalendarRange,
+  FileText,
+  ListChecks,
+  Plus,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 import { eventTimeLabel } from '../lib/events';
-import type { GEvent, Meeting, Todo } from '../types';
+import type { GEvent, Meeting, SchoolScheduleItem, Todo } from '../types';
 
 interface Props {
   date: Date;
@@ -14,6 +23,8 @@ interface Props {
   todos: Todo[];
   /** 이 날의 회의록&일정 */
   meetings: Meeting[];
+  /** 이 날의 나이스 학사일정 (읽기 전용) */
+  schoolSchedule: SchoolScheduleItem[];
   /** 구글 계정 연동 여부 — 미연동이면 캘린더 일정 추가 불가 */
   connected: boolean;
   onClose: () => void;
@@ -75,6 +86,7 @@ export default function DateActionModal({
   events,
   todos,
   meetings,
+  schoolSchedule,
   connected,
   onClose,
   onAddEvent,
@@ -106,6 +118,37 @@ export default function DateActionModal({
             <X size={18} />
           </button>
         </div>
+
+        {schoolSchedule.length > 0 && (
+          <div className="mb-4">
+            <p className="mb-1.5 text-xs font-semibold text-slate-400">학사일정</p>
+            <ul className="space-y-1">
+              {schoolSchedule.map((s, i) => (
+                <li
+                  key={`${s.name}-${i}`}
+                  className={`flex items-start gap-2 rounded-xl px-3 py-2 ${
+                    s.noClass ? 'bg-rose-50' : 'bg-amber-50'
+                  }`}
+                >
+                  <CalendarRange
+                    size={14}
+                    className={`mt-0.5 shrink-0 ${s.noClass ? 'text-rose-500' : 'text-amber-500'}`}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-sm ${s.noClass ? 'text-rose-700' : 'text-amber-800'}`}>
+                      {s.name}
+                      {s.noClass && <span className="ml-1.5 text-[11px]">· 수업 없음</span>}
+                    </p>
+                    {s.content && <p className="text-[11px] text-slate-500">{s.content}</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1 px-1 text-[11px] text-slate-400">
+              학교가 나이스에 등록한 일정이라 여기서 수정·삭제할 수 없습니다.
+            </p>
+          </div>
+        )}
 
         <div className="mb-4">
           <p className="mb-1.5 text-xs font-semibold text-slate-400">이 날의 일정</p>

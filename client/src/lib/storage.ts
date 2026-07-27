@@ -25,6 +25,7 @@ export function defaultSettings(): Settings {
     calendarId: 'primary',
     reminderMinutes: 10,
     urgentDays: 3,
+    showSchoolSchedule: true,
   };
 }
 

@@ -14,7 +14,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { eventsOnDay } from '../lib/events';
 import { getHoliday } from '../lib/holidays';
 import { WEEKDAY_LABELS } from '../lib/schedule';
-import type { GEvent } from '../types';
+import type { GEvent, SchoolScheduleItem } from '../types';
 
 interface Props {
   month: Date;
@@ -27,6 +27,8 @@ interface Props {
   compact?: boolean;
   /** 사용자 지정 휴일(재량휴업일 등). YYYY-MM-DD → 라벨 */
   holidays?: Record<string, string>;
+  /** 나이스 학사일정 겹쳐보기 (비어 있으면 표시하지 않음) */
+  schoolSchedule?: SchoolScheduleItem[];
 }
 
 export default function MonthCalendar({
@@ -38,7 +40,15 @@ export default function MonthCalendar({
   weekStartsOn,
   compact = false,
   holidays,
+  schoolSchedule,
 }: Props) {
+  const scheduleByDay = new Map<string, SchoolScheduleItem[]>();
+  for (const item of schoolSchedule ?? []) {
+    const list = scheduleByDay.get(item.date);
+    if (list) list.push(item);
+    else scheduleByDay.set(item.date, [item]);
+  }
+
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(month), { weekStartsOn }),
     end: endOfWeek(endOfMonth(month), { weekStartsOn }),
@@ -93,8 +103,10 @@ export default function MonthCalendar({
           const inMonth = isSameMonth(day, month);
           const isSel = isSameDay(day, selected);
           const dow = day.getDay();
-          const holiday = getHoliday(format(day, 'yyyy-MM-dd'), holidays);
-          const isCustomHoliday = Boolean(holidays?.[format(day, 'yyyy-MM-dd')]);
+          const dayKey = format(day, 'yyyy-MM-dd');
+          const holiday = getHoliday(dayKey, holidays);
+          const isCustomHoliday = Boolean(holidays?.[dayKey]);
+          const daySchedule = scheduleByDay.get(dayKey) ?? [];
           // 날짜 숫자 색상: 공휴일·일요일 → 빨강, 토요일 → 파랑
           const numColor = !inMonth
             ? 'text-slate-300'
@@ -134,13 +146,28 @@ export default function MonthCalendar({
               </div>
               {compact ? (
                 <span className="mt-1 flex justify-center gap-0.5">
+                  {daySchedule.length > 0 && (
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                  )}
                   {dayEvents.slice(0, 3).map((ev) => (
                     <span key={ev.id} className="h-1.5 w-1.5 rounded-full bg-mint-400" />
                   ))}
                 </span>
               ) : (
                 <span className="mt-1 flex flex-col gap-0.5 overflow-hidden">
-                  {dayEvents.slice(0, 2).map((ev) => (
+                  {/* 학사일정은 학교가 정한 일정이라 내 일정보다 위에 둔다 */}
+                  {daySchedule.slice(0, 2).map((s, i) => (
+                    <span
+                      key={`s-${i}`}
+                      title={s.content || s.name}
+                      className={`truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium ${
+                        s.noClass ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {s.name}
+                    </span>
+                  ))}
+                  {dayEvents.slice(0, daySchedule.length > 0 ? 1 : 2).map((ev) => (
                     <span
                       key={ev.id}
                       className="truncate rounded-md bg-mint-100 px-1.5 py-0.5 text-[11px] font-medium text-mint-800"
@@ -148,9 +175,15 @@ export default function MonthCalendar({
                       {ev.title}
                     </span>
                   ))}
-                  {dayEvents.length > 2 && (
-                    <span className="px-1 text-[10px] text-slate-400">+{dayEvents.length - 2}건</span>
-                  )}
+                  {(() => {
+                    const shownSchedule = Math.min(daySchedule.length, 2);
+                    const shownEvents = Math.min(dayEvents.length, daySchedule.length > 0 ? 1 : 2);
+                    const hidden =
+                      daySchedule.length - shownSchedule + (dayEvents.length - shownEvents);
+                    return hidden > 0 ? (
+                      <span className="px-1 text-[10px] text-slate-400">+{hidden}건</span>
+                    ) : null;
+                  })()}
                 </span>
               )}
             </button>
