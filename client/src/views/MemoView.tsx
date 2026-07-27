@@ -47,7 +47,11 @@ export default function MemoView() {
 
       {memos.length === 0 ? (
         <div className="rounded-2xl bg-white p-10 shadow-sm ring-1 ring-slate-100">
-          <EmptyMiyo message="아직 메모가 없습니다. ‘새 메모’를 눌러 시작하세요." size={72} />
+          <EmptyMiyo
+            message="아직 메모가 없습니다. ‘새 메모’를 눌러 시작하세요."
+            size={96}
+            src="/nep-miyo.png"
+          />
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

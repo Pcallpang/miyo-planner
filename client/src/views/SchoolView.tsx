@@ -95,7 +95,11 @@ export default function SchoolView() {
         </h3>
 
         {meals.length === 0 ? (
-          <EmptyMiyo message={loading ? '급식을 불러오는 중…' : '이 주에는 급식 정보가 없습니다.'} size={64} src="/mudduk-miyo.png" />
+          <EmptyMiyo
+            message={loading ? '급식을 불러오는 중…' : '이 주에는 급식 정보가 없습니다.'}
+            size={80}
+            src="/waeyo-miyo.png"
+          />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {days.map((day) => {
