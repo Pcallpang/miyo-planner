@@ -18,6 +18,9 @@ export default function LiveStatusCard() {
   const phase = getDayPhase(now, settings.periodTimes, settings.periodCount);
   const todaySlots = timetable[now.getDay()] ?? [];
 
+  // 수업이 잡혀 있는 교시면 빡미요, 그 밖(공강·쉬는 시간·일과 전후·주말)이면 무뚝미요
+  const inClass = phase.kind === 'period' && Boolean(todaySlots[phase.index]?.subject);
+
   let title = '';
   let detail = '';
   switch (phase.kind) {
@@ -55,8 +58,20 @@ export default function LiveStatusCard() {
         <Clock size={17} className="text-mint-500" />
         실시간 일과
       </h2>
-      <p className="text-xl font-bold text-mint-700">{title}</p>
-      <p className="mt-1 text-sm text-slate-500">{detail}</p>
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-xl font-bold text-mint-700">{title}</p>
+          <p className="mt-1 text-sm text-slate-500">{detail}</p>
+        </div>
+        <img
+          src={inClass ? '/ppak-miyo.png' : '/mudduk-miyo.png'}
+          alt={inClass ? '수업 중인 미요' : '쉬고 있는 미요'}
+          width={64}
+          height={64}
+          draggable={false}
+          className="h-16 w-16 shrink-0 object-contain"
+        />
+      </div>
     </section>
   );
 }
