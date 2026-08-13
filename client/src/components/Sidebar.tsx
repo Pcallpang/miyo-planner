@@ -1,4 +1,5 @@
 import {
+  Armchair,
   ClipboardPaste,
   LayoutDashboard,
   LayoutGrid,
@@ -36,12 +37,41 @@ interface Props {
   onOpenNote: () => void;
 }
 
+/** 자리배치 앱 주소 — 서버가 내려주지 못했을 때의 폴백. */
+const SEATING_FALLBACK_URL = 'https://sn-aseating.vercel.app';
+
 export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
-  const { status, refreshStatus } = useApp();
+  const { status, refreshStatus, showToast } = useApp();
 
   async function logout() {
     await api.logout();
     await refreshStatus();
+  }
+
+  /**
+   * 자리배치 앱을 새 탭으로 연다.
+   *
+   * 팝업 차단을 피하려면 클릭 핸들러 안에서 동기적으로 탭을 먼저 열어야 한다.
+   * 토큰을 기다린 뒤 window.open을 부르면 사용자 제스처가 끊겨 막힌다.
+   * (여기서 'noopener'를 주면 핸들이 null로 와서 나중에 주소를 넣을 수 없다.
+   *  대신 주소를 채운 직후 opener를 끊는다.)
+   * 토큰은 URL fragment로만 넘긴다 — 서버 로그나 리퍼러에 남지 않는다.
+   */
+  async function openSeating() {
+    const win = window.open('', '_blank');
+    function go(url: string) {
+      if (!win) { window.open(url, '_blank', 'noopener'); return; }
+      win.location.replace(url);
+      win.opener = null;
+    }
+    try {
+      const { idToken, appUrl } = await api.seatingToken();
+      go(`${appUrl}/seating_1.html#gt=${encodeURIComponent(idToken)}`);
+    } catch (e) {
+      // 토큰을 못 받아도 앱 자체는 열어준다 — 자리배치의 자체 로그인 화면으로 떨어진다.
+      showToast('info', e instanceof Error ? e.message : '자동 로그인에 실패해 로그인 화면으로 이동합니다.');
+      go(SEATING_FALLBACK_URL);
+    }
   }
 
   return (
@@ -81,6 +111,18 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
                   </button>
                 </li>
               ))}
+              {/* 자리배치는 별도 배포라 뷰 전환이 아니라 새 탭으로 연다. */}
+              {group === '나의 하루' && (
+                <li>
+                  <button
+                    onClick={() => void openSeating()}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+                  >
+                    <Armchair size={17} className="text-slate-400" />
+                    스마트 자리배치
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
         ))}

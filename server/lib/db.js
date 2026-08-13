@@ -8,6 +8,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL?.includes('localhost') ? false : { rejectUnauthorized: false },
+  // 서버리스에서는 함수 인스턴스가 여럿 뜨고 각자 풀을 갖는다. 인스턴스당 1개로
+  // 묶어야 Supabase 커넥션 한도를 넘기지 않는다. DATABASE_URL은 Transaction
+  // pooler(6543)를 쓴다 — node-pg는 prepared statement를 기본으로 쓰지 않아 호환된다.
+  max: 1,
 });
 
 export async function initDb() {

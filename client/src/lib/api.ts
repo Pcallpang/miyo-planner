@@ -59,6 +59,9 @@ export const api = {
   logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
   disconnect: () => request<{ ok: true }>('/api/auth/disconnect', { method: 'POST' }),
 
+  /** 자리배치 앱 자동 로그인용 구글 id_token */
+  seatingToken: () => request<{ idToken: string; appUrl: string }>('/api/seating/token'),
+
   calendars: () => request<{ calendars: CalendarInfo[] }>('/api/calendar/calendars'),
 
   events: (calendarId: string, timeMin: string, timeMax: string) =>
