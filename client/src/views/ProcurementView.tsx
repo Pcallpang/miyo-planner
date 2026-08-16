@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ClipboardList,
   Clock,
+  Download,
   FileSpreadsheet,
   ImagePlus,
   Loader2,
   Plus,
   Receipt,
-  Send,
   Trash2,
   Truck,
   X,
@@ -148,7 +148,7 @@ export default function ProcurementView() {
 
   async function issue() {
     if (!header.title.trim()) {
-      showToast('error', '품의서 제목을 입력해 주세요.');
+      showToast('error', '제목을 입력해 주세요.');
       return;
     }
     if (cart.length === 0) {
@@ -159,7 +159,7 @@ export default function ProcurementView() {
     setIssuing(true);
     try {
       await api.issueProcurement({ ...header, title: header.title.trim(), items });
-      showToast('success', '품의서를 발행했습니다. 엑셀 파일을 확인해 주세요.');
+      showToast('success', '품목 내역을 다운로드했습니다.');
       setIssueOpen(false);
       setCart([]);
       setShipping(0);
@@ -167,7 +167,7 @@ export default function ProcurementView() {
       const r = await api.procurementHistory();
       setHistory(r.requests);
     } catch (e) {
-      showToast('error', e instanceof Error ? e.message : '품의서 발행에 실패했습니다.');
+      showToast('error', e instanceof Error ? e.message : '다운로드에 실패했습니다.');
     } finally {
       setIssuing(false);
     }
@@ -193,103 +193,17 @@ export default function ProcurementView() {
         </h2>
         <p className="mt-1 text-sm text-slate-500">
           G마켓·쿠팡·옥션·11번가 등에서 상품 페이지를 캡쳐해 붙여넣거나 업로드하면, 상품 정보를
-          자동으로 인식해 아래 품의서 초안에 담아 드립니다. 캡쳐 한 장에 상품이 여러 개 보여도 전부
+          자동으로 인식해 아래 품목 내역에 담아 드립니다. 캡쳐 한 장에 상품이 여러 개 보여도 전부
           인식합니다.
         </p>
       </div>
 
-      {/* 이미지 입력 영역 */}
-      <div
-        onPaste={onPaste}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={onDrop}
-        tabIndex={0}
-        className={`rounded-2xl border-2 border-dashed p-6 text-center outline-none transition ${
-          dragOver ? 'border-mint-400 bg-mint-50/60' : 'border-slate-200 bg-white'
-        }`}
-      >
-        {!preview ? (
-          <div className="flex flex-col items-center gap-2 py-6 text-slate-500">
-            <ImagePlus size={28} className="text-slate-300" />
-            <p className="text-sm">
-              상품 캡쳐 이미지를 여기에 <strong>붙여넣기(Ctrl+V)</strong>하거나 드래그하세요.
-            </p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-1 rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-            >
-              파일 선택
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void handleFile(file);
-                e.target.value = '';
-              }}
-            />
-            {extractError && (
-              <p
-                className={`mt-1 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm ${
-                  retryIn > 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-600'
-                }`}
-              >
-                {retryIn > 0 && <Clock size={15} />}
-                {extractError}
-                {retryIn > 0 && <span className="ml-auto font-semibold tabular-nums">{retryIn}초</span>}
-              </p>
-            )}
-          </div>
-        ) : (
-          <div className="relative mx-auto max-w-xs">
-            <img
-              src={preview.dataUrl}
-              alt="캡쳐 미리보기"
-              className="h-40 w-full rounded-xl object-cover ring-1 ring-slate-200"
-            />
-            {!extracting && (
-              <button
-                onClick={() => setPreview(null)}
-                className="absolute -top-2 -right-2 rounded-full bg-white p-1 text-slate-400 shadow ring-1 ring-slate-200 hover:text-rose-400"
-                aria-label="닫기"
-              >
-                <X size={14} />
-              </button>
-            )}
-            {extracting ? (
-              <p className="mt-3 flex items-center justify-center gap-1.5 text-sm text-slate-500">
-                <Loader2 size={15} className="animate-spin" /> 상품 정보를 분석 중입니다…
-              </p>
-            ) : (
-              extractError && (
-                <p
-                  className={`mt-3 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm ${
-                    retryIn > 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-600'
-                  }`}
-                >
-                  {retryIn > 0 && <Clock size={15} />}
-                  {extractError}
-                  {retryIn > 0 && <span className="ml-auto font-semibold tabular-nums">{retryIn}초</span>}
-                </p>
-              )
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 품의서 초안 작성 */}
+      {/* 품목 내역: 이미지 입력 + 표를 한 카드에 */}
       <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-bold text-slate-700">
             <ClipboardList size={16} className="text-mint-500" />
-            품의서 초안 작성 ({cart.length})
+            품목 내역 ({cart.length})
           </h3>
           <div className="flex items-center gap-2">
             <button
@@ -303,9 +217,95 @@ export default function ProcurementView() {
               disabled={cart.length === 0}
               className="flex items-center gap-1.5 rounded-xl bg-mint-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-40"
             >
-              <FileSpreadsheet size={15} /> 품의서 발행
+              <Download size={15} /> 품목 내역 다운로드
             </button>
           </div>
+        </div>
+
+        {/* 이미지 입력 영역 */}
+        <div
+          onPaste={onPaste}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+          tabIndex={0}
+          className={`mb-4 rounded-2xl border-2 border-dashed p-6 text-center outline-none transition ${
+            dragOver ? 'border-mint-400 bg-mint-50/60' : 'border-slate-200 bg-slate-50/50'
+          }`}
+        >
+          {!preview ? (
+            <div className="flex flex-col items-center gap-2 py-6 text-slate-500">
+              <ImagePlus size={28} className="text-slate-300" />
+              <p className="text-sm">
+                상품 캡쳐 이미지를 여기에 <strong>붙여넣기(Ctrl+V)</strong>하거나 드래그하세요.
+              </p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              >
+                파일 선택
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleFile(file);
+                  e.target.value = '';
+                }}
+              />
+              {extractError && (
+                <p
+                  className={`mt-1 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm ${
+                    retryIn > 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-600'
+                  }`}
+                >
+                  {retryIn > 0 && <Clock size={15} />}
+                  {extractError}
+                  {retryIn > 0 && <span className="ml-auto font-semibold tabular-nums">{retryIn}초</span>}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="relative mx-auto max-w-xs">
+              <img
+                src={preview.dataUrl}
+                alt="캡쳐 미리보기"
+                className="h-40 w-full rounded-xl object-cover ring-1 ring-slate-200"
+              />
+              {!extracting && (
+                <button
+                  onClick={() => setPreview(null)}
+                  className="absolute -top-2 -right-2 rounded-full bg-white p-1 text-slate-400 shadow ring-1 ring-slate-200 hover:text-rose-400"
+                  aria-label="닫기"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              {extracting ? (
+                <p className="mt-3 flex items-center justify-center gap-1.5 text-sm text-slate-500">
+                  <Loader2 size={15} className="animate-spin" /> 상품 정보를 분석 중입니다…
+                </p>
+              ) : (
+                extractError && (
+                  <p
+                    className={`mt-3 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm ${
+                      retryIn > 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-600'
+                    }`}
+                  >
+                    {retryIn > 0 && <Clock size={15} />}
+                    {extractError}
+                    {retryIn > 0 && <span className="ml-auto font-semibold tabular-nums">{retryIn}초</span>}
+                  </p>
+                )
+              )}
+            </div>
+          )}
         </div>
 
         {cart.length === 0 ? (
@@ -395,13 +395,13 @@ export default function ProcurementView() {
         )}
       </div>
 
-      {/* 발행 이력 */}
+      {/* 다운로드 이력 */}
       <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-        <h3 className="mb-3 text-sm font-bold text-slate-700">발행 이력</h3>
+        <h3 className="mb-3 text-sm font-bold text-slate-700">다운로드 이력</h3>
         {history === null ? (
           <p className="py-4 text-center text-sm text-slate-400">불러오는 중…</p>
         ) : history.length === 0 ? (
-          <p className="py-4 text-center text-sm text-slate-400">아직 발행한 품의서가 없습니다.</p>
+          <p className="py-4 text-center text-sm text-slate-400">아직 다운로드한 품목 내역이 없습니다.</p>
         ) : (
           <ul className="divide-y divide-slate-100">
             {history.map((h) => (
@@ -461,8 +461,8 @@ function IssueModal({ header, setHeader, issuing, total, itemCount, onClose, onS
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-            <FileSpreadsheet size={18} className="text-mint-500" />
-            품의서 발행
+            <Download size={18} className="text-mint-500" />
+            품목 내역 다운로드
           </h2>
           <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
             <X size={18} />
@@ -473,7 +473,7 @@ function IssueModal({ header, setHeader, issuing, total, itemCount, onClose, onS
             {itemCount}개 품목 · 합계 {currency(total)}원
           </p>
           <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-600">품의서 제목 *</span>
+            <span className="mb-1 block font-medium text-slate-600">제목 *</span>
             <input
               className={`${inputCls} w-full`}
               placeholder="예) 3학년 미술수업 재료 구입"
@@ -515,8 +515,8 @@ function IssueModal({ header, setHeader, issuing, total, itemCount, onClose, onS
             disabled={issuing}
             className="flex items-center gap-2 rounded-xl bg-mint-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-50"
           >
-            {issuing ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-            {issuing ? '발행 중…' : '발행하고 엑셀 받기'}
+            {issuing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {issuing ? '다운로드 중…' : '다운로드'}
           </button>
         </div>
       </div>
