@@ -8,7 +8,7 @@ import {
   getProcurementHistory,
   getProcurementRequestById,
 } from '../lib/db.js';
-import { normalizeExtractedItem, validateIssueBody, buildProcurementWorkbook } from '../lib/procurementExcel.js';
+import { normalizeExtractedItems, validateIssueBody, buildProcurementWorkbook } from '../lib/procurementExcel.js';
 
 const router = Router();
 
@@ -30,16 +30,19 @@ async function resolveGeminiKey(userId) {
 }
 
 const EXTRACT_PROMPT = `당신은 쇼핑몰(G마켓/쿠팡/옥션/11번가 등) 상품 페이지 캡쳐 이미지를 보고 물품구매 품의서 작성에 필요한 정보를 추출하는 학교 행정 비서입니다.
-이미지 속 상품 정보를 다음 JSON **객체**로만 응답하세요:
-{
-  "name": "상품명 (간결하게, 핵심 옵션명 포함 가능)",
-  "spec": "규격/옵션 (색상·사이즈 등, 없으면 빈 문자열)",
-  "unit": "단위 (개/세트/box/묶음 등, 알 수 없으면 \"개\")",
-  "qty": 수량(숫자, 이미지에 명시되어 있지 않으면 1),
-  "unitPrice": 낱개 단가(숫자, 원 단위, 콤마·통화기호 제외),
-  "vendor": "판매 사이트명 (G마켓/쿠팡/옥션/11번가 등, 알 수 없으면 빈 문자열)"
-}
-JSON 객체 외의 다른 텍스트는 절대 출력하지 마세요.`;
+이미지 한 장에 상품이 여러 개 보일 수 있습니다(장바구니 화면, 검색 결과, 여러 옵션 등). 보이는 상품을 전부 각각 추출해
+다음 JSON **배열**로만 응답하세요 (상품이 1개뿐이어도 배열 안에 객체 1개로 응답):
+[
+  {
+    "name": "상품명 (간결하게, 핵심 옵션명 포함 가능)",
+    "spec": "규격/옵션 (색상·사이즈 등, 없으면 빈 문자열)",
+    "unit": "단위 (개/세트/box/묶음 등, 알 수 없으면 \"개\")",
+    "qty": 수량(숫자, 이미지에 명시되어 있지 않으면 1),
+    "unitPrice": 낱개 단가(숫자, 원 단위, 콤마·통화기호 제외),
+    "vendor": "판매 사이트명 (G마켓/쿠팡/옥션/11번가 등, 알 수 없으면 빈 문자열)"
+  }
+]
+배열 외의 다른 텍스트는 절대 출력하지 마세요.`;
 
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp'];
 
@@ -73,11 +76,8 @@ router.post('/extract', async (req, res) => {
     } catch {
       return res.status(502).json({ error: 'Gemini 응답을 해석하지 못했습니다. 다시 시도해 주세요.' });
     }
-    const item = normalizeExtractedItem(parsed);
-    if (!item) {
-      return res.status(502).json({ error: '이미지에서 상품 정보를 찾지 못했습니다. 직접 입력해 주세요.' });
-    }
-    res.json({ item });
+    const items = normalizeExtractedItems(parsed);
+    res.json({ items });
   } catch (e) {
     console.error('[procurement]', e.message);
     if (isQuotaError(e)) {

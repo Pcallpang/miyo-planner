@@ -1,30 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  ClipboardList,
   Clock,
   FileSpreadsheet,
   ImagePlus,
   Loader2,
+  Plus,
   Receipt,
   Send,
-  ShoppingCart,
-  Sparkles,
   Trash2,
+  Truck,
   X,
 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import { useEscapeKey } from '../hooks/useEscapeKey';
-import type { ExtractedProductItem, ProcurementHistoryEntry, ProcurementItem } from '../types';
+import type { ProcurementHistoryEntry, ProcurementItem } from '../types';
 
 const inputCls =
   'rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none transition focus:border-mint-400 focus:ring-2 focus:ring-mint-100';
 
-function emptyDraft(): ExtractedProductItem {
-  return { name: '', spec: '', unit: '개', qty: 1, unitPrice: 0, vendor: '' };
-}
-
 function currency(n: number) {
   return n.toLocaleString('ko-KR');
+}
+
+function blankItem(): ProcurementItem {
+  return { name: '', spec: '', unit: '개', qty: 1, unitPrice: 0, vendor: '', sourceUrl: '' };
 }
 
 /** File/Blob을 base64(순수 데이터부)와 mimeType으로 변환한다. */
@@ -43,13 +44,12 @@ function readImageFile(file: File): Promise<{ base64: string; mimeType: string; 
 
 export default function ProcurementView() {
   const { showToast } = useApp();
-  const [preview, setPreview] = useState<{ dataUrl: string; base64: string; mimeType: string } | null>(null);
+  const [preview, setPreview] = useState<{ dataUrl: string } | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [retryIn, setRetryIn] = useState(0);
-  const [draft, setDraft] = useState<ExtractedProductItem | null>(null);
-  const [draftUrl, setDraftUrl] = useState('');
   const [cart, setCart] = useState<ProcurementItem[]>([]);
+  const [shipping, setShipping] = useState(0);
   const [dragOver, setDragOver] = useState(false);
 
   const [issueOpen, setIssueOpen] = useState(false);
@@ -80,9 +80,7 @@ export default function ProcurementView() {
       return;
     }
     const { base64, mimeType, dataUrl } = await readImageFile(file);
-    setPreview({ base64, mimeType, dataUrl });
-    setDraft(null);
-    setDraftUrl('');
+    setPreview({ dataUrl });
     setExtractError(null);
     void extract(base64, mimeType);
   }
@@ -91,14 +89,30 @@ export default function ProcurementView() {
     setExtracting(true);
     setExtractError(null);
     try {
-      const { item } = await api.extractProduct(base64, mimeType);
-      setDraft(item);
+      const { items } = await api.extractProduct(base64, mimeType);
+      if (items.length === 0) {
+        setExtractError('이미지에서 상품 정보를 찾지 못했습니다. "행 추가"로 직접 입력해 주세요.');
+        return;
+      }
+      setCart((prev) => [
+        ...prev,
+        ...items.map((it) => ({
+          name: it.name,
+          spec: it.spec,
+          unit: it.unit || '개',
+          qty: it.qty > 0 ? it.qty : 1,
+          unitPrice: it.unitPrice >= 0 ? it.unitPrice : 0,
+          vendor: it.vendor,
+          sourceUrl: '',
+        })),
+      ]);
+      showToast('success', `${items.length}개 상품을 인식해 초안에 추가했습니다.`);
+      setPreview(null);
     } catch (e) {
       if (e instanceof ApiError && e.status === 429) {
         setRetryIn(e.retryAfter && e.retryAfter > 0 ? e.retryAfter : 30);
       }
       setExtractError(e instanceof Error ? e.message : '분석에 실패했습니다.');
-      setDraft(emptyDraft());
     } finally {
       setExtracting(false);
     }
@@ -117,28 +131,8 @@ export default function ProcurementView() {
     if (file) void handleFile(file);
   }
 
-  function addToCart() {
-    if (!draft) return;
-    if (!draft.name.trim()) {
-      showToast('error', '상품명을 입력해 주세요.');
-      return;
-    }
-    setCart((prev) => [
-      ...prev,
-      {
-        name: draft.name.trim(),
-        spec: draft.spec.trim(),
-        unit: draft.unit.trim() || '개',
-        qty: draft.qty > 0 ? draft.qty : 1,
-        unitPrice: draft.unitPrice >= 0 ? draft.unitPrice : 0,
-        vendor: draft.vendor.trim(),
-        sourceUrl: draftUrl.trim(),
-      },
-    ]);
-    setPreview(null);
-    setDraft(null);
-    setDraftUrl('');
-    showToast('success', '장바구니에 담았습니다.');
+  function addBlankRow() {
+    setCart((prev) => [...prev, blankItem()]);
   }
 
   function updateCartItem(index: number, patch: Partial<ProcurementItem>) {
@@ -149,7 +143,8 @@ export default function ProcurementView() {
     setCart((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const total = cart.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
+  const itemsTotal = cart.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
+  const total = itemsTotal + shipping;
 
   async function issue() {
     if (!header.title.trim()) {
@@ -157,15 +152,17 @@ export default function ProcurementView() {
       return;
     }
     if (cart.length === 0) {
-      showToast('error', '장바구니에 품목을 1개 이상 담아 주세요.');
+      showToast('error', '품목을 1개 이상 담아 주세요.');
       return;
     }
+    const items = shipping > 0 ? [...cart, { ...blankItem(), name: '배송비', unit: '건', unitPrice: shipping }] : cart;
     setIssuing(true);
     try {
-      await api.issueProcurement({ ...header, title: header.title.trim(), items: cart });
+      await api.issueProcurement({ ...header, title: header.title.trim(), items });
       showToast('success', '품의서를 발행했습니다. 엑셀 파일을 확인해 주세요.');
       setIssueOpen(false);
       setCart([]);
+      setShipping(0);
       setHeader({ title: '', purpose: '', budgetItem: '', requester: '' });
       const r = await api.procurementHistory();
       setHistory(r.requests);
@@ -196,7 +193,8 @@ export default function ProcurementView() {
         </h2>
         <p className="mt-1 text-sm text-slate-500">
           G마켓·쿠팡·옥션·11번가 등에서 상품 페이지를 캡쳐해 붙여넣거나 업로드하면, 상품 정보를
-          자동으로 인식해 K에듀파인 품의서 엑셀로 만들어 드립니다.
+          자동으로 인식해 아래 품의서 초안에 담아 드립니다. 캡쳐 한 장에 상품이 여러 개 보여도 전부
+          인식합니다.
         </p>
       </div>
 
@@ -237,23 +235,42 @@ export default function ProcurementView() {
                 e.target.value = '';
               }}
             />
+            {extractError && (
+              <p
+                className={`mt-1 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm ${
+                  retryIn > 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-600'
+                }`}
+              >
+                {retryIn > 0 && <Clock size={15} />}
+                {extractError}
+                {retryIn > 0 && <span className="ml-auto font-semibold tabular-nums">{retryIn}초</span>}
+              </p>
+            )}
           </div>
         ) : (
-          <div className="grid gap-4 text-left sm:grid-cols-[160px_1fr]">
+          <div className="relative mx-auto max-w-xs">
             <img
               src={preview.dataUrl}
               alt="캡쳐 미리보기"
               className="h-40 w-full rounded-xl object-cover ring-1 ring-slate-200"
             />
-            <div className="space-y-2">
-              {extracting && (
-                <p className="flex items-center gap-1.5 text-sm text-slate-500">
-                  <Loader2 size={15} className="animate-spin" /> Gemini가 상품 정보를 분석 중입니다…
-                </p>
-              )}
-              {extractError && (
+            {!extracting && (
+              <button
+                onClick={() => setPreview(null)}
+                className="absolute -top-2 -right-2 rounded-full bg-white p-1 text-slate-400 shadow ring-1 ring-slate-200 hover:text-rose-400"
+                aria-label="닫기"
+              >
+                <X size={14} />
+              </button>
+            )}
+            {extracting ? (
+              <p className="mt-3 flex items-center justify-center gap-1.5 text-sm text-slate-500">
+                <Loader2 size={15} className="animate-spin" /> 상품 정보를 분석 중입니다…
+              </p>
+            ) : (
+              extractError && (
                 <p
-                  className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm ${
+                  className={`mt-3 flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm ${
                     retryIn > 0 ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-600'
                   }`}
                 >
@@ -261,149 +278,118 @@ export default function ProcurementView() {
                   {extractError}
                   {retryIn > 0 && <span className="ml-auto font-semibold tabular-nums">{retryIn}초</span>}
                 </p>
-              )}
-              {draft && !extracting && (
-                <div className="space-y-2 rounded-xl bg-slate-50 p-3">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      className={`${inputCls} col-span-2`}
-                      placeholder="상품명"
-                      value={draft.name}
-                      onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                    />
-                    <input
-                      className={inputCls}
-                      placeholder="규격/옵션"
-                      value={draft.spec}
-                      onChange={(e) => setDraft({ ...draft, spec: e.target.value })}
-                    />
-                    <input
-                      className={inputCls}
-                      placeholder="판매처"
-                      value={draft.vendor}
-                      onChange={(e) => setDraft({ ...draft, vendor: e.target.value })}
-                    />
-                    <input
-                      className={inputCls}
-                      placeholder="단위 (개/세트 등)"
-                      value={draft.unit}
-                      onChange={(e) => setDraft({ ...draft, unit: e.target.value })}
-                    />
-                    <input
-                      type="number"
-                      className={inputCls}
-                      placeholder="수량"
-                      value={draft.qty}
-                      onChange={(e) => setDraft({ ...draft, qty: Number(e.target.value) || 0 })}
-                    />
-                    <input
-                      type="number"
-                      className={inputCls}
-                      placeholder="단가"
-                      value={draft.unitPrice}
-                      onChange={(e) => setDraft({ ...draft, unitPrice: Number(e.target.value) || 0 })}
-                    />
-                    <input
-                      className={`${inputCls} col-span-2`}
-                      placeholder="상품 URL (선택)"
-                      value={draftUrl}
-                      onChange={(e) => setDraftUrl(e.target.value)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => {
-                        setPreview(null);
-                        setDraft(null);
-                      }}
-                      className="rounded-xl px-3 py-2 text-sm font-medium text-slate-400 hover:bg-slate-100"
-                    >
-                      취소
-                    </button>
-                    <button
-                      onClick={addToCart}
-                      className="flex items-center gap-1.5 rounded-xl bg-mint-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-mint-600"
-                    >
-                      <ShoppingCart size={15} /> 장바구니 담기
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+              )
+            )}
           </div>
         )}
       </div>
 
-      {/* 장바구니 */}
+      {/* 품의서 초안 작성 */}
       <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-bold text-slate-700">
-            <ShoppingCart size={16} className="text-mint-500" />
-            장바구니 ({cart.length})
+            <ClipboardList size={16} className="text-mint-500" />
+            품의서 초안 작성 ({cart.length})
           </h3>
-          <button
-            onClick={() => setIssueOpen(true)}
-            disabled={cart.length === 0}
-            className="flex items-center gap-1.5 rounded-xl bg-mint-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-40"
-          >
-            <FileSpreadsheet size={15} /> 품의서 발행
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={addBlankRow}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            >
+              <Plus size={15} /> 행 추가
+            </button>
+            <button
+              onClick={() => setIssueOpen(true)}
+              disabled={cart.length === 0}
+              className="flex items-center gap-1.5 rounded-xl bg-mint-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-40"
+            >
+              <FileSpreadsheet size={15} /> 품의서 발행
+            </button>
+          </div>
         </div>
 
         {cart.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-400">담긴 상품이 없습니다.</p>
+          <p className="py-6 text-center text-sm text-slate-400">
+            담긴 품목이 없습니다. 이미지를 인식시키거나 "행 추가"로 직접 입력해 주세요.
+          </p>
         ) : (
           <div className="space-y-2">
-            {cart.map((item, i) => (
-              <div key={i} className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-xl border border-slate-100 p-3">
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
-                  <input
-                    className={`${inputCls} sm:col-span-2`}
-                    value={item.name}
-                    onChange={(e) => updateCartItem(i, { name: e.target.value })}
-                  />
-                  <input
-                    className={inputCls}
-                    placeholder="규격"
-                    value={item.spec}
-                    onChange={(e) => updateCartItem(i, { spec: e.target.value })}
-                  />
-                  <input
-                    className={inputCls}
-                    placeholder="단위"
-                    value={item.unit}
-                    onChange={(e) => updateCartItem(i, { unit: e.target.value })}
-                  />
-                  <input
-                    type="number"
-                    className={inputCls}
-                    value={item.qty}
-                    onChange={(e) => updateCartItem(i, { qty: Number(e.target.value) || 0 })}
-                  />
-                  <input
-                    type="number"
-                    className={inputCls}
-                    value={item.unitPrice}
-                    onChange={(e) => updateCartItem(i, { unitPrice: Number(e.target.value) || 0 })}
-                  />
+            <div className="overflow-x-auto">
+              <div className="min-w-[720px] space-y-2">
+                <div className="grid grid-cols-[2fr_1fr_0.8fr_0.7fr_0.9fr_1fr_auto] gap-2 px-3 text-[11px] font-medium text-slate-400">
+                  <span>품명</span>
+                  <span>규격</span>
+                  <span>단위</span>
+                  <span>수량</span>
+                  <span>단가</span>
+                  <span>총액</span>
+                  <span></span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-600 tabular-nums">
-                    {currency(item.qty * item.unitPrice)}원
-                  </span>
-                  <button
-                    onClick={() => removeCartItem(i)}
-                    className="rounded p-1 text-slate-300 hover:text-rose-400"
-                    aria-label="삭제"
+                {cart.map((item, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-[2fr_1fr_0.8fr_0.7fr_0.9fr_1fr_auto] items-center gap-2 rounded-xl border border-slate-100 p-3"
                   >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
+                    <input
+                      className={`${inputCls} min-w-0`}
+                      placeholder="품명"
+                      value={item.name}
+                      onChange={(e) => updateCartItem(i, { name: e.target.value })}
+                    />
+                    <input
+                      className={`${inputCls} min-w-0`}
+                      placeholder="규격"
+                      value={item.spec}
+                      onChange={(e) => updateCartItem(i, { spec: e.target.value })}
+                    />
+                    <input
+                      className={`${inputCls} min-w-0`}
+                      placeholder="단위"
+                      value={item.unit}
+                      onChange={(e) => updateCartItem(i, { unit: e.target.value })}
+                    />
+                    <input
+                      type="number"
+                      className={`${inputCls} min-w-0`}
+                      value={item.qty}
+                      onChange={(e) => updateCartItem(i, { qty: Number(e.target.value) || 0 })}
+                    />
+                    <input
+                      type="number"
+                      className={`${inputCls} min-w-0`}
+                      value={item.unitPrice}
+                      onChange={(e) => updateCartItem(i, { unitPrice: Number(e.target.value) || 0 })}
+                    />
+                    <span className="text-sm font-semibold text-slate-600 tabular-nums">
+                      {currency(item.qty * item.unitPrice)}원
+                    </span>
+                    <button
+                      onClick={() => removeCartItem(i)}
+                      className="justify-self-end rounded p-1 text-slate-300 hover:text-rose-400"
+                      aria-label="삭제"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
               </div>
-            ))}
-            <div className="flex items-center justify-end gap-2 pt-2 text-sm">
-              <span className="text-slate-500">합계</span>
-              <span className="text-base font-bold text-slate-800 tabular-nums">{currency(total)}원</span>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <Truck size={15} className="text-slate-400" />
+                배송비
+                <input
+                  type="number"
+                  className={`${inputCls} w-28`}
+                  value={shipping}
+                  onChange={(e) => setShipping(Math.max(0, Number(e.target.value) || 0))}
+                />
+              </label>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-slate-500">합계</span>
+                <span className="text-base font-bold text-slate-800 tabular-nums">{currency(total)}원</span>
+              </div>
             </div>
           </div>
         )}
@@ -475,7 +461,7 @@ function IssueModal({ header, setHeader, issuing, total, itemCount, onClose, onS
       >
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-            <Sparkles size={18} className="text-mint-500" />
+            <FileSpreadsheet size={18} className="text-mint-500" />
             품의서 발행
           </h2>
           <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">

@@ -1,18 +1,26 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeExtractedItem, validateIssueBody, buildProcurementWorkbook } from './procurementExcel.js';
+import { normalizeExtractedItems, validateIssueBody, buildProcurementWorkbook } from './procurementExcel.js';
 
-test('normalizeExtractedItem은 필수 필드를 채워 정규화한다', () => {
-  const item = normalizeExtractedItem({ name: ' 색연필 ', unitPrice: '3500' });
-  assert.equal(item.name, '색연필');
-  assert.equal(item.unit, '개');
-  assert.equal(item.qty, 1);
-  assert.equal(item.unitPrice, 3500);
+test('normalizeExtractedItems는 배열 응답에서 필수 필드를 채워 정규화한다', () => {
+  const items = normalizeExtractedItems([{ name: ' 색연필 ', unitPrice: '3500' }, { name: '스케치북', unitPrice: 2000 }]);
+  assert.equal(items.length, 2);
+  assert.equal(items[0].name, '색연필');
+  assert.equal(items[0].unit, '개');
+  assert.equal(items[0].qty, 1);
+  assert.equal(items[0].unitPrice, 3500);
+  assert.equal(items[1].name, '스케치북');
 });
 
-test('normalizeExtractedItem은 상품명이 없으면 null', () => {
-  assert.equal(normalizeExtractedItem({ name: '  ' }), null);
-  assert.equal(normalizeExtractedItem(null), null);
+test('normalizeExtractedItems는 단일 객체 응답도 받아들인다', () => {
+  const items = normalizeExtractedItems({ name: '색연필', unitPrice: 3500 });
+  assert.equal(items.length, 1);
+  assert.equal(items[0].name, '색연필');
+});
+
+test('normalizeExtractedItems는 상품명 없는 항목을 걸러내고, 빈 입력은 빈 배열', () => {
+  assert.deepEqual(normalizeExtractedItems([{ name: '  ' }, { name: '스케치북', unitPrice: 1000 }]).map((i) => i.name), ['스케치북']);
+  assert.deepEqual(normalizeExtractedItems(null), []);
 });
 
 test('validateIssueBody는 제목이 없으면 에러', () => {

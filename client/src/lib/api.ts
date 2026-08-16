@@ -149,7 +149,7 @@ export const api = {
   deleteGeminiKey: () => request<{ ok: true }>('/api/gemini/key', { method: 'DELETE' }),
 
   extractProduct: (image: string, mimeType: string) =>
-    request<{ item: ExtractedProductItem }>('/api/procurement/extract', {
+    request<{ items: ExtractedProductItem[] }>('/api/procurement/extract', {
       method: 'POST',
       body: JSON.stringify({ image, mimeType }),
     }),

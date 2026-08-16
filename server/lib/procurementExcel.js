@@ -2,8 +2,8 @@ import fs from 'node:fs';
 import ExcelJS from 'exceljs';
 import { TEMPLATE_PATH, ITEM_TABLE } from './procurementTemplate.js';
 
-/** 캡쳐 이미지에서 Gemini가 반환한 원시 JSON을 검증·정규화한다. */
-export function normalizeExtractedItem(raw) {
+/** 캡쳐 이미지에서 Gemini가 반환한 상품 1개짜리 원시 JSON을 검증·정규화한다. */
+function normalizeExtractedItem(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const name = typeof raw.name === 'string' ? raw.name.trim() : '';
   if (!name) return null;
@@ -19,6 +19,12 @@ export function normalizeExtractedItem(raw) {
     unitPrice,
     vendor: typeof raw.vendor === 'string' ? raw.vendor.trim() : '',
   };
+}
+
+/** 캡쳐 이미지 하나에 상품이 여러 개 보일 수 있으므로 Gemini 응답을 배열로 받아 정규화한다. */
+export function normalizeExtractedItems(raw) {
+  const list = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : raw ? [raw] : [];
+  return list.map(normalizeExtractedItem).filter((item) => item !== null);
 }
 
 /** 품의서 발행 요청 바디를 검증·정규화한다. 실패 시 { error } 반환. */
