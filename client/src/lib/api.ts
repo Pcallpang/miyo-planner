@@ -1,10 +1,13 @@
 import type {
   CalendarInfo,
   EventInput,
+  ExtractedProductItem,
   GEvent,
   Meal,
   ParsedEvent,
   ParsedTodo,
+  ProcurementHistoryEntry,
+  ProcurementIssueInput,
   School,
   SchoolScheduleItem,
   ServerStatus,
@@ -37,6 +40,45 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
     throw new ApiError(body.error || '요청에 실패했습니다.', res.status, body.retryAfter);
   }
   return body as T;
+}
+
+/** 파일 이름을 Content-Disposition에서 뽑아낸다. 실패하면 fallback을 쓴다. */
+function filenameFromDisposition(disposition: string | null, fallback: string): string {
+  if (!disposition) return fallback;
+  const star = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (star) {
+    try {
+      return decodeURIComponent(star[1]);
+    } catch {
+      /* noop */
+    }
+  }
+  const plain = disposition.match(/filename="?([^";]+)"?/i);
+  return plain ? plain[1] : fallback;
+}
+
+/** 엑셀 등 바이너리 파일을 내려받아 브라우저 저장 다이얼로그를 띄운다. */
+async function downloadFile(url: string, init: RequestInit | undefined, fallbackName: string): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(url, { credentials: 'same-origin', ...init });
+  } catch {
+    throw new ApiError('서버에 연결할 수 없습니다. 개발 서버가 실행 중인지 확인해 주세요.', 0);
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(body.error || '다운로드에 실패했습니다.', res.status, body.retryAfter);
+  }
+  const blob = await res.blob();
+  const filename = filenameFromDisposition(res.headers.get('Content-Disposition'), fallbackName);
+  const link = document.createElement('a');
+  const objectUrl = URL.createObjectURL(blob);
+  link.href = objectUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
 }
 
 function schoolQuery(school: School, from: string, to: string) {
@@ -105,4 +147,22 @@ export const api = {
   setGeminiKey: (key: string) =>
     request<{ ok: true }>('/api/gemini/key', { method: 'POST', body: JSON.stringify({ key }) }),
   deleteGeminiKey: () => request<{ ok: true }>('/api/gemini/key', { method: 'DELETE' }),
+
+  extractProduct: (image: string, mimeType: string) =>
+    request<{ item: ExtractedProductItem }>('/api/procurement/extract', {
+      method: 'POST',
+      body: JSON.stringify({ image, mimeType }),
+    }),
+
+  issueProcurement: (input: ProcurementIssueInput) =>
+    downloadFile(
+      '/api/procurement/issue',
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) },
+      `${input.title || '품의서'}.xlsx`,
+    ),
+
+  procurementHistory: () => request<{ requests: ProcurementHistoryEntry[] }>('/api/procurement/history'),
+
+  downloadProcurement: (id: string, title: string) =>
+    downloadFile(`/api/procurement/${encodeURIComponent(id)}/download`, undefined, `${title || '품의서'}.xlsx`),
 };

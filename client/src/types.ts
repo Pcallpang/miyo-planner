@@ -1,4 +1,4 @@
-export type ViewId = 'dashboard' | 'matrix' | 'school' | 'timetable' | 'memo' | 'settings';
+export type ViewId = 'dashboard' | 'matrix' | 'school' | 'timetable' | 'memo' | 'procurement' | 'settings';
 
 export type TodoCategory = '업무' | '교과' | '개인';
 
@@ -147,6 +147,46 @@ export interface AppData {
   settings: Settings;
   /** 사용자가 지정한 휴일(재량휴업일 등). YYYY-MM-DD → 라벨 */
   holidays: Record<string, string>;
+}
+
+/** 상품 캡쳐 이미지에서 Gemini가 추출한 상품 정보 */
+export interface ExtractedProductItem {
+  name: string;
+  spec: string;
+  unit: string;
+  qty: number;
+  unitPrice: number;
+  vendor: string;
+}
+
+/** 품의서 장바구니/발행에 담기는 품목 */
+export interface ProcurementItem {
+  name: string;
+  spec: string;
+  unit: string;
+  qty: number;
+  unitPrice: number;
+  vendor: string;
+  sourceUrl: string;
+}
+
+export interface ProcurementIssueInput {
+  title: string;
+  purpose: string;
+  budgetItem: string;
+  requester: string;
+  items: ProcurementItem[];
+}
+
+/** 발행 이력 목록 항목 */
+export interface ProcurementHistoryEntry {
+  id: string;
+  title: string;
+  purpose: string | null;
+  budget_item: string | null;
+  requester: string | null;
+  total_amount: number;
+  created_at: string;
 }
 
 export interface EventInput {

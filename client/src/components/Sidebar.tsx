@@ -1,6 +1,7 @@
 import {
   Armchair,
   ClipboardPaste,
+  FileSpreadsheet,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
@@ -23,6 +24,7 @@ const MENU: { group: string; items: { id: ViewId; label: string; icon: typeof Su
       { id: 'timetable', label: '오늘의 시간표', icon: Table },
       { id: 'school', label: '급식 · 학사일정', icon: School },
       { id: 'memo', label: '간단 메모', icon: NotebookPen },
+      { id: 'procurement', label: '품의서 작성', icon: FileSpreadsheet },
     ],
   },
   {

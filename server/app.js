@@ -23,6 +23,7 @@ const { default: geminiRouter } = await import('./routes/gemini.js');
 const { default: dataRouter } = await import('./routes/data.js');
 const { default: schoolRouter } = await import('./routes/school.js');
 const { default: seatingRouter } = await import('./routes/seating.js');
+const { default: procurementRouter } = await import('./routes/procurement.js');
 
 if (process.env.NODE_ENV === 'production') {
   for (const k of ['SESSION_SECRET', 'TOKEN_ENC_KEY', 'DATABASE_URL']) {
@@ -31,7 +32,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const app = express();
-app.use(express.json({ limit: '1mb' }));
+// 품의서 상품 캡쳐 이미지(base64)를 담아 보내므로 기존 1mb보다 넉넉하게 잡는다.
+app.use(express.json({ limit: '8mb' }));
 
 function requireAuth(req, res, next) {
   const userId = sessionUserId(req);
@@ -61,6 +63,7 @@ app.use('/api/gemini', requireAuth, geminiRouter);
 app.use('/api/data', requireAuth, dataRouter);
 app.use('/api/school', requireAuth, schoolRouter);
 app.use('/api/seating', requireAuth, seatingRouter);
+app.use('/api/procurement', requireAuth, procurementRouter);
 
 app.use((err, req, res, next) => { console.error(err); res.status(500).json({ error: '서버 오류가 발생했습니다.' }); });
 

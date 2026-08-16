@@ -16,3 +16,26 @@ CREATE TABLE IF NOT EXISTS app_state (
   state jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS procurement_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  purpose text,
+  budget_item text,
+  requester text,
+  total_amount bigint NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS procurement_items (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id uuid NOT NULL REFERENCES procurement_requests(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  spec text,
+  unit text NOT NULL DEFAULT '개',
+  qty integer NOT NULL DEFAULT 1,
+  unit_price bigint NOT NULL DEFAULT 0,
+  amount bigint NOT NULL DEFAULT 0,
+  vendor text,
+  source_url text,
+  sort_order integer NOT NULL DEFAULT 0
+);
