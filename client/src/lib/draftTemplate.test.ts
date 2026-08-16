@@ -11,23 +11,17 @@ describe('buildEventDraft', () => {
       place: '강당',
       target: '전교생 및 학부모',
       mainContent: '학급별 발표',
-      detailPlan: '',
       budget: 0,
-      expectedEffect: '',
       attachments: [],
     });
-    assertStartsWithPurpose(text);
+    expect(text.startsWith('1.')).toBe(true);
     expect(text).toContain('1. 학년말 학예회를 개최하고자 함');
     expect(text).toContain('  가. 일시: 2026. 8. 20.(목) 14:00 ~ 16:00');
     expect(text).toContain('  나. 장소: 강당');
     expect(text.trimEnd().endsWith('학급별 발표  끝.')).toBe(true);
-
-    function assertStartsWithPurpose(t: string) {
-      expect(t.startsWith('1.')).toBe(true);
-    }
   });
 
-  test('관련 근거가 있으면 관련이 1번, 목적이 2번이 된다', () => {
+  test('관련 근거가 있으면 "관련: " 접두어와 함께 1번으로 나오고 목적이 2번이 된다', () => {
     const text = buildEventDraft({
       basis: '2026학년도 학사일정 계획',
       purpose: '학년말 학예회를 개최하고자 함',
@@ -35,12 +29,10 @@ describe('buildEventDraft', () => {
       place: '',
       target: '',
       mainContent: '',
-      detailPlan: '',
       budget: 0,
-      expectedEffect: '',
       attachments: [],
     });
-    expect(text.startsWith('1. 2026학년도 학사일정 계획')).toBe(true);
+    expect(text.startsWith('1. 관련: 2026학년도 학사일정 계획')).toBe(true);
     expect(text).toContain('2. 학년말 학예회를 개최하고자 함');
   });
 
@@ -52,9 +44,7 @@ describe('buildEventDraft', () => {
       place: '',
       target: '',
       mainContent: '',
-      detailPlan: '',
       budget: 450000,
-      expectedEffect: '',
       attachments: [],
     });
     expect(text).toContain('소요 예산: 금450,000원(금사십오만원)');
@@ -68,9 +58,7 @@ describe('buildEventDraft', () => {
       place: '',
       target: '',
       mainContent: '',
-      detailPlan: '',
       budget: 0,
-      expectedEffect: '',
       attachments: ['세부 운영 계획서 1부', '참가자 명단 1부'],
     });
     expect(text).toContain('붙임  1. 세부 운영 계획서 1부.');
@@ -86,35 +74,37 @@ describe('buildPurchaseDraft', () => {
   ];
 
   test('품목이 없으면 안내 문구만 반환한다', () => {
-    const text = buildPurchaseDraft({ basis: '', purposeText: '', vendor: '', budgetItem: '', attachments: [] }, []);
+    const text = buildPurchaseDraft({ basis: '', purposeText: '', vendor: '', attachments: [] }, []);
     expect(text).toContain('품목 내역이 비어 있습니다');
   });
 
-  test('목적 문구를 비우면 품목·구매처 기반 기본 문구가 생성된다', () => {
+  test('관련 근거가 있으면 "관련: " 접두어가 붙는다', () => {
     const text = buildPurchaseDraft(
-      { basis: '', purposeText: '', vendor: '쿠팡', budgetItem: '학교운영비', attachments: [] },
+      { basis: '2026학년도 예산 편성 계획', purposeText: '목적 문구', vendor: '', attachments: [] },
       items,
     );
+    expect(text.startsWith('1. 관련: 2026학년도 예산 편성 계획')).toBe(true);
+  });
+
+  test('목적 문구를 비우면 품목 기반 기본 문구가 생성된다', () => {
+    const text = buildPurchaseDraft({ basis: '', purposeText: '', vendor: '쿠팡', attachments: [] }, items);
     expect(text).toContain('색연필 외 1종 구입을 위하여 다음과 같이 물품을 구입하고자 합니다.');
     expect(text).toContain('총 금액: 금13,000원(금일만삼천원)');
     expect(text).toContain('구매처: 쿠팡');
-    expect(text).toContain('예산 비목: 학교운영비');
   });
 
-  test('구매 세부 내역 표가 정확히 만들어진다', () => {
-    const text = buildPurchaseDraft(
-      { basis: '', purposeText: '목적 문구', vendor: '', budgetItem: '', attachments: [] },
-      items,
-    );
-    expect(text).toContain('| 1 | 색연필 | 12색 | 2세트 | 3,500 | 7,000 |');
-    expect(text).toContain('| 2 | 스케치북 | - | 3개 | 2,000 | 6,000 |');
+  test('예산 비목과 구매 세부 내역 표는 더 이상 포함되지 않는다', () => {
+    const text = buildPurchaseDraft({ basis: '', purposeText: '목적 문구', vendor: '', attachments: [] }, items);
+    expect(text).not.toContain('예산 비목');
+    expect(text).not.toContain('구매 세부 내역');
+    expect(text).not.toContain('| 순번 |');
   });
 
-  test('표로 끝나면 끝.이 새 줄에 붙는다(붙임 없을 때)', () => {
+  test('붙임 없이 끝나면 본문 마지막 줄에 끝.이 붙는다', () => {
     const text = buildPurchaseDraft(
-      { basis: '', purposeText: '목적 문구', vendor: '', budgetItem: '', attachments: [] },
+      { basis: '', purposeText: '목적 문구', vendor: '쿠팡', attachments: [] },
       items,
     );
-    expect(text.trimEnd().endsWith('|  |\n\n  끝.')).toBe(true);
+    expect(text.trimEnd().endsWith('구매처: 쿠팡  끝.')).toBe(true);
   });
 });

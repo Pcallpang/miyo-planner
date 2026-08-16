@@ -32,11 +32,10 @@ function attachmentsBlock(attachments: string[]): string | null {
   return lines.map((l, i) => (i === 0 ? `${prefix}  ${l}` : `${contIndent}${l}`)).join('\n');
 }
 
-/** 본문 + 붙임을 합치고 '끝.' 규정을 적용한다. endsWithTable이면 새 줄에 "  끝.", 아니면 본문 마지막 글자 뒤에 "  끝." */
-function finalize(body: string, attachments: string[], endsWithTable: boolean): string {
+/** 본문 + 붙임을 합치고 '끝.' 규정을 적용한다: 붙임이 있으면 붙임 마지막 줄에, 없으면 본문 마지막 글자 뒤에 "  끝." */
+function finalize(body: string, attachments: string[]): string {
   const attach = attachmentsBlock(attachments);
   if (attach) return `${body}\n\n${attach}`;
-  if (endsWithTable) return `${body}\n\n  끝.`;
   const lines = body.split('\n');
   lines[lines.length - 1] += '  끝.';
   return lines.join('\n');
@@ -49,19 +48,17 @@ export interface EventDraftFields {
   place: string;
   target: string;
   mainContent: string;
-  detailPlan: string;
   budget: number;
-  expectedEffect: string;
   attachments: string[];
 }
 
-/** 유형 1: 행사 기안문을 규칙대로 조립한다 (AI 미사용, 결정론적 템플릿 조립). */
+/** 행사 기안문을 규칙대로 조립한다 (AI 미사용, 결정론적 템플릿 조립). */
 export function buildEventDraft(fields: EventDraftFields): string {
   const parts: string[] = [];
   let n = 1;
 
   if (fields.basis.trim()) {
-    parts.push(markedLine(0, `${n++}.`, fields.basis.trim()));
+    parts.push(markedLine(0, `${n++}.`, `관련: ${fields.basis.trim()}`));
   }
 
   const purposeLines = [markedLine(0, `${n}.`, withPlaceholder(fields.purpose, '[목적 개요를 입력해 주세요]'))];
@@ -74,23 +71,14 @@ export function buildEventDraft(fields: EventDraftFields): string {
   ].filter((s) => s.value);
   subs.forEach((s, i) => purposeLines.push(markedLine(2, `${SUB_LETTERS[i]}.`, `${s.label}: ${s.value}`)));
   parts.push(purposeLines.join('\n'));
-  n++;
 
-  if (fields.detailPlan.trim()) {
-    parts.push(markedLine(0, `${n++}.`, `세부 추진 계획: ${fields.detailPlan.trim()}`));
-  }
-  if (fields.expectedEffect.trim()) {
-    parts.push(markedLine(0, `${n++}.`, `기대 효과: ${fields.expectedEffect.trim()}`));
-  }
-
-  return finalize(parts.join('\n\n'), fields.attachments, false);
+  return finalize(parts.join('\n\n'), fields.attachments);
 }
 
 export interface PurchaseDraftFields {
   basis: string;
   purposeText: string;
   vendor: string;
-  budgetItem: string;
   attachments: string[];
 }
 
@@ -99,17 +87,7 @@ function itemSummary(items: ProcurementItem[]): string {
   return items.length === 1 ? items[0].name : `${items[0].name} 외 ${items.length - 1}종`;
 }
 
-function purchaseTable(items: ProcurementItem[]): string {
-  const header = '| 순번 | 품명 | 규격 | 수량 | 단가(원) | 금액(원) | 비고 |';
-  const sep = '| --- | --- | --- | --- | --- | --- | --- |';
-  const rows = items.map(
-    (it, i) =>
-      `| ${i + 1} | ${it.name} | ${it.spec || '-'} | ${it.qty}${it.unit || '개'} | ${it.unitPrice.toLocaleString('ko-KR')} | ${(it.qty * it.unitPrice).toLocaleString('ko-KR')} |  |`,
-  );
-  return [header, sep, ...rows].join('\n');
-}
-
-/** 유형 2: 물품 기안문(품의서)을 규칙대로 조립한다. items가 비어 있으면 안내 문구만 반환한다. */
+/** 물품 기안문을 규칙대로 조립한다. items가 비어 있으면 안내 문구만 반환한다. */
 export function buildPurchaseDraft(fields: PurchaseDraftFields, items: ProcurementItem[]): string {
   if (items.length === 0) {
     return '[품목 내역이 비어 있습니다. 먼저 상품을 담아 주세요.]';
@@ -121,7 +99,7 @@ export function buildPurchaseDraft(fields: PurchaseDraftFields, items: Procureme
   let n = 1;
 
   if (fields.basis.trim()) {
-    parts.push(markedLine(0, `${n++}.`, fields.basis.trim()));
+    parts.push(markedLine(0, `${n++}.`, `관련: ${fields.basis.trim()}`));
   }
 
   const defaultPurpose = `${summary} 구입을 위하여 다음과 같이 물품을 구입하고자 합니다.`;
@@ -131,12 +109,9 @@ export function buildPurchaseDraft(fields: PurchaseDraftFields, items: Procureme
     { label: '품목', value: summary },
     { label: '총 금액', value: formatKoreanCurrency(totalAmount) },
     { label: '구매처', value: fields.vendor.trim() },
-    { label: '예산 비목', value: fields.budgetItem.trim() },
   ].filter((s) => s.value);
   overviewItems.forEach((s, i) => lines.push(markedLine(4, `${i + 1})`, `${s.label}: ${s.value}`)));
-  lines.push(markedLine(2, '나.', '구매 세부 내역'));
-  lines.push(purchaseTable(items));
   parts.push(lines.join('\n'));
 
-  return finalize(parts.join('\n\n'), fields.attachments, true);
+  return finalize(parts.join('\n\n'), fields.attachments);
 }

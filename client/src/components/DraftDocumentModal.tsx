@@ -57,15 +57,12 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
   const [place, setPlace] = useState('');
   const [target, setTarget] = useState('');
   const [mainContent, setMainContent] = useState('');
-  const [detailPlan, setDetailPlan] = useState('');
   const [budget, setBudget] = useState(0);
-  const [expectedEffect, setExpectedEffect] = useState('');
   const [attachmentsText, setAttachmentsText] = useState('');
 
   // 물품 기안문 필드
   const [purposeText, setPurposeText] = useState('');
   const [vendor, setVendor] = useState('');
-  const [budgetItem, setBudgetItem] = useState('');
 
   const itemsTotal = items.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
 
@@ -78,14 +75,12 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
         place,
         target,
         mainContent,
-        detailPlan,
         budget,
-        expectedEffect,
         attachments: attachmentsFromText(attachmentsText),
       });
     }
     return buildPurchaseDraft(
-      { basis, purposeText, vendor, budgetItem, attachments: attachmentsFromText(attachmentsText) },
+      { basis, purposeText, vendor, attachments: attachmentsFromText(attachmentsText) },
       items,
     );
   }, [
@@ -98,12 +93,9 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
     place,
     target,
     mainContent,
-    detailPlan,
     budget,
-    expectedEffect,
     purposeText,
     vendor,
-    budgetItem,
     attachmentsText,
     items,
   ]);
@@ -140,8 +132,8 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
             <div className="mb-4 flex gap-2">
               {(
                 [
-                  { id: 'event', label: '행사 기안문' },
                   { id: 'purchase', label: '물품 기안문' },
+                  { id: 'event', label: '행사 기안문' },
                 ] as { id: DocType; label: string }[]
               ).map((t) => (
                 <button
@@ -214,28 +206,12 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
                   />
                 </label>
                 <label className="block text-sm">
-                  <span className={labelCls}>세부 추진 계획 (선택)</span>
-                  <textarea
-                    className={`${inputCls} min-h-16 w-full resize-y`}
-                    value={detailPlan}
-                    onChange={(e) => setDetailPlan(e.target.value)}
-                  />
-                </label>
-                <label className="block text-sm">
                   <span className={labelCls}>소요 예산 (선택, 원)</span>
                   <input
                     type="number"
                     className={`${inputCls} w-full`}
                     value={budget || ''}
                     onChange={(e) => setBudget(Number(e.target.value) || 0)}
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className={labelCls}>기대 효과 (선택)</span>
-                  <input
-                    className={`${inputCls} w-full`}
-                    value={expectedEffect}
-                    onChange={(e) => setExpectedEffect(e.target.value)}
                   />
                 </label>
                 <label className="block text-sm">
@@ -259,7 +235,7 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
                 >
                   {items.length === 0
                     ? '품목 내역이 비어 있습니다. 먼저 상품을 담아 주세요.'
-                    : `${items.length}개 품목 · 합계 ${currency(itemsTotal)}원 — 위 품목 내역 표를 그대로 사용합니다.`}
+                    : `${items.length}개 품목 · 합계 ${currency(itemsTotal)}원 — 품목 요약과 총 금액에 반영됩니다.`}
                 </div>
                 <label className="block text-sm">
                   <span className={labelCls}>관련 근거 (선택)</span>
@@ -277,14 +253,6 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
                 <label className="block text-sm">
                   <span className={labelCls}>구매처</span>
                   <input className={`${inputCls} w-full`} value={vendor} onChange={(e) => setVendor(e.target.value)} />
-                </label>
-                <label className="block text-sm">
-                  <span className={labelCls}>예산 비목</span>
-                  <input
-                    className={`${inputCls} w-full`}
-                    value={budgetItem}
-                    onChange={(e) => setBudgetItem(e.target.value)}
-                  />
                 </label>
                 <label className="block text-sm">
                   <span className={labelCls}>붙임 (선택, 한 줄에 하나씩)</span>
