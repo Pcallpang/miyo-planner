@@ -1,6 +1,5 @@
 import type {
   CalendarInfo,
-  DraftInput,
   EventInput,
   ExtractedProductItem,
   GEvent,
@@ -160,10 +159,4 @@ export const api = {
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) },
       '품목내역.xlsx',
     ),
-
-  generateDraft: (input: DraftInput) =>
-    request<{ text: string }>('/api/procurement/draft', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    }),
 };

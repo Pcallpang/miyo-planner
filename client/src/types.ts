@@ -170,34 +170,6 @@ export interface ProcurementItem {
   sourceUrl: string;
 }
 
-/** 유형 1(일반 기안문) 생성 입력값 */
-export interface DraftGeneralInput {
-  type: 'general';
-  basis: string;
-  purpose: string;
-  dateText: string;
-  place: string;
-  target: string;
-  mainContent: string;
-  detailPlan: string;
-  budget: number;
-  expectedEffect: string;
-  attachments: string[];
-}
-
-/** 유형 2(물품/용역 품의서) 생성 입력값 — 품목은 화면의 품목 내역을 그대로 사용 */
-export interface DraftPurchaseInput {
-  type: 'purchase';
-  basis: string;
-  purposeText: string;
-  vendor: string;
-  budgetItem: string;
-  attachments: string[];
-  items: ProcurementItem[];
-}
-
-export type DraftInput = DraftGeneralInput | DraftPurchaseInput;
-
 export interface EventInput {
   title: string;
   date: string;
