@@ -4,6 +4,7 @@ import { isQuotaError, parseRetryAfterSeconds } from '../lib/geminiErrors.js';
 import { decrypt, deriveKey } from '../lib/crypto.js';
 import { getUserGeminiKeyEnc } from '../lib/db.js';
 import { normalizeExtractedItems, validateItems, buildProcurementWorkbook } from '../lib/procurementExcel.js';
+import { buildGeneralDraftPrompt, buildPurchaseDraftPrompt } from '../lib/draftPrompt.js';
 
 const router = Router();
 
@@ -113,6 +114,85 @@ router.post('/download', async (req, res) => {
   } catch (e) {
     console.error('[procurement] 다운로드 실패:', e.message);
     res.status(500).json({ error: '다운로드에 실패했습니다.' });
+  }
+});
+
+function trimmed(v) {
+  return typeof v === 'string' ? v.trim() : '';
+}
+
+function attachmentList(v) {
+  return Array.isArray(v) ? v.map(trimmed).filter(Boolean) : [];
+}
+
+function buildDraftPrompt(body) {
+  if (body?.type === 'general') {
+    const purpose = trimmed(body.purpose);
+    if (!purpose) return { error: '목적 개요를 입력해 주세요.' };
+    const budget = Number(body.budget);
+    const prompt = buildGeneralDraftPrompt({
+      basis: trimmed(body.basis),
+      purpose,
+      dateText: trimmed(body.dateText),
+      place: trimmed(body.place),
+      target: trimmed(body.target),
+      mainContent: trimmed(body.mainContent),
+      detailPlan: trimmed(body.detailPlan),
+      budget: Number.isFinite(budget) && budget > 0 ? Math.round(budget) : 0,
+      expectedEffect: trimmed(body.expectedEffect),
+      attachments: attachmentList(body.attachments),
+    });
+    return { prompt };
+  }
+  if (body?.type === 'purchase') {
+    const parsedItems = validateItems(body);
+    if (parsedItems.error) return { error: parsedItems.error };
+    const prompt = buildPurchaseDraftPrompt(
+      {
+        basis: trimmed(body.basis),
+        purposeText: trimmed(body.purposeText),
+        vendor: trimmed(body.vendor),
+        budgetItem: trimmed(body.budgetItem),
+        attachments: attachmentList(body.attachments),
+      },
+      parsedItems.items,
+    );
+    return { prompt };
+  }
+  return { error: '문서 유형을 확인해 주세요.' };
+}
+
+router.post('/draft', async (req, res) => {
+  const geminiKey = await resolveGeminiKey(req.userId);
+  if (!geminiKey) {
+    return res.status(503).json({
+      error: 'Gemini API 키가 없습니다. 환경 설정에서 본인의 Gemini API 키를 연결해 주세요.',
+    });
+  }
+  const built = buildDraftPrompt(req.body);
+  if (built.error) return res.status(400).json({ error: built.error });
+  try {
+    const genAI = new GoogleGenerativeAI(geminiKey);
+    const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-flash-lite-latest' });
+    const result = await model.generateContent(built.prompt);
+    const text = result.response
+      .text()
+      .trim()
+      .replace(/^```[a-z]*\n?/i, '')
+      .replace(/```$/, '')
+      .trim();
+    res.json({ text });
+  } catch (e) {
+    console.error('[procurement] 기안문 생성 실패:', e.message);
+    if (isQuotaError(e)) {
+      const retryAfter = parseRetryAfterSeconds(e.message);
+      const when = retryAfter ? `약 ${retryAfter}초 후` : '잠시 후';
+      return res.status(429).json({
+        error: `Gemini 요청 한도를 초과했습니다. ${when} 다시 시도해 주세요.`,
+        retryAfter,
+      });
+    }
+    res.status(502).json({ error: 'Gemini 호출에 실패했습니다. API 키와 네트워크를 확인해 주세요.' });
   }
 });
 

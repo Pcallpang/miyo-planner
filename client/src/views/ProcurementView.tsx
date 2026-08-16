@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { ClipboardList, Clock, Download, ImagePlus, Loader2, Plus, Receipt, Trash2, X } from 'lucide-react';
+import { ClipboardList, Clock, Download, FileText, ImagePlus, Loader2, Plus, Receipt, Trash2, X } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useApp } from '../context/AppContext';
+import DraftDocumentModal from '../components/DraftDocumentModal';
 import type { ProcurementItem } from '../types';
 
 const inputCls =
@@ -38,6 +39,7 @@ export default function ProcurementView() {
   const [items, setItems] = useState<ProcurementItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [draftOpen, setDraftOpen] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -160,6 +162,12 @@ export default function ProcurementView() {
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
             >
               <Plus size={15} /> 행 추가
+            </button>
+            <button
+              onClick={() => setDraftOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+            >
+              <FileText size={15} /> 기안문 생성
             </button>
             <button
               onClick={() => void download()}
@@ -332,6 +340,8 @@ export default function ProcurementView() {
           </div>
         )}
       </div>
+
+      {draftOpen && <DraftDocumentModal items={items} onClose={() => setDraftOpen(false)} />}
     </div>
   );
 }
