@@ -1,21 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  ClipboardList,
-  Clock,
-  Download,
-  FileSpreadsheet,
-  ImagePlus,
-  Loader2,
-  Plus,
-  Receipt,
-  Trash2,
-  Truck,
-  X,
-} from 'lucide-react';
+import { ClipboardList, Clock, Download, ImagePlus, Loader2, Plus, Receipt, Trash2, X } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useApp } from '../context/AppContext';
-import { useEscapeKey } from '../hooks/useEscapeKey';
-import type { ProcurementHistoryEntry, ProcurementItem } from '../types';
+import type { ProcurementItem } from '../types';
 
 const inputCls =
   'rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none transition focus:border-mint-400 focus:ring-2 focus:ring-mint-100';
@@ -48,25 +35,11 @@ export default function ProcurementView() {
   const [extracting, setExtracting] = useState(false);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [retryIn, setRetryIn] = useState(0);
-  const [cart, setCart] = useState<ProcurementItem[]>([]);
-  const [shipping, setShipping] = useState(0);
+  const [items, setItems] = useState<ProcurementItem[]>([]);
   const [dragOver, setDragOver] = useState(false);
-
-  const [issueOpen, setIssueOpen] = useState(false);
-  const [issuing, setIssuing] = useState(false);
-  const [header, setHeader] = useState({ title: '', purpose: '', budgetItem: '', requester: '' });
-
-  const [history, setHistory] = useState<ProcurementHistoryEntry[] | null>(null);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    api
-      .procurementHistory()
-      .then((r) => setHistory(r.requests))
-      .catch(() => setHistory([]));
-  }, []);
 
   useEffect(() => {
     if (retryIn <= 0) return;
@@ -89,14 +62,14 @@ export default function ProcurementView() {
     setExtracting(true);
     setExtractError(null);
     try {
-      const { items } = await api.extractProduct(base64, mimeType);
-      if (items.length === 0) {
+      const { items: extracted } = await api.extractProduct(base64, mimeType);
+      if (extracted.length === 0) {
         setExtractError('이미지에서 상품 정보를 찾지 못했습니다. "행 추가"로 직접 입력해 주세요.');
         return;
       }
-      setCart((prev) => [
+      setItems((prev) => [
         ...prev,
-        ...items.map((it) => ({
+        ...extracted.map((it) => ({
           name: it.name,
           spec: it.spec,
           unit: it.unit || '개',
@@ -106,7 +79,7 @@ export default function ProcurementView() {
           sourceUrl: '',
         })),
       ]);
-      showToast('success', `${items.length}개 상품을 인식해 초안에 추가했습니다.`);
+      showToast('success', `${extracted.length}개 상품을 인식해 품목 내역에 추가했습니다.`);
       setPreview(null);
     } catch (e) {
       if (e instanceof ApiError && e.status === 429) {
@@ -132,55 +105,31 @@ export default function ProcurementView() {
   }
 
   function addBlankRow() {
-    setCart((prev) => [...prev, blankItem()]);
+    setItems((prev) => [...prev, blankItem()]);
   }
 
-  function updateCartItem(index: number, patch: Partial<ProcurementItem>) {
-    setCart((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
+  function updateItem(index: number, patch: Partial<ProcurementItem>) {
+    setItems((prev) => prev.map((it, i) => (i === index ? { ...it, ...patch } : it)));
   }
 
-  function removeCartItem(index: number) {
-    setCart((prev) => prev.filter((_, i) => i !== index));
+  function removeItem(index: number) {
+    setItems((prev) => prev.filter((_, i) => i !== index));
   }
 
-  const itemsTotal = cart.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
-  const total = itemsTotal + shipping;
+  const total = items.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
 
-  async function issue() {
-    if (!header.title.trim()) {
-      showToast('error', '제목을 입력해 주세요.');
-      return;
-    }
-    if (cart.length === 0) {
+  async function download() {
+    if (items.length === 0) {
       showToast('error', '품목을 1개 이상 담아 주세요.');
       return;
     }
-    const items = shipping > 0 ? [...cart, { ...blankItem(), name: '배송비', unit: '건', unitPrice: shipping }] : cart;
-    setIssuing(true);
+    setDownloading(true);
     try {
-      await api.issueProcurement({ ...header, title: header.title.trim(), items });
-      showToast('success', '품목 내역을 다운로드했습니다.');
-      setIssueOpen(false);
-      setCart([]);
-      setShipping(0);
-      setHeader({ title: '', purpose: '', budgetItem: '', requester: '' });
-      const r = await api.procurementHistory();
-      setHistory(r.requests);
+      await api.downloadProcurementItems(items);
     } catch (e) {
       showToast('error', e instanceof Error ? e.message : '다운로드에 실패했습니다.');
     } finally {
-      setIssuing(false);
-    }
-  }
-
-  async function downloadHistoryItem(entry: ProcurementHistoryEntry) {
-    setDownloadingId(entry.id);
-    try {
-      await api.downloadProcurement(entry.id, entry.title);
-    } catch (e) {
-      showToast('error', e instanceof Error ? e.message : '다운로드에 실패했습니다.');
-    } finally {
-      setDownloadingId(null);
+      setDownloading(false);
     }
   }
 
@@ -193,8 +142,8 @@ export default function ProcurementView() {
         </h2>
         <p className="mt-1 text-sm text-slate-500">
           G마켓·쿠팡·옥션·11번가 등에서 상품 페이지를 캡쳐해 붙여넣거나 업로드하면, 상품 정보를
-          자동으로 인식해 아래 품목 내역에 담아 드립니다. 캡쳐 한 장에 상품이 여러 개 보여도 전부
-          인식합니다.
+          자동으로 인식해 아래 품목 내역에 담아 드립니다. 캡쳐 한 장에 상품이 여러 개 보이거나
+          배송비가 보여도 전부 인식합니다.
         </p>
       </div>
 
@@ -203,7 +152,7 @@ export default function ProcurementView() {
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-bold text-slate-700">
             <ClipboardList size={16} className="text-mint-500" />
-            품목 내역 ({cart.length})
+            품목 내역 ({items.length})
           </h3>
           <div className="flex items-center gap-2">
             <button
@@ -213,11 +162,12 @@ export default function ProcurementView() {
               <Plus size={15} /> 행 추가
             </button>
             <button
-              onClick={() => setIssueOpen(true)}
-              disabled={cart.length === 0}
+              onClick={() => void download()}
+              disabled={items.length === 0 || downloading}
               className="flex items-center gap-1.5 rounded-xl bg-mint-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-40"
             >
-              <Download size={15} /> 품목 내역 다운로드
+              {downloading ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+              품목 내역 다운로드
             </button>
           </div>
         </div>
@@ -308,7 +258,7 @@ export default function ProcurementView() {
           )}
         </div>
 
-        {cart.length === 0 ? (
+        {items.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-400">
             담긴 품목이 없습니다. 이미지를 인식시키거나 "행 추가"로 직접 입력해 주세요.
           </p>
@@ -325,7 +275,7 @@ export default function ProcurementView() {
                   <span>총액</span>
                   <span></span>
                 </div>
-                {cart.map((item, i) => (
+                {items.map((item, i) => (
                   <div
                     key={i}
                     className="grid grid-cols-[2fr_1fr_0.8fr_0.7fr_0.9fr_1fr_auto] items-center gap-2 rounded-xl border border-slate-100 p-3"
@@ -334,37 +284,37 @@ export default function ProcurementView() {
                       className={`${inputCls} min-w-0`}
                       placeholder="품명"
                       value={item.name}
-                      onChange={(e) => updateCartItem(i, { name: e.target.value })}
+                      onChange={(e) => updateItem(i, { name: e.target.value })}
                     />
                     <input
                       className={`${inputCls} min-w-0`}
                       placeholder="규격"
                       value={item.spec}
-                      onChange={(e) => updateCartItem(i, { spec: e.target.value })}
+                      onChange={(e) => updateItem(i, { spec: e.target.value })}
                     />
                     <input
                       className={`${inputCls} min-w-0`}
                       placeholder="단위"
                       value={item.unit}
-                      onChange={(e) => updateCartItem(i, { unit: e.target.value })}
+                      onChange={(e) => updateItem(i, { unit: e.target.value })}
                     />
                     <input
                       type="number"
                       className={`${inputCls} min-w-0`}
                       value={item.qty}
-                      onChange={(e) => updateCartItem(i, { qty: Number(e.target.value) || 0 })}
+                      onChange={(e) => updateItem(i, { qty: Number(e.target.value) || 0 })}
                     />
                     <input
                       type="number"
                       className={`${inputCls} min-w-0`}
                       value={item.unitPrice}
-                      onChange={(e) => updateCartItem(i, { unitPrice: Number(e.target.value) || 0 })}
+                      onChange={(e) => updateItem(i, { unitPrice: Number(e.target.value) || 0 })}
                     />
                     <span className="text-sm font-semibold text-slate-600 tabular-nums">
                       {currency(item.qty * item.unitPrice)}원
                     </span>
                     <button
-                      onClick={() => removeCartItem(i)}
+                      onClick={() => removeItem(i)}
                       className="justify-self-end rounded p-1 text-slate-300 hover:text-rose-400"
                       aria-label="삭제"
                     >
@@ -375,150 +325,12 @@ export default function ProcurementView() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
-              <label className="flex items-center gap-2 text-sm text-slate-600">
-                <Truck size={15} className="text-slate-400" />
-                배송비
-                <input
-                  type="number"
-                  className={`${inputCls} w-28`}
-                  value={shipping}
-                  onChange={(e) => setShipping(Math.max(0, Number(e.target.value) || 0))}
-                />
-              </label>
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-slate-500">합계</span>
-                <span className="text-base font-bold text-slate-800 tabular-nums">{currency(total)}원</span>
-              </div>
+            <div className="flex items-center justify-end gap-2 border-t border-slate-100 pt-3 text-sm">
+              <span className="text-slate-500">합계</span>
+              <span className="text-base font-bold text-slate-800 tabular-nums">{currency(total)}원</span>
             </div>
           </div>
         )}
-      </div>
-
-      {/* 다운로드 이력 */}
-      <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-        <h3 className="mb-3 text-sm font-bold text-slate-700">다운로드 이력</h3>
-        {history === null ? (
-          <p className="py-4 text-center text-sm text-slate-400">불러오는 중…</p>
-        ) : history.length === 0 ? (
-          <p className="py-4 text-center text-sm text-slate-400">아직 다운로드한 품목 내역이 없습니다.</p>
-        ) : (
-          <ul className="divide-y divide-slate-100">
-            {history.map((h) => (
-              <li key={h.id} className="flex items-center justify-between gap-2 py-2.5">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-slate-700">{h.title}</p>
-                  <p className="text-xs text-slate-400">
-                    {new Date(h.created_at).toLocaleDateString('ko-KR')} · {currency(h.total_amount)}원
-                  </p>
-                </div>
-                <button
-                  onClick={() => void downloadHistoryItem(h)}
-                  disabled={downloadingId === h.id}
-                  className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-40"
-                >
-                  {downloadingId === h.id ? <Loader2 size={13} className="animate-spin" /> : <FileSpreadsheet size={13} />}
-                  다시 받기
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {issueOpen && (
-        <IssueModal
-          header={header}
-          setHeader={setHeader}
-          issuing={issuing}
-          total={total}
-          itemCount={cart.length}
-          onClose={() => setIssueOpen(false)}
-          onSubmit={() => void issue()}
-        />
-      )}
-    </div>
-  );
-}
-
-interface IssueModalProps {
-  header: { title: string; purpose: string; budgetItem: string; requester: string };
-  setHeader: (h: { title: string; purpose: string; budgetItem: string; requester: string }) => void;
-  issuing: boolean;
-  total: number;
-  itemCount: number;
-  onClose: () => void;
-  onSubmit: () => void;
-}
-
-function IssueModal({ header, setHeader, issuing, total, itemCount, onClose, onSubmit }: IssueModalProps) {
-  useEscapeKey(onClose);
-  return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-900/30 p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-md rounded-2xl bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-            <Download size={18} className="text-mint-500" />
-            품목 내역 다운로드
-          </h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
-            <X size={18} />
-          </button>
-        </div>
-        <div className="space-y-3 px-6 py-5">
-          <p className="text-sm text-slate-500">
-            {itemCount}개 품목 · 합계 {currency(total)}원
-          </p>
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-600">제목 *</span>
-            <input
-              className={`${inputCls} w-full`}
-              placeholder="예) 3학년 미술수업 재료 구입"
-              value={header.title}
-              onChange={(e) => setHeader({ ...header, title: e.target.value })}
-              autoFocus
-            />
-          </label>
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium text-slate-600">목적/사유</span>
-            <textarea
-              className={`${inputCls} min-h-20 w-full resize-y`}
-              value={header.purpose}
-              onChange={(e) => setHeader({ ...header, purpose: e.target.value })}
-            />
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-600">예산과목</span>
-              <input
-                className={`${inputCls} w-full`}
-                value={header.budgetItem}
-                onChange={(e) => setHeader({ ...header, budgetItem: e.target.value })}
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-600">청구자</span>
-              <input
-                className={`${inputCls} w-full`}
-                value={header.requester}
-                onChange={(e) => setHeader({ ...header, requester: e.target.value })}
-              />
-            </label>
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
-          <button
-            onClick={onSubmit}
-            disabled={issuing}
-            className="flex items-center gap-2 rounded-xl bg-mint-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-50"
-          >
-            {issuing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-            {issuing ? '다운로드 중…' : '다운로드'}
-          </button>
-        </div>
       </div>
     </div>
   );

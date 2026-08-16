@@ -170,25 +170,6 @@ export interface ProcurementItem {
   sourceUrl: string;
 }
 
-export interface ProcurementIssueInput {
-  title: string;
-  purpose: string;
-  budgetItem: string;
-  requester: string;
-  items: ProcurementItem[];
-}
-
-/** 발행 이력 목록 항목 */
-export interface ProcurementHistoryEntry {
-  id: string;
-  title: string;
-  purpose: string | null;
-  budget_item: string | null;
-  requester: string | null;
-  total_amount: number;
-  created_at: string;
-}
-
 export interface EventInput {
   title: string;
   date: string;

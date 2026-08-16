@@ -27,10 +27,8 @@ export function normalizeExtractedItems(raw) {
   return list.map(normalizeExtractedItem).filter((item) => item !== null);
 }
 
-/** 품의서 발행 요청 바디를 검증·정규화한다. 실패 시 { error } 반환. */
-export function validateIssueBody(body) {
-  const title = typeof body?.title === 'string' ? body.title.trim() : '';
-  if (!title) return { error: '품의서 제목을 입력해 주세요.' };
+/** 다운로드 요청 바디의 품목 목록을 검증·정규화한다. 실패 시 { error } 반환. */
+export function validateItems(body) {
   const rawItems = Array.isArray(body?.items) ? body.items : [];
   if (rawItems.length === 0) return { error: '품목을 1개 이상 담아 주세요.' };
 
@@ -42,32 +40,20 @@ export function validateIssueBody(body) {
     if (!name || !Number.isFinite(qty) || qty <= 0 || !Number.isFinite(unitPrice) || unitPrice < 0) {
       return { error: '품목 정보(상품명·수량·단가)를 확인해 주세요.' };
     }
-    const roundedQty = Math.round(qty);
-    const roundedPrice = Math.round(unitPrice);
     items.push({
       name,
       spec: typeof raw.spec === 'string' ? raw.spec.trim() : '',
       unit: typeof raw.unit === 'string' && raw.unit.trim() ? raw.unit.trim() : '개',
-      qty: roundedQty,
-      unitPrice: roundedPrice,
-      amount: roundedQty * roundedPrice,
-      vendor: typeof raw.vendor === 'string' ? raw.vendor.trim() : '',
-      sourceUrl: typeof raw.sourceUrl === 'string' ? raw.sourceUrl.trim() : '',
+      qty: Math.round(qty),
+      unitPrice: Math.round(unitPrice),
     });
   }
 
-  return {
-    title,
-    purpose: typeof body.purpose === 'string' ? body.purpose.trim() : '',
-    budgetItem: typeof body.budgetItem === 'string' ? body.budgetItem.trim() : '',
-    requester: typeof body.requester === 'string' ? body.requester.trim() : '',
-    items,
-    totalAmount: items.reduce((sum, it) => sum + it.amount, 0),
-  };
+  return { items };
 }
 
 /** 품목 목록을 K에듀파인 "품목내역" 양식(sample/)에 채운 워크북을 만든다. */
-export async function buildProcurementWorkbook(request) {
+export async function buildProcurementWorkbook(items) {
   const workbook = new ExcelJS.Workbook();
   if (fs.existsSync(TEMPLATE_PATH)) {
     await workbook.xlsx.readFile(TEMPLATE_PATH);
@@ -79,13 +65,13 @@ export async function buildProcurementWorkbook(request) {
   const sheet = workbook.worksheets[0];
 
   const { startRow, columns } = ITEM_TABLE;
-  request.items.forEach((item, i) => {
+  items.forEach((item, i) => {
     const row = startRow + i;
     sheet.getCell(`${columns.content}${row}`).value = item.name;
     sheet.getCell(`${columns.spec}${row}`).value = item.spec || '';
     sheet.getCell(`${columns.unit}${row}`).value = item.unit || '개';
     sheet.getCell(`${columns.qty}${row}`).value = item.qty;
-    sheet.getCell(`${columns.unitPrice}${row}`).value = item.unit_price ?? item.unitPrice;
+    sheet.getCell(`${columns.unitPrice}${row}`).value = item.unitPrice;
   });
   return workbook;
 }

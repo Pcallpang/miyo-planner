@@ -2,13 +2,8 @@ import { Router } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { isQuotaError, parseRetryAfterSeconds } from '../lib/geminiErrors.js';
 import { decrypt, deriveKey } from '../lib/crypto.js';
-import {
-  getUserGeminiKeyEnc,
-  createProcurementRequest,
-  getProcurementHistory,
-  getProcurementRequestById,
-} from '../lib/db.js';
-import { normalizeExtractedItems, validateIssueBody, buildProcurementWorkbook } from '../lib/procurementExcel.js';
+import { getUserGeminiKeyEnc } from '../lib/db.js';
+import { normalizeExtractedItems, validateItems, buildProcurementWorkbook } from '../lib/procurementExcel.js';
 
 const router = Router();
 
@@ -29,7 +24,7 @@ async function resolveGeminiKey(userId) {
   return process.env.GEMINI_API_KEY || null;
 }
 
-const EXTRACT_PROMPT = `당신은 쇼핑몰(G마켓/쿠팡/옥션/11번가 등) 상품 페이지 캡쳐 이미지를 보고 물품구매 품의서 작성에 필요한 정보를 추출하는 학교 행정 비서입니다.
+const EXTRACT_PROMPT = `당신은 쇼핑몰(G마켓/쿠팡/옥션/11번가 등) 상품 페이지 캡쳐 이미지를 보고 물품구매 품목내역 작성에 필요한 정보를 추출하는 학교 행정 비서입니다.
 이미지 한 장에 상품이 여러 개 보일 수 있습니다(장바구니 화면, 검색 결과, 여러 옵션 등). 보이는 상품을 전부 각각 추출해
 다음 JSON **배열**로만 응답하세요 (상품이 1개뿐이어도 배열 안에 객체 1개로 응답):
 [
@@ -42,6 +37,9 @@ const EXTRACT_PROMPT = `당신은 쇼핑몰(G마켓/쿠팡/옥션/11번가 등) 
     "vendor": "판매 사이트명 (G마켓/쿠팡/옥션/11번가 등, 알 수 없으면 빈 문자열)"
   }
 ]
+이미지에 배송비(배송료) 금액이 보이면, 그것도 배열에 별도 품목으로 추가하세요:
+{ "name": "배송비", "spec": "", "unit": "건", "qty": 1, "unitPrice": 배송비 금액, "vendor": "" }
+배송비가 무료거나 0원으로 표시되어 있으면 배송비 품목은 넣지 마세요.
 배열 외의 다른 텍스트는 절대 출력하지 마세요.`;
 
 const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/webp'];
@@ -92,46 +90,24 @@ router.post('/extract', async (req, res) => {
   }
 });
 
-function setExcelDownloadHeaders(res, title) {
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  const safeTitle = (title || '품의서').replace(/["\\]/g, '');
-  res.setHeader(
-    'Content-Disposition',
-    `attachment; filename="procurement.xlsx"; filename*=UTF-8''${encodeURIComponent(safeTitle)}.xlsx`,
-  );
+function seoulDateStamp() {
+  return new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' })
+    .format(new Date())
+    .replace(/\. ?/g, '')
+    .replace(/\.$/, '');
 }
 
-router.post('/issue', async (req, res) => {
-  const parsed = validateIssueBody(req.body);
+router.post('/download', async (req, res) => {
+  const parsed = validateItems(req.body);
   if (parsed.error) return res.status(400).json({ error: parsed.error });
   try {
-    const { id, createdAt } = await createProcurementRequest(req.userId, parsed, parsed.items);
-    const workbook = await buildProcurementWorkbook({ ...parsed, id, created_at: createdAt });
-    setExcelDownloadHeaders(res, parsed.title);
-    await workbook.xlsx.write(res);
-    res.end();
-  } catch (e) {
-    console.error('[procurement] 발행 실패:', e.message);
-    res.status(500).json({ error: '품의서 발행에 실패했습니다.' });
-  }
-});
-
-router.get('/history', async (req, res) => {
-  try {
-    const requests = await getProcurementHistory(req.userId);
-    res.json({ requests });
-  } catch (e) {
-    console.error('[procurement] 이력 조회 실패:', e.message);
-    res.status(500).json({ error: '이력을 불러오지 못했습니다.' });
-  }
-});
-
-router.get('/:id/download', async (req, res) => {
-  try {
-    const request = await getProcurementRequestById(req.params.id, req.userId);
-    if (!request) return res.status(404).json({ error: '품의서를 찾을 수 없습니다.' });
-    const workbook = await buildProcurementWorkbook(request);
-    setExcelDownloadHeaders(res, request.title);
+    const workbook = await buildProcurementWorkbook(parsed.items);
+    const filename = `품목내역_${seoulDateStamp()}`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="procurement.xlsx"; filename*=UTF-8''${encodeURIComponent(filename)}.xlsx`,
+    );
     await workbook.xlsx.write(res);
     res.end();
   } catch (e) {

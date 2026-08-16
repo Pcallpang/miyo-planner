@@ -6,8 +6,7 @@ import type {
   Meal,
   ParsedEvent,
   ParsedTodo,
-  ProcurementHistoryEntry,
-  ProcurementIssueInput,
+  ProcurementItem,
   School,
   SchoolScheduleItem,
   ServerStatus,
@@ -154,15 +153,10 @@ export const api = {
       body: JSON.stringify({ image, mimeType }),
     }),
 
-  issueProcurement: (input: ProcurementIssueInput) =>
+  downloadProcurementItems: (items: ProcurementItem[]) =>
     downloadFile(
-      '/api/procurement/issue',
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) },
-      `${input.title || '품의서'}.xlsx`,
+      '/api/procurement/download',
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) },
+      '품목내역.xlsx',
     ),
-
-  procurementHistory: () => request<{ requests: ProcurementHistoryEntry[] }>('/api/procurement/history'),
-
-  downloadProcurement: (id: string, title: string) =>
-    downloadFile(`/api/procurement/${encodeURIComponent(id)}/download`, undefined, `${title || '품의서'}.xlsx`),
 };
