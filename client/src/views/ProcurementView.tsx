@@ -1,5 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import { ClipboardList, Clock, Download, FileText, ImagePlus, Loader2, Plus, Receipt, Trash2, X } from 'lucide-react';
+import {
+  ClipboardList,
+  Clock,
+  Download,
+  FileText,
+  ImagePlus,
+  Loader2,
+  Plus,
+  Receipt,
+  RotateCcw,
+  Trash2,
+  TrendingUp,
+  X,
+} from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import DraftDocumentModal from '../components/DraftDocumentModal';
@@ -40,6 +53,7 @@ export default function ProcurementView() {
   const [dragOver, setDragOver] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [draftOpen, setDraftOpen] = useState(false);
+  const [priceBackup, setPriceBackup] = useState<number[] | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -116,11 +130,21 @@ export default function ProcurementView() {
 
   function removeItem(index: number) {
     setItems((prev) => prev.filter((_, i) => i !== index));
+    // 삭제로 행 순서가 밀리면 "처음으로" 되돌리기가 엉뚱한 값을 되돌릴 수 있어 백업을 비운다.
+    setPriceBackup(null);
   }
 
   function bumpAllPrices() {
+    setPriceBackup((backup) => backup ?? items.map((it) => it.unitPrice));
     setItems((prev) => prev.map((it) => ({ ...it, unitPrice: Math.round(it.unitPrice * 1.1) })));
     showToast('info', '단가 변동에 대비해 모든 단가에 10%를 더했습니다.');
+  }
+
+  function resetPrices() {
+    if (!priceBackup) return;
+    setItems((prev) => prev.map((it, i) => (i < priceBackup.length ? { ...it, unitPrice: priceBackup[i] } : it)));
+    setPriceBackup(null);
+    showToast('info', '단가를 처음 값으로 되돌렸습니다.');
   }
 
   const total = items.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
@@ -174,6 +198,23 @@ export default function ProcurementView() {
             >
               <FileText size={15} /> 기안문 생성
             </button>
+            <button
+              onClick={bumpAllPrices}
+              disabled={items.length === 0}
+              title="물가 변동에 대비해 모든 단가에 10%를 더합니다"
+              className="flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700 transition hover:bg-amber-100 disabled:opacity-40"
+            >
+              <TrendingUp size={15} /> 단가 +10%
+            </button>
+            {priceBackup && (
+              <button
+                onClick={resetPrices}
+                title="단가를 처음 값으로 되돌립니다"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+              >
+                <RotateCcw size={15} /> 처음으로
+              </button>
+            )}
             <button
               onClick={() => void download()}
               disabled={items.length === 0 || downloading}
@@ -284,16 +325,7 @@ export default function ProcurementView() {
                   <span>규격</span>
                   <span>단위</span>
                   <span>수량</span>
-                  <span className="flex items-center gap-1.5">
-                    단가
-                    <button
-                      onClick={bumpAllPrices}
-                      title="물가 변동에 대비해 모든 단가에 10%를 더합니다"
-                      className="shrink-0 whitespace-nowrap rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 transition hover:bg-amber-200"
-                    >
-                      +10%
-                    </button>
-                  </span>
+                  <span>단가</span>
                   <span>총액</span>
                   <span></span>
                 </div>
