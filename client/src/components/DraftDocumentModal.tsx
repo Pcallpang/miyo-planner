@@ -111,11 +111,8 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-900/30 p-4" onClick={onClose}>
-      <div
-        className="flex h-[85vh] w-full max-w-6xl flex-col rounded-2xl bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-900/30 p-4">
+      <div className="flex h-[85vh] w-full max-w-6xl flex-col rounded-2xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
             <FileText size={18} className="text-mint-500" />

@@ -274,6 +274,13 @@ export default function SettingsView() {
             >
               Gemini API 키 발급받기 (Google AI Studio) →
             </a>
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-400">
+              API 키는 이 플래너가 여러분 대신 구글 AI(Gemini)를 사용할 수 있게 해주는 비밀번호 같은
+              문자열입니다. 위 링크를 눌러 구글 계정으로 로그인한 뒤 &lsquo;Create API key&rsquo;
+              버튼을 누르면 바로 발급되며, 그 값을 복사해서 위 입력창에 붙여넣고 &lsquo;연결&rsquo;을
+              누르면 됩니다. 무료 할당량 안에서는 비용이 들지 않고, 다른 사람에게 공유하지 않도록
+              주의해 주세요.
+            </p>
           </div>
         </div>
       </section>

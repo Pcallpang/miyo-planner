@@ -21,9 +21,9 @@ const MENU: { group: string; items: { id: ViewId; label: string; icon: typeof Su
     items: [
       { id: 'dashboard', label: '대시보드', icon: LayoutDashboard },
       { id: 'matrix', label: '우선순위 매트릭스', icon: LayoutGrid },
-      { id: 'timetable', label: '오늘의 시간표', icon: Table },
-      { id: 'school', label: '급식 · 학사일정', icon: School },
       { id: 'memo', label: '간단 메모', icon: NotebookPen },
+      { id: 'school', label: '급식 · 학사일정', icon: School },
+      { id: 'timetable', label: '오늘의 시간표', icon: Table },
       { id: 'procurement', label: '품의서 작성', icon: FileSpreadsheet },
     ],
   },
@@ -129,7 +129,7 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
           </div>
         ))}
 
-        {/* 미요Lab 보러가기 */}
+        {/* 미요 실험실 바로가기 */}
         <a
           href="https://pcallpang.github.io/miyo-lab/"
           target="_blank"
@@ -137,7 +137,7 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
           className="mt-6 flex flex-col items-center gap-1.5 rounded-2xl bg-mint-50 p-3 text-center transition hover:bg-mint-100"
         >
           <img src="/miyo.png" alt="미요" width={48} height={48} draggable={false} />
-          <span className="text-xs font-semibold text-mint-700">미요Lab 보러가기 →</span>
+          <span className="text-xs font-semibold text-mint-700">미요 실험실 바로가기 →</span>
         </a>
       </nav>
 
