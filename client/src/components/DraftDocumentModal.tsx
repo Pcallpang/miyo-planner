@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Check, Clipboard, FileText, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Check, Clipboard, FileText, RotateCcw, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 import DateField from './DateField';
@@ -66,7 +66,7 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
 
   const itemsTotal = items.reduce((sum, it) => sum + it.qty * it.unitPrice, 0);
 
-  const preview = useMemo(() => {
+  const generated = useMemo(() => {
     if (docType === 'event') {
       return buildEventDraft({
         basis,
@@ -100,9 +100,27 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
     items,
   ]);
 
+  // 사용자가 미리보기를 직접 수정하기 전까지는 입력 폼에 맞춰 실시간으로 갱신된다.
+  const [previewText, setPreviewText] = useState(generated);
+  const [edited, setEdited] = useState(false);
+
+  useEffect(() => {
+    if (!edited) setPreviewText(generated);
+  }, [generated, edited]);
+
+  function selectDocType(t: DocType) {
+    setDocType(t);
+    setEdited(false);
+  }
+
+  function resetPreview() {
+    setPreviewText(generated);
+    setEdited(false);
+  }
+
   async function copyResult() {
     try {
-      await navigator.clipboard.writeText(preview);
+      await navigator.clipboard.writeText(previewText);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -135,7 +153,7 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
               ).map((t) => (
                 <button
                   key={t.id}
-                  onClick={() => setDocType(t.id)}
+                  onClick={() => selectDocType(t.id)}
                   className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
                     docType === t.id ? 'bg-mint-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
@@ -242,7 +260,7 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
                   <span className={labelCls}>목적 문구 (선택 — 비우면 기본 문구 자동 생성)</span>
                   <textarea
                     className={`${inputCls} min-h-16 w-full resize-y`}
-                    placeholder="예) 2026학년도 2학기 물리학Ⅱ 실험 실습을 위하여 다음과 같이 물품을 구입하고자 합니다."
+                    placeholder="예) 물리학2 수업에 필요한 물품을 구입하고자 합니다."
                     value={purposeText}
                     onChange={(e) => setPurposeText(e.target.value)}
                   />
@@ -264,12 +282,29 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
             )}
           </div>
 
-          {/* 오른쪽: 실시간 미리보기 */}
+          {/* 오른쪽: 실시간 미리보기 (직접 수정 가능) */}
           <div className="flex min-h-0 flex-1 flex-col bg-slate-50 px-6 py-5">
-            <p className="mb-2 text-xs font-medium text-slate-400">미리보기 — 입력하는 대로 바로 반영됩니다</p>
-            <pre className="flex-1 overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 font-mono text-xs leading-relaxed text-slate-700">
-              {preview}
-            </pre>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-medium text-slate-400">
+                {edited ? '미리보기 — 직접 수정 중입니다' : '미리보기 — 입력하는 대로 바로 반영됩니다'}
+              </p>
+              {edited && (
+                <button
+                  onClick={resetPreview}
+                  className="flex items-center gap-1 text-xs font-medium text-slate-400 hover:text-mint-600"
+                >
+                  <RotateCcw size={12} /> 자동 생성으로 되돌리기
+                </button>
+              )}
+            </div>
+            <textarea
+              value={previewText}
+              onChange={(e) => {
+                setPreviewText(e.target.value);
+                setEdited(true);
+              }}
+              className="flex-1 resize-none overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 font-mono text-xs leading-relaxed text-slate-700 outline-none focus:border-mint-400 focus:ring-2 focus:ring-mint-100"
+            />
           </div>
         </div>
 

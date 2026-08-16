@@ -93,6 +93,17 @@ describe('buildPurchaseDraft', () => {
     expect(text).toContain('구매처: 쿠팡');
   });
 
+  test('배송비 품목은 "외 N종" 요약과 대표 품명에서 제외된다', () => {
+    const withShipping: ProcurementItem[] = [
+      ...items,
+      { name: '배송비', spec: '', unit: '건', qty: 1, unitPrice: 3000, vendor: '', sourceUrl: '' },
+    ];
+    const text = buildPurchaseDraft({ basis: '', purposeText: '', vendor: '', attachments: [] }, withShipping);
+    expect(text).toContain('색연필 외 1종');
+    expect(text).not.toContain('배송비 외');
+    expect(text).toContain('총 금액: 금16,000원');
+  });
+
   test('예산 비목과 구매 세부 내역 표는 더 이상 포함되지 않는다', () => {
     const text = buildPurchaseDraft({ basis: '', purposeText: '목적 문구', vendor: '', attachments: [] }, items);
     expect(text).not.toContain('예산 비목');
