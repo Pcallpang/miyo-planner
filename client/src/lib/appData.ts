@@ -2,7 +2,16 @@ import { defaultSettings } from './storage';
 import type { AppData } from '../types';
 
 export function defaultAppData(): AppData {
-  return { todos: [], meetings: [], memos: [], timetable: {}, settings: defaultSettings(), holidays: {} };
+  return {
+    todos: [],
+    meetings: [],
+    memos: [],
+    timetable: {},
+    settings: defaultSettings(),
+    holidays: {},
+    overtimeLogs: [],
+    overtimePunches: [],
+  };
 }
 
 /** 기존 localStorage 데이터를 모아 이관용 AppData로 만든다(없으면 null). */

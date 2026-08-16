@@ -58,13 +58,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
             ...state,
             ...local,
             settings: normalizeSettings({ ...state.settings, ...(local.settings ?? {}) }),
+            overtimeLogs: state.overtimeLogs ?? [],
+            overtimePunches: state.overtimePunches ?? [],
           };
           if (!cancelled) {
             setData(migrated);
             await api.putData({ ...local, settings: migrated.settings });
           }
         } else if (!cancelled) {
-          setData({ ...state, settings: normalizeSettings(state.settings) });
+          setData({
+            ...state,
+            settings: normalizeSettings(state.settings),
+            overtimeLogs: state.overtimeLogs ?? [],
+            overtimePunches: state.overtimePunches ?? [],
+          });
         }
       } catch (e) {
         // 미인증(401)이면 기본값으로 두고 조용히 넘어간다. 로그인 후 재마운트되어 다시 로드된다.

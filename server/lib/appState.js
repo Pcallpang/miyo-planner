@@ -9,13 +9,23 @@ const DEFAULT_SETTINGS = {
   weekStartsOn: 0,
   calendarId: 'primary',
   reminderMinutes: 10,
+  overtimeHourlyRate: 0,
 };
 
 export function defaultAppState() {
-  return { todos: [], meetings: [], memos: [], timetable: {}, settings: { ...DEFAULT_SETTINGS }, holidays: {} };
+  return {
+    todos: [],
+    meetings: [],
+    memos: [],
+    timetable: {},
+    settings: { ...DEFAULT_SETTINGS },
+    holidays: {},
+    overtimeLogs: [],
+    overtimePunches: [],
+  };
 }
 
-const KEYS = ['todos', 'meetings', 'memos', 'timetable', 'settings', 'holidays'];
+const KEYS = ['todos', 'meetings', 'memos', 'timetable', 'settings', 'holidays', 'overtimeLogs', 'overtimePunches'];
 
 export function mergeAppState(existing, patch) {
   if (!patch || typeof patch !== 'object' || Object.keys(patch).length === 0) return existing;

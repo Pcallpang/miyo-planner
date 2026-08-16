@@ -59,6 +59,8 @@ export interface Settings {
   school?: School;
   /** 대시보드 캘린더에 학사일정을 겹쳐서 표시할지 */
   showSchoolSchedule: boolean;
+  /** 초과근무 예상 수당 계산용 시간당 단가(원). 미입력 시 0 */
+  overtimeHourlyRate: number;
 }
 
 /** 나이스 학교 식별 정보 */
@@ -147,6 +149,27 @@ export interface AppData {
   settings: Settings;
   /** 사용자가 지정한 휴일(재량휴업일 등). YYYY-MM-DD → 라벨 */
   holidays: Record<string, string>;
+  overtimeLogs: OvertimeLog[];
+  overtimePunches: OvertimePunch[];
+}
+
+export type OvertimeSession = '아침' | '저녁';
+
+export interface OvertimeLog {
+  id: string;
+  date: string; // YYYY-MM-DD
+  session: OvertimeSession;
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+  memo?: string;
+  createdAt: string;
+}
+
+/** 원터치 출퇴근 체크 중 "출근만 찍힌" 진행 중 상태. 세션당 최대 1건. */
+export interface OvertimePunch {
+  date: string; // YYYY-MM-DD
+  session: OvertimeSession;
+  startTime: string; // HH:mm
 }
 
 /** 상품 캡쳐 이미지에서 Gemini가 추출한 상품 정보 */

@@ -26,6 +26,7 @@ export function defaultSettings(): Settings {
     reminderMinutes: 10,
     urgentDays: 3,
     showSchoolSchedule: true,
+    overtimeHourlyRate: 0,
   };
 }
 

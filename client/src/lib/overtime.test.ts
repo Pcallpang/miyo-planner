@@ -1,0 +1,84 @@
+import { describe, expect, test } from 'vitest';
+import {
+  durationMinutes,
+  monthlyTotalMinutes,
+  formatDuration,
+  estimatedPay,
+  OVERTIME_MONTHLY_CAP_MINUTES,
+} from './overtime';
+import type { OvertimeLog } from '../types';
+
+function log(over: Partial<OvertimeLog> = {}): OvertimeLog {
+  return {
+    id: '1',
+    date: '2026-08-10',
+    session: '아침',
+    startTime: '07:00',
+    endTime: '08:30',
+    createdAt: '2026-08-10T00:00:00.000Z',
+    ...over,
+  };
+}
+
+describe('durationMinutes', () => {
+  test('종료-시작을 분 단위로 계산한다', () => {
+    expect(durationMinutes(log({ startTime: '07:00', endTime: '08:30' }))).toBe(90);
+  });
+
+  test('종료가 시작보다 빠르면 0을 반환한다', () => {
+    expect(durationMinutes(log({ startTime: '08:00', endTime: '07:30' }))).toBe(0);
+  });
+
+  test('시작과 종료가 같으면 0을 반환한다', () => {
+    expect(durationMinutes(log({ startTime: '08:00', endTime: '08:00' }))).toBe(0);
+  });
+});
+
+describe('monthlyTotalMinutes', () => {
+  const logs: OvertimeLog[] = [
+    log({ id: '1', date: '2026-08-05', session: '아침', startTime: '07:00', endTime: '08:00' }), // 60
+    log({ id: '2', date: '2026-08-20', session: '저녁', startTime: '17:00', endTime: '19:00' }), // 120
+    log({ id: '3', date: '2026-07-30', session: '저녁', startTime: '17:00', endTime: '18:00' }), // 다른 달, 제외
+  ];
+
+  test('같은 연/월의 로그만 합산한다', () => {
+    expect(monthlyTotalMinutes(logs, new Date('2026-08-15T00:00:00'))).toBe(180);
+  });
+
+  test('session을 주면 해당 세션만 합산한다', () => {
+    expect(monthlyTotalMinutes(logs, new Date('2026-08-15T00:00:00'), '아침')).toBe(60);
+    expect(monthlyTotalMinutes(logs, new Date('2026-08-15T00:00:00'), '저녁')).toBe(120);
+  });
+
+  test('57시간 상한 상수는 3420분이다', () => {
+    expect(OVERTIME_MONTHLY_CAP_MINUTES).toBe(3420);
+  });
+});
+
+describe('formatDuration', () => {
+  test('시간과 분을 함께 표기한다', () => {
+    expect(formatDuration(90)).toBe('1시간 30분');
+  });
+
+  test('분이 0이면 시간만 표기한다', () => {
+    expect(formatDuration(120)).toBe('2시간');
+  });
+
+  test('1시간 미만이면 분만 표기한다', () => {
+    expect(formatDuration(45)).toBe('45분');
+  });
+
+  test('0분은 "0분"으로 표기한다', () => {
+    expect(formatDuration(0)).toBe('0분');
+  });
+});
+
+describe('estimatedPay', () => {
+  test('시간당 단가 × 시간으로 계산한다', () => {
+    expect(estimatedPay(90, 12000)).toBe(18000); // 1.5h × 12000
+  });
+
+  test('단가가 0이면 0원', () => {
+    expect(estimatedPay(120, 0)).toBe(0);
+  });
+});

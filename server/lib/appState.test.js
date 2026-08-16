@@ -2,11 +2,16 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { defaultAppState, mergeAppState } from './appState.js';
 
-test('defaultAppState는 6개 키를 가진다', () => {
+test('defaultAppState는 8개 키를 가진다', () => {
   const s = defaultAppState();
-  assert.deepEqual(Object.keys(s).sort(), ['holidays','meetings','memos','settings','timetable','todos']);
+  assert.deepEqual(
+    Object.keys(s).sort(),
+    ['holidays', 'meetings', 'memos', 'overtimeLogs', 'overtimePunches', 'settings', 'timetable', 'todos'],
+  );
   assert.deepEqual(s.todos, []);
   assert.deepEqual(s.holidays, {});
+  assert.deepEqual(s.overtimeLogs, []);
+  assert.deepEqual(s.overtimePunches, []);
   assert.equal(s.settings.periodCount, 7);
 });
 
