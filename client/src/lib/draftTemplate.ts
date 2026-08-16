@@ -15,19 +15,38 @@ function withPlaceholder(value: string, placeholder: string): string {
   return value.trim() || placeholder;
 }
 
-/** "1부", "1부." 등 사용자가 입력한 붙임 항목을 규정된 종결 표기(".")로 정리한다. */
-function normalizeAttachment(text: string): string {
+/** 한글 완성형 음절은 모노스페이스 폰트에서 폭이 2칸이므로 들여쓰기 계산 시 2로 센다. */
+function visualWidth(text: string): number {
+  let width = 0;
+  for (const ch of text) {
+    width += /[가-힣]/.test(ch) ? 2 : 1;
+  }
+  return width;
+}
+
+/** 마지막 항목이 아니면 종결 표기(마침표 등)를 떼어낸다. */
+function stripTerminalPunctuation(text: string): string {
+  return text.trim().replace(/[.!?]+$/, '');
+}
+
+/** "1부", "1부." 등 사용자가 입력한 마지막 붙임 항목을 규정된 종결 표기(".")로 정리한다. */
+function normalizeLastAttachment(text: string): string {
   const t = text.trim();
   return /[.!?]$/.test(t) ? t : `${t}.`;
 }
 
-/** 붙임 블록: 첫 줄은 "붙임  1. ...", 이어지는 줄은 "1." 시작 위치에 맞춰 들여쓰고, 마지막 항목 끝에 "  끝."을 붙인다. */
+/**
+ * 붙임 블록: 첫 줄은 "붙임  1. ...", 이어지는 줄은 "1." 시작 위치(전각 폭 기준)에 맞춰 들여쓴다.
+ * 마지막 항목 앞까지는 마침표를 붙이지 않고, 마지막 항목에만 마침표와 "  끝."을 붙인다.
+ */
 function attachmentsBlock(attachments: string[]): string | null {
   const list = attachments.map((a) => a.trim()).filter(Boolean);
   if (list.length === 0) return null;
   const prefix = '붙임';
-  const contIndent = ' '.repeat(prefix.length + 2);
-  const lines = list.map((a, i) => `${i + 1}. ${normalizeAttachment(a)}`);
+  const contIndent = ' '.repeat(visualWidth(prefix) + 2);
+  const lines = list.map((a, i) =>
+    i === list.length - 1 ? `${i + 1}. ${normalizeLastAttachment(a)}` : `${i + 1}. ${stripTerminalPunctuation(a)}`,
+  );
   lines[lines.length - 1] += '  끝.';
   return lines.map((l, i) => (i === 0 ? `${prefix}  ${l}` : `${contIndent}${l}`)).join('\n');
 }
@@ -105,7 +124,7 @@ export function buildPurchaseDraft(fields: PurchaseDraftFields, items: Procureme
     parts.push(markedLine(0, `${n++}.`, `관련: ${fields.basis.trim()}`));
   }
 
-  const defaultPurpose = `${summary} 구입을 위하여 다음과 같이 물품을 구입하고자 합니다.`;
+  const defaultPurpose = '물리학2 수업에 필요한 물품을 구입하고자 합니다.';
   const lines = [markedLine(0, `${n}.`, fields.purposeText.trim() || defaultPurpose)];
   lines.push(markedLine(2, '가.', '품의 개요'));
   const overviewItems = [

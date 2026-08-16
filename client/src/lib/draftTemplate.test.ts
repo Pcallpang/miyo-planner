@@ -50,7 +50,7 @@ describe('buildEventDraft', () => {
     expect(text).toContain('소요 예산: 금450,000원(금사십오만원)');
   });
 
-  test('붙임이 있으면 끝.이 붙임 마지막 줄에 붙는다', () => {
+  test('붙임: 마지막 항목에만 마침표와 끝.이 붙고, 앞 항목은 마침표 없이 이어진다', () => {
     const text = buildEventDraft({
       basis: '',
       purpose: '목적',
@@ -59,11 +59,29 @@ describe('buildEventDraft', () => {
       target: '',
       mainContent: '',
       budget: 0,
-      attachments: ['세부 운영 계획서 1부', '참가자 명단 1부'],
+      attachments: ['세부 운영 계획서 1부', '참가자 명단 1부', '설문지 1부'],
     });
-    expect(text).toContain('붙임  1. 세부 운영 계획서 1부.');
-    expect(text).toContain('2. 참가자 명단 1부.  끝.');
+    expect(text).toContain('붙임  1. 세부 운영 계획서 1부');
+    expect(text).not.toContain('세부 운영 계획서 1부.');
+    expect(text).not.toContain('참가자 명단 1부.');
+    expect(text).toContain('2. 참가자 명단 1부\n');
+    expect(text).toContain('3. 설문지 1부.  끝.');
     expect(text.includes('목적  끝.')).toBe(false);
+  });
+
+  test('붙임 두 번째 줄부터는 "붙임"의 시각적 폭(전각 4칸)에 맞춰 6칸 들여쓴다', () => {
+    const text = buildEventDraft({
+      basis: '',
+      purpose: '목적',
+      dateText: '',
+      place: '',
+      target: '',
+      mainContent: '',
+      budget: 0,
+      attachments: ['첫째 1부', '둘째 1부'],
+    });
+    const secondLine = text.split('\n').find((l) => l.includes('2. 둘째'));
+    expect(secondLine).toBe('      2. 둘째 1부.  끝.');
   });
 });
 
@@ -86,9 +104,9 @@ describe('buildPurchaseDraft', () => {
     expect(text.startsWith('1. 관련: 2026학년도 예산 편성 계획')).toBe(true);
   });
 
-  test('목적 문구를 비우면 품목 기반 기본 문구가 생성된다', () => {
+  test('목적 문구를 비우면 기본 문구가 생성된다', () => {
     const text = buildPurchaseDraft({ basis: '', purposeText: '', vendor: '쿠팡', attachments: [] }, items);
-    expect(text).toContain('색연필 외 1종 구입을 위하여 다음과 같이 물품을 구입하고자 합니다.');
+    expect(text).toContain('1. 물리학2 수업에 필요한 물품을 구입하고자 합니다.');
     expect(text).toContain('총 금액: 금13,000원(금일만삼천원)');
     expect(text).toContain('구매처: 쿠팡');
   });
