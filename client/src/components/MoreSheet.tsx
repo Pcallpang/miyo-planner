@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Armchair, FileSpreadsheet, LogOut, School, Settings, X } from 'lucide-react';
+import { Armchair, ClipboardPaste, FileSpreadsheet, LogOut, School, Settings, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import type { ViewId } from '../types';
@@ -11,10 +11,11 @@ const DURATION = 300; // ms — transition duration과 동일
 interface Props {
   onNavigate: (v: ViewId) => void;
   onClose: () => void;
+  onOpenNote: () => void;
 }
 
 /** 하단 탭바의 "더보기"를 누르면 아래에서 올라오는 시트. */
-export default function MoreSheet({ onNavigate, onClose }: Props) {
+export default function MoreSheet({ onNavigate, onClose, onOpenNote }: Props) {
   const { status, refreshStatus, showToast } = useApp();
   const [open, setOpen] = useState(false);
 
@@ -90,6 +91,16 @@ export default function MoreSheet({ onNavigate, onClose }: Props) {
         </div>
 
         <div className="overflow-y-auto px-2 py-2">
+          <button
+            onClick={() => {
+              onOpenNote();
+              close();
+            }}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100"
+          >
+            <ClipboardPaste size={18} className="text-slate-400" />
+            쪽지 붙여넣기
+          </button>
           <button
             onClick={() => navigate('school')}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100"

@@ -283,7 +283,7 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
           </div>
 
           {/* 오른쪽: 실시간 미리보기 (직접 수정 가능) */}
-          <div className="flex min-h-0 flex-1 flex-col bg-slate-50 px-6 py-5">
+          <div className="flex min-h-[320px] flex-1 flex-col bg-slate-50 px-6 py-5 md:min-h-0">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-medium text-slate-400">
                 {edited ? '미리보기 — 직접 수정 중입니다' : '미리보기 — 입력하는 대로 바로 반영됩니다'}

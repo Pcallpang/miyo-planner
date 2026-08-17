@@ -69,7 +69,9 @@ export default function App() {
 
       {noteOpen && <NotePasteModal onClose={() => setNoteOpen(false)} />}
 
-      {moreOpen && <MoreSheet onNavigate={setView} onClose={() => setMoreOpen(false)} />}
+      {moreOpen && (
+        <MoreSheet onNavigate={setView} onClose={() => setMoreOpen(false)} onOpenNote={() => setNoteOpen(true)} />
+      )}
 
       {/* 토스트 */}
       <div className="fixed right-5 bottom-5 z-50 flex flex-col gap-2">
