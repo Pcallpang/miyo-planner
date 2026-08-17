@@ -9,7 +9,10 @@
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/((?!api/|privacy\\.html).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/|privacy\\.html|manifest\\.webmanifest|sw\\.js).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
