@@ -125,7 +125,7 @@ export default function DashboardView() {
       <div className="space-y-6">
         <WeeklySummary todos={todos} meetings={meetings} />
 
-        <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+        <section className="hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 lg:block">
           <div className="mb-4 flex items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-slate-800">캘린더</h2>
             {settings.school && (

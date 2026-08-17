@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Armchair, ClipboardPaste, FileSpreadsheet, LogOut, School, Settings, X } from 'lucide-react';
+import { Armchair, ClipboardPaste, FileSpreadsheet, LogOut, Settings, Table, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import type { ViewId } from '../types';
@@ -102,11 +102,11 @@ export default function MoreSheet({ onNavigate, onClose, onOpenNote }: Props) {
             쪽지 붙여넣기
           </button>
           <button
-            onClick={() => navigate('school')}
+            onClick={() => navigate('timetable')}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100"
           >
-            <School size={18} className="text-slate-400" />
-            급식 · 학사일정
+            <Table size={18} className="text-slate-400" />
+            오늘의 시간표
           </button>
           <button
             onClick={() => navigate('procurement')}
