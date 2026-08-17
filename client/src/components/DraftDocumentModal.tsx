@@ -141,9 +141,9 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
           </button>
         </div>
 
-        <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
           {/* 왼쪽: 입력 폼 */}
-          <div className="w-[420px] shrink-0 overflow-y-auto border-r border-slate-100 px-6 py-5">
+          <div className="w-full shrink-0 overflow-y-auto border-b border-slate-100 px-6 py-5 md:w-[420px] md:border-r md:border-b-0">
             <div className="mb-4 flex gap-2">
               {(
                 [
