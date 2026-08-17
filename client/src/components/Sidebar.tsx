@@ -77,7 +77,7 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
   }
 
   return (
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-slate-200/70 bg-white/80 backdrop-blur">
+    <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-slate-200/70 bg-white/80 backdrop-blur lg:flex">
       <div className="flex items-center gap-2.5 px-6 pt-6 pb-4">
         <img src="/miyo.png" alt="미요" width={36} height={36} className="shrink-0" draggable={false} />
         <span className="text-lg font-bold tracking-tight text-mint-700">미요 플래너</span>
