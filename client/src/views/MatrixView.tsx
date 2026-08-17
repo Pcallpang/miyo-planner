@@ -5,6 +5,7 @@ import {
   EyeOff,
   LayoutGrid,
   Link as LinkIcon,
+  Move,
   Pencil,
   Pin,
   Star,
@@ -50,6 +51,7 @@ export default function MatrixView() {
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<QuadrantId | null>(null);
   const [openMemoId, setOpenMemoId] = useState<string | null>(null);
+  const [moveMenuId, setMoveMenuId] = useState<string | null>(null);
 
   const urgentDays = settings.urgentDays;
   const visible = showDone ? todos : todos.filter((t) => !t.done);
@@ -208,6 +210,39 @@ export default function MatrixView() {
                         >
                           <Star size={13} fill={todo.important ? 'currentColor' : 'none'} />
                         </button>
+                        <div className="relative shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setMoveMenuId((cur) => (cur === todo.id ? null : todo.id))}
+                            aria-label="다른 사분면으로 이동"
+                            className="rounded p-0.5 text-slate-300 transition hover:text-mint-500"
+                          >
+                            <Move size={13} />
+                          </button>
+                          {moveMenuId === todo.id && (
+                            <>
+                              <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setMoveMenuId(null)}
+                              />
+                              <div className="absolute right-0 z-20 mt-1 w-40 rounded-xl border border-slate-100 bg-white p-1 shadow-lg">
+                                {QUADRANTS.filter((qq) => qq.id !== q.id).map((qq) => (
+                                  <button
+                                    key={qq.id}
+                                    type="button"
+                                    onClick={() => {
+                                      replace(moveToQuadrant(todo, qq.id, urgentDays));
+                                      setMoveMenuId(null);
+                                    }}
+                                    className="block w-full rounded-lg px-2.5 py-1.5 text-left text-xs text-slate-600 hover:bg-slate-50"
+                                  >
+                                    {qq.title}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
                         <button
                           type="button"
                           onClick={() => setEditing(todo)}
