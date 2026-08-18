@@ -14,11 +14,17 @@
   --color-mint-900: #134940;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background-color: #f5f8f7;
   color: #1f2a28;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 ::-webkit-scrollbar {

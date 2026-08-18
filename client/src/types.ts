@@ -1,4 +1,12 @@
-export type ViewId = 'dashboard' | 'matrix' | 'school' | 'timetable' | 'memo' | 'procurement' | 'settings';
+export type ViewId =
+  | 'dashboard'
+  | 'matrix'
+  | 'school'
+  | 'timetable'
+  | 'memo'
+  | 'procurement'
+  | 'settings'
+  | 'overtime';
 
 export type TodoCategory = '업무' | '교과' | '개인';
 

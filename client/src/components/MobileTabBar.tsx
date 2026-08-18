@@ -1,4 +1,4 @@
-import { LayoutDashboard, LayoutGrid, MoreHorizontal, NotebookPen, School } from 'lucide-react';
+import { AlarmClock, LayoutDashboard, LayoutGrid, MoreHorizontal, NotebookPen, School } from 'lucide-react';
 import type { ViewId } from '../types';
 
 const TABS: { id: ViewId; label: string; icon: typeof LayoutDashboard }[] = [
@@ -6,6 +6,7 @@ const TABS: { id: ViewId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: 'matrix', label: '매트릭스', icon: LayoutGrid },
   { id: 'memo', label: '메모', icon: NotebookPen },
   { id: 'school', label: '급식·학사', icon: School },
+  { id: 'overtime', label: '초과근무', icon: AlarmClock },
 ];
 
 interface Props {
