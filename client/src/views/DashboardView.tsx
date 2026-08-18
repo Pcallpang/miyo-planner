@@ -12,12 +12,14 @@ import MonthCalendar from '../components/MonthCalendar';
 import EventModal from '../components/EventModal';
 import LiveStatusCard from '../components/dashboard/LiveStatusCard';
 import MeetingsCard from '../components/dashboard/MeetingsCard';
+import OvertimeCard from '../components/dashboard/OvertimeCard';
 import TodoCard from '../components/dashboard/TodoCard';
 import WeeklySummary from '../components/dashboard/WeeklySummary';
 import TodoModal from '../components/TodoModal';
 import MeetingModal from '../components/MeetingModal';
+import OvertimeModal from '../components/OvertimeModal';
 import DateActionModal from '../components/DateActionModal';
-import type { GEvent, Meeting, Todo, TodoCategory } from '../types';
+import type { GEvent, Meeting, OvertimeLog, Todo, TodoCategory } from '../types';
 
 export default function DashboardView() {
   const { events, eventsRange, settings, setSettings, status, ensureEvents, refreshEvents, showToast } =
@@ -29,11 +31,16 @@ export default function DashboardView() {
     update((prev) => ({ todos: typeof next === 'function' ? next(prev.todos) : next }));
   const setMeetings: Dispatch<SetStateAction<Meeting[]>> = (next) =>
     update((prev) => ({ meetings: typeof next === 'function' ? next(prev.meetings) : next }));
+  const overtimeLogs = data.overtimeLogs;
+  const setOvertimeLogs: Dispatch<SetStateAction<OvertimeLog[]>> = (next) =>
+    update((prev) => ({ overtimeLogs: typeof next === 'function' ? next(prev.overtimeLogs) : next }));
+
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState(() => new Date());
   const [dateAction, setDateAction] = useState<Date | null>(null);
   const [todoModal, setTodoModal] = useState<{ category: TodoCategory; date?: string; editing?: Todo } | null>(null);
   const [meetingModal, setMeetingModal] = useState<{ editing?: Meeting; date?: string } | null>(null);
+  const [overtimeModal, setOvertimeModal] = useState<{ editing?: OvertimeLog } | null>(null);
   const [eventModal, setEventModal] = useState<
     { mode: 'new'; date: string } | { mode: 'edit'; event: GEvent } | null
   >(null);
@@ -148,7 +155,6 @@ export default function DashboardView() {
         </section>
       </div>
 
-      {/* 초과근무는 하단 탭바의 전용 화면(OvertimeView)으로 분리했다. */}
       <div className="min-w-0 space-y-6">
         <LiveStatusCard />
         <TodoCard
@@ -163,6 +169,15 @@ export default function DashboardView() {
           onAdd={() => setMeetingModal({})}
           onEdit={(m) => setMeetingModal({ editing: m })}
         />
+        {/* lg 미만에서는 하단 탭바의 전용 화면(OvertimeView)으로 들어가므로 여기선 숨긴다. */}
+        <div className="hidden lg:block">
+          <OvertimeCard
+            logs={overtimeLogs}
+            setLogs={setOvertimeLogs}
+            onAdd={() => setOvertimeModal({})}
+            onEdit={(log) => setOvertimeModal({ editing: log })}
+          />
+        </div>
       </div>
 
       {/* 날짜 클릭 팝업 */}
@@ -231,6 +246,19 @@ export default function DashboardView() {
           onCommit={(meeting, isNew) =>
             setMeetings((prev) =>
               isNew ? [...prev, meeting] : prev.map((m) => (m.id === meeting.id ? meeting : m)),
+            )
+          }
+        />
+      )}
+
+      {/* 초과근무 직접 입력/수정 모달 */}
+      {overtimeModal && (
+        <OvertimeModal
+          editing={overtimeModal.editing}
+          onClose={() => setOvertimeModal(null)}
+          onSave={(log) =>
+            setOvertimeLogs((prev) =>
+              overtimeModal.editing ? prev.map((l) => (l.id === log.id ? log : l)) : [...prev, log],
             )
           }
         />
