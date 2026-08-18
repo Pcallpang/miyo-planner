@@ -29,23 +29,24 @@ export default function MobileTabBar({ view, onNavigate, onMore, moreActive }: P
           <button
             key={id}
             onClick={() => onNavigate(id)}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition ${
+            className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition ${
               active ? 'text-mint-600' : 'text-slate-400'
             }`}
           >
             <Icon size={20} className={active ? 'text-mint-500' : 'text-slate-400'} />
-            {label}
+            {/* 탭이 6개라 라벨 고유 폭을 그대로 두면 탭바가 화면보다 넓어진다. */}
+            <span className="w-full truncate text-center">{label}</span>
           </button>
         );
       })}
       <button
         onClick={onMore}
-        className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] font-medium transition ${
+        className={`flex min-w-0 flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-medium transition ${
           moreActive ? 'text-mint-600' : 'text-slate-400'
         }`}
       >
         <MoreHorizontal size={20} className={moreActive ? 'text-mint-500' : 'text-slate-400'} />
-        더보기
+        <span className="w-full truncate text-center">더보기</span>
       </button>
     </nav>
   );

@@ -1,5 +1,5 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
-import { AlarmClock, Coins, Pencil, Plus, Sunrise, Sunset, Trash2 } from 'lucide-react';
+import { AlarmClock, ChevronDown, Coins, Pencil, Plus, Sunrise, Sunset, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import EmptyMiyo from '../EmptyMiyo';
 import {
@@ -35,6 +35,8 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
   const [morningEndInput, setMorningEndInput] = useState('');
   const [editingEveningStart, setEditingEveningStart] = useState(false);
   const [eveningStartInput, setEveningStartInput] = useState('');
+  /** 탭해서 수정·삭제 버튼을 펼친 기록. 터치 기기에는 hover가 없어 펼치는 방식을 쓴다. */
+  const [openActionId, setOpenActionId] = useState<string | null>(null);
 
   const now = new Date();
   const monthLogs = logs
@@ -257,35 +259,61 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
             <EmptyMiyo message="이번 달 기록이 없습니다." size={52} src="/sachungi-miyo.png" />
           </li>
         )}
-        {monthLogs.map((log) => (
-          <li
-            key={log.id}
-            className="group flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-slate-50"
-          >
-            <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${SESSION_BADGE[log.session]}`}>
-              {log.session}
-            </span>
-            <span className="shrink-0 text-xs text-slate-400">{log.date.slice(5).replace('-', '/')}</span>
-            {/* 좁은 화면에서도 분까지 다 보이도록 자르지 않고 필요하면 줄바꿈한다. */}
-            <span className="min-w-0 flex-1 text-xs break-words text-slate-600">
-              {log.startTime} ~ {log.endTime} · {formatDuration(durationMinutes(log))}
-            </span>
-            <button
-              onClick={() => onEdit(log)}
-              className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-mint-500"
-              aria-label="수정"
-            >
-              <Pencil size={12} />
-            </button>
-            <button
-              onClick={() => setLogs((prev) => prev.filter((l) => l.id !== log.id))}
-              className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
-              aria-label="삭제"
-            >
-              <Trash2 size={13} />
-            </button>
-          </li>
-        ))}
+        {monthLogs.map((log) => {
+          const open = openActionId === log.id;
+          return (
+            <li key={log.id} className="rounded-xl transition hover:bg-slate-50">
+              {/* 행 전체를 탭하면 수정·삭제가 펼쳐진다. */}
+              <button
+                type="button"
+                onClick={() => setOpenActionId(open ? null : log.id)}
+                aria-expanded={open}
+                className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left"
+              >
+                <span
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${SESSION_BADGE[log.session]}`}
+                >
+                  {log.session}
+                </span>
+                <span className="shrink-0 text-xs text-slate-400">{log.date.slice(5).replace('-', '/')}</span>
+                {/* 시각과 소요시간을 각각 한 줄씩 — 좁은 화면에서도 분까지 다 보인다. */}
+                <span className="min-w-0 flex-1 text-xs">
+                  <span className="block text-slate-600">
+                    {log.startTime} ~ {log.endTime}
+                  </span>
+                  <span className="block text-slate-400">{formatDuration(durationMinutes(log))}</span>
+                </span>
+                <ChevronDown
+                  size={13}
+                  className={`shrink-0 text-slate-300 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {open && (
+                <div className="flex gap-2 px-2 pb-2">
+                  <button
+                    onClick={() => {
+                      setOpenActionId(null);
+                      onEdit(log);
+                    }}
+                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 py-1.5 text-xs font-medium text-slate-600 transition hover:border-mint-300 hover:text-mint-600"
+                  >
+                    <Pencil size={12} /> 수정
+                  </button>
+                  <button
+                    onClick={() => {
+                      setOpenActionId(null);
+                      setLogs((prev) => prev.filter((l) => l.id !== log.id));
+                    }}
+                    className="flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 py-1.5 text-xs font-medium text-slate-600 transition hover:border-rose-300 hover:text-rose-500"
+                  >
+                    <Trash2 size={12} /> 삭제
+                  </button>
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <button
