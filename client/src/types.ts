@@ -61,6 +61,10 @@ export interface Settings {
   showSchoolSchedule: boolean;
   /** 초과근무 예상 수당 계산용 시간당 단가(원). 미입력 시 0 */
   overtimeHourlyRate: number;
+  /** 아침 초과근무 자동 종료 시각(HH:mm). 출근만 찍으면 이 시각까지 계산됨 */
+  morningOvertimeEndTime: string;
+  /** 저녁 초과근무 시작 시각(HH:mm). 이 시각부터 퇴근 시각까지 자동 계산됨 */
+  eveningOvertimeStartTime: string;
 }
 
 /** 나이스 학교 식별 정보 */

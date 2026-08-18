@@ -10,6 +10,8 @@ const DEFAULT_SETTINGS = {
   calendarId: 'primary',
   reminderMinutes: 10,
   overtimeHourlyRate: 0,
+  morningOvertimeEndTime: '08:50',
+  eveningOvertimeStartTime: '17:50',
 };
 
 export function defaultAppState() {

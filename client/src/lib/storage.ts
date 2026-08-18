@@ -27,6 +27,8 @@ export function defaultSettings(): Settings {
     urgentDays: 3,
     showSchoolSchedule: true,
     overtimeHourlyRate: 0,
+    morningOvertimeEndTime: '08:50',
+    eveningOvertimeStartTime: '17:50',
   };
 }
 
