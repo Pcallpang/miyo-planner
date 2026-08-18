@@ -102,7 +102,7 @@ export default function MatrixView() {
         </button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {QUADRANTS.map((q) => {
           const items = visible.filter((t) => quadrantOfTodo(t, urgentDays) === q.id);
           const style = QUADRANT_STYLE[q.id];

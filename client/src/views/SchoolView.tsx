@@ -101,7 +101,7 @@ export default function SchoolView() {
             src="/waeyo-miyo.png"
           />
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {days.map((day) => {
               const key = format(day, 'yyyy-MM-dd');
               const dayMeals = meals.filter((m) => m.date === key);

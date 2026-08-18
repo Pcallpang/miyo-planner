@@ -48,7 +48,9 @@ export default function MeetingsCard({ meetings, setMeetings, onAdd, onEdit }: P
         {sorted.map((m) => (
           <li key={m.id} className="group rounded-xl px-2 py-2 transition hover:bg-slate-50">
             <div className="flex items-center gap-2">
-              <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700">{m.title}</span>
+              <span className="line-clamp-2 min-w-0 flex-1 text-sm font-medium break-words text-slate-700">
+                {m.title}
+              </span>
               {m.link && (
                 <a
                   href={m.link}

@@ -37,7 +37,7 @@ export default function WeeklySummary({ todos, meetings }: Props) {
         주간 요약 ({format(weekStart, 'MM/dd')} ~ {format(weekEnd, 'MM/dd')})
       </h2>
 
-      <div className="grid gap-5 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <div>
           <p className="mb-2 text-sm font-semibold text-mint-600">To-Do 마감</p>
           {weekTodos.length === 0 ? (
@@ -45,11 +45,15 @@ export default function WeeklySummary({ todos, meetings }: Props) {
           ) : (
             <ul className="space-y-1">
               {weekTodos.slice(0, 5).map((t) => (
-                <li key={t.id} className="flex items-center gap-1.5 text-sm">
-                  <span className="shrink-0 text-xs font-medium text-slate-400">
+                <li key={t.id} className="flex items-start gap-1.5 text-sm">
+                  <span className="mt-0.5 shrink-0 text-xs font-medium text-slate-400">
                     {t.dueDate!.slice(5).replace('-', '/')}
                   </span>
-                  <span className={`min-w-0 truncate ${t.done ? 'text-slate-300 line-through' : 'text-slate-600'}`}>
+                  <span
+                    className={`line-clamp-2 min-w-0 break-words ${
+                      t.done ? 'text-slate-300 line-through' : 'text-slate-600'
+                    }`}
+                  >
                     {t.text}
                   </span>
                 </li>
@@ -68,12 +72,12 @@ export default function WeeklySummary({ todos, meetings }: Props) {
           ) : (
             <ul className="space-y-1">
               {weekMeetings.slice(0, 5).map((m) => (
-                <li key={m.id} className="flex items-center gap-1.5 text-sm">
-                  <span className="shrink-0 text-xs font-medium text-slate-400">
+                <li key={m.id} className="flex items-start gap-1.5 text-sm">
+                  <span className="mt-0.5 shrink-0 text-xs font-medium text-slate-400">
                     {m.date.slice(5).replace('-', '/')}
                     {m.time && ` ${m.time}`}
                   </span>
-                  <span className="min-w-0 truncate text-slate-600">{m.title}</span>
+                  <span className="line-clamp-2 min-w-0 break-words text-slate-600">{m.title}</span>
                 </li>
               ))}
             </ul>
@@ -89,11 +93,11 @@ export default function WeeklySummary({ todos, meetings }: Props) {
           ) : (
             <ul className="space-y-1">
               {weekEvents.slice(0, 5).map((ev) => (
-                <li key={ev.id} className="flex items-center gap-1.5 text-sm">
-                  <span className="shrink-0 text-xs font-medium text-slate-400">
+                <li key={ev.id} className="flex items-start gap-1.5 text-sm">
+                  <span className="mt-0.5 shrink-0 text-xs font-medium text-slate-400">
                     {format(parseISO(ev.start), 'MM/dd')} {eventTimeLabel(ev)}
                   </span>
-                  <span className="min-w-0 truncate text-slate-600">{ev.title}</span>
+                  <span className="line-clamp-2 min-w-0 break-words text-slate-600">{ev.title}</span>
                 </li>
               ))}
               {weekEvents.length > 5 && (

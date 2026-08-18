@@ -14,18 +14,18 @@
   --color-mint-900: #134940;
 }
 
-html {
-  overflow-x: hidden;
-}
-
 body {
   background-color: #f5f8f7;
   color: #1f2a28;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
-  max-width: 100vw;
 }
+
+/*
+ * 가로 넘침은 grid-cols-1(= minmax(0,1fr))과 line-clamp/break-words로 잡는다.
+ * html·body에 overflow-x:hidden을 걸면 스크롤 컨테이너가 만들어져
+ * 헤더·사이드바의 position:sticky가 깨지므로 쓰지 않는다.
+ */
 
 ::-webkit-scrollbar {
   width: 8px;
