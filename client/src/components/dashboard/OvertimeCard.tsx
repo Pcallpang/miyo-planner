@@ -266,7 +266,8 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
               {log.session}
             </span>
             <span className="shrink-0 text-xs text-slate-400">{log.date.slice(5).replace('-', '/')}</span>
-            <span className="min-w-0 flex-1 truncate text-xs text-slate-600">
+            {/* 좁은 화면에서도 분까지 다 보이도록 자르지 않고 필요하면 줄바꿈한다. */}
+            <span className="min-w-0 flex-1 text-xs break-words text-slate-600">
               {log.startTime} ~ {log.endTime} · {formatDuration(durationMinutes(log))}
             </span>
             <button
