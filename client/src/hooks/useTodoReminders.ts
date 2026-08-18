@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { notify } from '../lib/notify';
 import type { Todo } from '../types';
 
 /** 서울 기준 오늘 날짜 YYYY-MM-DD */
@@ -23,7 +24,7 @@ export function useTodoReminders(todos: Todo[], enabled: boolean) {
       for (const t of todos) {
         if (t.done || t.dueDate !== today || notified.current.has(t.id)) continue;
         notified.current.add(t.id);
-        new Notification('오늘 마감 할 일', { body: t.text, tag: `todo-${t.id}` });
+        void notify('오늘 마감 할 일', { body: t.text, tag: `todo-${t.id}` });
       }
     };
 

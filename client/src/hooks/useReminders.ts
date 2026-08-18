@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { getDueReminders } from '../lib/reminders';
+import { notify } from '../lib/notify';
 import type { GEvent } from '../types';
 
 /**
@@ -19,7 +20,7 @@ export function useReminders(events: GEvent[], leadMinutes: number) {
         notified.current.add(r.id);
         const t = new Date(r.start);
         const hhmm = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
-        new Notification(r.title, { body: `${hhmm} 시작 예정입니다.`, tag: r.id });
+        void notify(r.title, { body: `${hhmm} 시작 예정입니다.`, tag: r.id });
       }
     };
 
