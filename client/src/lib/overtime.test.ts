@@ -4,6 +4,8 @@ import {
   monthlyTotalMinutes,
   formatDuration,
   estimatedPay,
+  buildMorningPunchLog,
+  buildEveningPunchLog,
   OVERTIME_MONTHLY_CAP_MINUTES,
 } from './overtime';
 import type { OvertimeLog } from '../types';
@@ -80,5 +82,41 @@ describe('estimatedPay', () => {
 
   test('단가가 0이면 0원', () => {
     expect(estimatedPay(120, 0)).toBe(0);
+  });
+});
+
+describe('buildMorningPunchLog', () => {
+  test('현재 시각이 종료 시각 전이면 시작=현재, 종료=설정된 종료 시각인 로그를 만든다', () => {
+    const result = buildMorningPunchLog('2026-08-18', '07:10', '08:50');
+    expect(result).not.toBeNull();
+    expect(result?.date).toBe('2026-08-18');
+    expect(result?.session).toBe('아침');
+    expect(result?.startTime).toBe('07:10');
+    expect(result?.endTime).toBe('08:50');
+    expect(typeof result?.id).toBe('string');
+    expect(typeof result?.createdAt).toBe('string');
+  });
+
+  test('현재 시각이 종료 시각과 같거나 지났으면 null을 반환한다', () => {
+    expect(buildMorningPunchLog('2026-08-18', '08:50', '08:50')).toBeNull();
+    expect(buildMorningPunchLog('2026-08-18', '09:00', '08:50')).toBeNull();
+  });
+});
+
+describe('buildEveningPunchLog', () => {
+  test('현재 시각이 시작 시각 뒤면 시작=설정된 시작 시각, 종료=현재인 로그를 만든다', () => {
+    const result = buildEveningPunchLog('2026-08-18', '19:30', '17:50');
+    expect(result).not.toBeNull();
+    expect(result?.date).toBe('2026-08-18');
+    expect(result?.session).toBe('저녁');
+    expect(result?.startTime).toBe('17:50');
+    expect(result?.endTime).toBe('19:30');
+    expect(typeof result?.id).toBe('string');
+    expect(typeof result?.createdAt).toBe('string');
+  });
+
+  test('현재 시각이 시작 시각과 같거나 이전이면 null을 반환한다', () => {
+    expect(buildEveningPunchLog('2026-08-18', '17:50', '17:50')).toBeNull();
+    expect(buildEveningPunchLog('2026-08-18', '17:00', '17:50')).toBeNull();
   });
 });

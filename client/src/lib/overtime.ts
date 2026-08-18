@@ -51,3 +51,29 @@ export function todayYMD(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
+
+/** 아침 원터치 로그 생성. now가 endTime 이후(같은 시각 포함)면 null. */
+export function buildMorningPunchLog(date: string, now: string, endTime: string): OvertimeLog | null {
+  if (now >= endTime) return null;
+  return {
+    id: crypto.randomUUID(),
+    date,
+    session: '아침',
+    startTime: now,
+    endTime,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+/** 저녁 원터치 로그 생성. now가 startTime 이전(같은 시각 포함)이면 null. */
+export function buildEveningPunchLog(date: string, now: string, startTime: string): OvertimeLog | null {
+  if (now <= startTime) return null;
+  return {
+    id: crypto.randomUUID(),
+    date,
+    session: '저녁',
+    startTime,
+    endTime: now,
+    createdAt: new Date().toISOString(),
+  };
+}
