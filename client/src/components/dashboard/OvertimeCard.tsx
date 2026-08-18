@@ -3,6 +3,8 @@ import { AlarmClock, Coins, Pencil, Plus, Sunrise, Sunset, Trash2 } from 'lucide
 import { useApp } from '../../context/AppContext';
 import EmptyMiyo from '../EmptyMiyo';
 import {
+  buildEveningPunchLog,
+  buildMorningPunchLog,
   durationMinutes,
   estimatedPay,
   formatDuration,
@@ -11,10 +13,8 @@ import {
   OVERTIME_MONTHLY_CAP_MINUTES,
   todayYMD,
 } from '../../lib/overtime';
-import type { OvertimeLog, OvertimePunch, OvertimeSession } from '../../types';
+import type { OvertimeLog, OvertimeSession } from '../../types';
 
-const SESSIONS: OvertimeSession[] = ['아침', '저녁'];
-const SESSION_ICON = { 아침: Sunrise, 저녁: Sunset } as const;
 const SESSION_BADGE: Record<OvertimeSession, string> = {
   아침: 'bg-sky-100 text-sky-700',
   저녁: 'bg-violet-100 text-violet-700',
@@ -23,16 +23,18 @@ const SESSION_BADGE: Record<OvertimeSession, string> = {
 interface Props {
   logs: OvertimeLog[];
   setLogs: Dispatch<SetStateAction<OvertimeLog[]>>;
-  punches: OvertimePunch[];
-  setPunches: Dispatch<SetStateAction<OvertimePunch[]>>;
   onAdd: () => void;
   onEdit: (log: OvertimeLog) => void;
 }
 
-export default function OvertimeCard({ logs, setLogs, punches, setPunches, onAdd, onEdit }: Props) {
+export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
   const { settings, setSettings, showToast } = useApp();
   const [editingRate, setEditingRate] = useState(false);
   const [rateInput, setRateInput] = useState('');
+  const [editingMorningEnd, setEditingMorningEnd] = useState(false);
+  const [morningEndInput, setMorningEndInput] = useState('');
+  const [editingEveningStart, setEditingEveningStart] = useState(false);
+  const [eveningStartInput, setEveningStartInput] = useState('');
 
   const now = new Date();
   const monthLogs = logs
@@ -55,33 +57,24 @@ export default function OvertimeCard({ logs, setLogs, punches, setPunches, onAdd
 
   const pay = settings.overtimeHourlyRate > 0 ? estimatedPay(totalMinutes, settings.overtimeHourlyRate) : null;
 
-  function punchFor(session: OvertimeSession) {
-    return punches.find((p) => p.session === session);
+  function recordMorning() {
+    const log = buildMorningPunchLog(todayYMD(), nowHHmm(), settings.morningOvertimeEndTime);
+    if (!log) {
+      showToast('error', `이미 ${settings.morningOvertimeEndTime}이 지났습니다.`);
+      return;
+    }
+    setLogs((prev) => [...prev, log]);
+    showToast('success', `아침 초근을 기록했습니다. (${log.startTime}~${log.endTime})`);
   }
 
-  function togglePunch(session: OvertimeSession) {
-    const existing = punchFor(session);
-    if (!existing) {
-      setPunches((prev) => [...prev, { date: todayYMD(), session, startTime: nowHHmm() }]);
-      showToast('success', `${session} 초근 출근을 기록했습니다.`);
+  function recordEvening() {
+    const log = buildEveningPunchLog(todayYMD(), nowHHmm(), settings.eveningOvertimeStartTime);
+    if (!log) {
+      showToast('error', `아직 ${settings.eveningOvertimeStartTime} 전입니다.`);
       return;
     }
-    const endTime = nowHHmm();
-    if (endTime <= existing.startTime) {
-      showToast('error', '출근을 찍은 지 얼마 안 됐어요. 잠시 후 다시 눌러 주세요.');
-      return;
-    }
-    const log: OvertimeLog = {
-      id: crypto.randomUUID(),
-      date: existing.date,
-      session,
-      startTime: existing.startTime,
-      endTime,
-      createdAt: new Date().toISOString(),
-    };
     setLogs((prev) => [...prev, log]);
-    setPunches((prev) => prev.filter((p) => p.session !== session));
-    showToast('success', `${session} 초근 퇴근을 기록했습니다. (${formatDuration(durationMinutes(log))})`);
+    showToast('success', `저녁 초근을 기록했습니다. (${formatDuration(durationMinutes(log))})`);
   }
 
   function saveRate() {
@@ -92,6 +85,24 @@ export default function OvertimeCard({ logs, setLogs, punches, setPunches, onAdd
     }
     setSettings((prev) => ({ ...prev, overtimeHourlyRate: Math.round(n) }));
     setEditingRate(false);
+  }
+
+  function saveMorningEnd() {
+    if (!morningEndInput) {
+      showToast('error', '시각을 입력해 주세요.');
+      return;
+    }
+    setSettings((prev) => ({ ...prev, morningOvertimeEndTime: morningEndInput }));
+    setEditingMorningEnd(false);
+  }
+
+  function saveEveningStart() {
+    if (!eveningStartInput) {
+      showToast('error', '시각을 입력해 주세요.');
+      return;
+    }
+    setSettings((prev) => ({ ...prev, eveningOvertimeStartTime: eveningStartInput }));
+    setEditingEveningStart(false);
   }
 
   return (
@@ -106,26 +117,22 @@ export default function OvertimeCard({ logs, setLogs, punches, setPunches, onAdd
         </span>
       </div>
 
-      {/* 원터치 출퇴근 버튼 */}
+      {/* 원터치 버튼: 아침은 출근만, 저녁은 퇴근만 찍으면 나머지 시각은 자동 계산 */}
       <div className="mb-3 grid grid-cols-2 gap-2">
-        {SESSIONS.map((session) => {
-          const active = punchFor(session);
-          const Icon = SESSION_ICON[session];
-          return (
-            <button
-              key={session}
-              onClick={() => togglePunch(session)}
-              className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-2.5 text-xs font-semibold transition ${
-                active
-                  ? 'border-mint-400 bg-mint-50 text-mint-700'
-                  : 'border-slate-200 text-slate-500 hover:border-mint-200 hover:bg-mint-50/50'
-              }`}
-            >
-              <Icon size={16} />
-              {active ? `${session} 퇴근 찍기 (${active.startTime}~)` : `${session} 출근 찍기`}
-            </button>
-          );
-        })}
+        <button
+          onClick={recordMorning}
+          className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 px-2 py-2.5 text-xs font-semibold text-slate-500 transition hover:border-mint-200 hover:bg-mint-50/50"
+        >
+          <Sunrise size={16} />
+          아침 초근 기록
+        </button>
+        <button
+          onClick={recordEvening}
+          className="flex flex-col items-center gap-1 rounded-xl border border-slate-200 px-2 py-2.5 text-xs font-semibold text-slate-500 transition hover:border-mint-200 hover:bg-mint-50/50"
+        >
+          <Sunset size={16} />
+          저녁 퇴근 찍기
+        </button>
       </div>
 
       {/* 이번 달 요약 */}
@@ -169,6 +176,68 @@ export default function OvertimeCard({ logs, setLogs, punches, setPunches, onAdd
             {settings.overtimeHourlyRate > 0
               ? `시간당 ${settings.overtimeHourlyRate.toLocaleString('ko-KR')}원 (수정)`
               : '시간당 단가 입력 (예상 수당 계산용)'}
+          </button>
+        )}
+      </div>
+
+      {/* 아침 종료 시각 */}
+      <div className="mb-1.5 text-xs text-slate-400">
+        {editingMorningEnd ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="time"
+              autoFocus
+              className="rounded-lg border border-slate-200 px-2 py-1 text-xs outline-none focus:border-mint-400"
+              value={morningEndInput}
+              onChange={(e) => setMorningEndInput(e.target.value)}
+            />
+            <button onClick={saveMorningEnd} className="font-semibold text-mint-600">
+              저장
+            </button>
+            <button onClick={() => setEditingMorningEnd(false)} className="text-slate-400">
+              취소
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              setMorningEndInput(settings.morningOvertimeEndTime);
+              setEditingMorningEnd(true);
+            }}
+            className="underline-offset-2 hover:text-mint-600 hover:underline"
+          >
+            아침 {settings.morningOvertimeEndTime}에 자동 종료 (수정)
+          </button>
+        )}
+      </div>
+
+      {/* 저녁 시작 시각 */}
+      <div className="mb-3 text-xs text-slate-400">
+        {editingEveningStart ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="time"
+              autoFocus
+              className="rounded-lg border border-slate-200 px-2 py-1 text-xs outline-none focus:border-mint-400"
+              value={eveningStartInput}
+              onChange={(e) => setEveningStartInput(e.target.value)}
+            />
+            <button onClick={saveEveningStart} className="font-semibold text-mint-600">
+              저장
+            </button>
+            <button onClick={() => setEditingEveningStart(false)} className="text-slate-400">
+              취소
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              setEveningStartInput(settings.eveningOvertimeStartTime);
+              setEditingEveningStart(true);
+            }}
+            className="underline-offset-2 hover:text-mint-600 hover:underline"
+          >
+            저녁 {settings.eveningOvertimeStartTime}부터 계산 (수정)
           </button>
         )}
       </div>

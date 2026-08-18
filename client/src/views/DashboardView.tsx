@@ -32,11 +32,8 @@ export default function DashboardView() {
   const setMeetings: Dispatch<SetStateAction<Meeting[]>> = (next) =>
     update((prev) => ({ meetings: typeof next === 'function' ? next(prev.meetings) : next }));
   const overtimeLogs = data.overtimeLogs;
-  const overtimePunches = data.overtimePunches;
   const setOvertimeLogs: Dispatch<SetStateAction<OvertimeLog[]>> = (next) =>
     update((prev) => ({ overtimeLogs: typeof next === 'function' ? next(prev.overtimeLogs) : next }));
-  const setOvertimePunches: Dispatch<SetStateAction<typeof overtimePunches>> = (next) =>
-    update((prev) => ({ overtimePunches: typeof next === 'function' ? next(prev.overtimePunches) : next }));
 
   const [month, setMonth] = useState(() => new Date());
   const [selected, setSelected] = useState(() => new Date());
@@ -175,8 +172,6 @@ export default function DashboardView() {
         <OvertimeCard
           logs={overtimeLogs}
           setLogs={setOvertimeLogs}
-          punches={overtimePunches}
-          setPunches={setOvertimePunches}
           onAdd={() => setOvertimeModal({})}
           onEdit={(log) => setOvertimeModal({ editing: log })}
         />
