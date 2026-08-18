@@ -49,7 +49,7 @@ export default function WeeklySummary({ todos, meetings }: Props) {
                   <span className="shrink-0 text-xs font-medium text-slate-400">
                     {t.dueDate!.slice(5).replace('-', '/')}
                   </span>
-                  <span className={`truncate ${t.done ? 'text-slate-300 line-through' : 'text-slate-600'}`}>
+                  <span className={`min-w-0 truncate ${t.done ? 'text-slate-300 line-through' : 'text-slate-600'}`}>
                     {t.text}
                   </span>
                 </li>
@@ -73,7 +73,7 @@ export default function WeeklySummary({ todos, meetings }: Props) {
                     {m.date.slice(5).replace('-', '/')}
                     {m.time && ` ${m.time}`}
                   </span>
-                  <span className="truncate text-slate-600">{m.title}</span>
+                  <span className="min-w-0 truncate text-slate-600">{m.title}</span>
                 </li>
               ))}
             </ul>
@@ -93,7 +93,7 @@ export default function WeeklySummary({ todos, meetings }: Props) {
                   <span className="shrink-0 text-xs font-medium text-slate-400">
                     {format(parseISO(ev.start), 'MM/dd')} {eventTimeLabel(ev)}
                   </span>
-                  <span className="truncate text-slate-600">{ev.title}</span>
+                  <span className="min-w-0 truncate text-slate-600">{ev.title}</span>
                 </li>
               ))}
               {weekEvents.length > 5 && (
