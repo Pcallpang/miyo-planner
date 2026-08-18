@@ -58,6 +58,10 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
   const pay = settings.overtimeHourlyRate > 0 ? estimatedPay(totalMinutes, settings.overtimeHourlyRate) : null;
 
   function recordMorning() {
+    if (logs.some((l) => l.date === todayYMD() && l.session === '아침')) {
+      showToast('error', '오늘 아침 초근은 이미 기록되어 있습니다.');
+      return;
+    }
     const log = buildMorningPunchLog(todayYMD(), nowHHmm(), settings.morningOvertimeEndTime);
     if (!log) {
       showToast('error', `이미 ${settings.morningOvertimeEndTime}이 지났습니다.`);
@@ -68,6 +72,10 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
   }
 
   function recordEvening() {
+    if (logs.some((l) => l.date === todayYMD() && l.session === '저녁')) {
+      showToast('error', '오늘 저녁 초근은 이미 기록되어 있습니다.');
+      return;
+    }
     const log = buildEveningPunchLog(todayYMD(), nowHHmm(), settings.eveningOvertimeStartTime);
     if (!log) {
       showToast('error', `아직 ${settings.eveningOvertimeStartTime} 전입니다.`);
