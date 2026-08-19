@@ -1,11 +1,11 @@
 import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { format } from 'date-fns';
-import { CalendarRange } from 'lucide-react';
+import { CalendarRange, Filter, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { api } from '../lib/api';
 import { reconcileMeetings } from '../lib/meetingSync';
-import { eventsOnDay } from '../lib/events';
+import { eventsOnDay, filterEventsByKeywords } from '../lib/events';
 import { getHoliday } from '../lib/holidays';
 import { useSchoolSchedule } from '../hooks/useSchoolSchedule';
 import MonthCalendar from '../components/MonthCalendar';
@@ -44,6 +44,27 @@ export default function DashboardView() {
   const [eventModal, setEventModal] = useState<
     { mode: 'new'; date: string } | { mode: 'edit'; event: GEvent } | null
   >(null);
+  /** 키워드 필터 On/Off. 저장하지 않아 접속 때마다 꺼진 상태로 시작한다. */
+  const [keywordFilterOn, setKeywordFilterOn] = useState(false);
+  const [keywordInput, setKeywordInput] = useState('');
+
+  const keywords = settings.eventKeywords;
+  const visibleEvents = keywordFilterOn ? filterEventsByKeywords(events, keywords) : events;
+  const hiddenCount = events.length - visibleEvents.length;
+
+  function addKeyword() {
+    const k = keywordInput.trim();
+    if (!k || keywords.includes(k)) {
+      setKeywordInput('');
+      return;
+    }
+    setSettings((prev) => ({ ...prev, eventKeywords: [...prev.eventKeywords, k] }));
+    setKeywordInput('');
+  }
+
+  function removeKeyword(k: string) {
+    setSettings((prev) => ({ ...prev, eventKeywords: prev.eventKeywords.filter((x) => x !== k) }));
+  }
 
   useEffect(() => {
     void ensureEvents(month);
@@ -125,6 +146,24 @@ export default function DashboardView() {
         <section className="hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100 lg:block">
           <div className="mb-4 flex items-center justify-between gap-2">
             <h2 className="text-lg font-bold text-slate-800">캘린더</h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setKeywordFilterOn((v) => !v)}
+                aria-pressed={keywordFilterOn}
+                className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${
+                  keywordFilterOn
+                    ? 'border-mint-300 bg-mint-50 text-mint-700'
+                    : 'border-slate-200 text-slate-500 hover:border-mint-200 hover:text-mint-600'
+                }`}
+              >
+                <Filter size={12} />
+                키워드
+                {keywords.length > 0 && (
+                  <span className="rounded-full bg-mint-500 px-1.5 text-[10px] font-semibold text-white">
+                    {keywords.length}
+                  </span>
+                )}
+              </button>
             {settings.school && (
               <button
                 onClick={() =>
@@ -141,13 +180,51 @@ export default function DashboardView() {
                 학사일정 겹쳐보기
               </button>
             )}
+            </div>
           </div>
+
+          {keywordFilterOn && (
+            <div className="mb-4 rounded-xl bg-slate-50 px-3 py-2.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {keywords.map((k) => (
+                  <span
+                    key={k}
+                    className="flex items-center gap-1 rounded-full bg-mint-100 py-1 pl-2.5 pr-1.5 text-xs font-medium text-mint-700"
+                  >
+                    {k}
+                    <button onClick={() => removeKeyword(k)} aria-label={`${k} 삭제`} className="rounded-full p-0.5 hover:bg-mint-200">
+                      <X size={11} />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  value={keywordInput}
+                  onChange={(e) => setKeywordInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addKeyword();
+                    }
+                  }}
+                  onBlur={addKeyword}
+                  placeholder={keywords.length ? '키워드 추가' : '예: 상담'}
+                  className="min-w-[7rem] flex-1 bg-transparent px-1 py-1 text-xs text-slate-700 outline-none placeholder:text-slate-400"
+                />
+              </div>
+              {/* 키워드를 걸어둔 걸 잊고 '일정이 왜 없지' 하고 헤매지 않도록 알린다. */}
+              <p className="mt-1.5 text-[11px] text-slate-400">
+                {keywords.length === 0
+                  ? '키워드를 입력하고 Enter를 누르면 제목에 그 말이 든 일정만 보입니다.'
+                  : `제목에 키워드가 든 일정만 표시 중 · ${hiddenCount}개 숨김`}
+              </p>
+            </div>
+          )}
           <MonthCalendar
             month={month}
             onMonthChange={setMonth}
             selected={selected}
             onSelect={selectDate}
-            events={events}
+            events={visibleEvents}
             weekStartsOn={settings.weekStartsOn}
             holidays={data.holidays}
             schoolSchedule={schoolSchedule}
@@ -185,7 +262,7 @@ export default function DashboardView() {
         <DateActionModal
           date={dateAction}
           holidayLabel={getHoliday(format(dateAction, 'yyyy-MM-dd'), data.holidays)}
-          events={eventsOnDay(events, dateAction)}
+          events={eventsOnDay(visibleEvents, dateAction)}
           todos={todos.filter((t) => t.dueDate === format(dateAction, 'yyyy-MM-dd'))}
           meetings={meetings.filter((m) => m.date === format(dateAction, 'yyyy-MM-dd'))}
           schoolSchedule={schoolSchedule.filter((s) => s.date === format(dateAction, 'yyyy-MM-dd'))}

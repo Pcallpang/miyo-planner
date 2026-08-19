@@ -18,6 +18,19 @@ export function eventsOnDay(events: GEvent[], day: Date): GEvent[] {
     });
 }
 
+/**
+ * 제목에 키워드가 든 일정만 남긴다. 키워드가 여러 개면 하나라도 맞으면 통과(OR).
+ * 대소문자와 키워드 앞뒤 공백은 무시하고, 비어 있는 키워드는 없는 셈 친다.
+ */
+export function filterEventsByKeywords(events: GEvent[], keywords: string[]): GEvent[] {
+  const needles = keywords.map((k) => k.trim().toLowerCase()).filter(Boolean);
+  if (needles.length === 0) return events;
+  return events.filter((ev) => {
+    const title = ev.title.toLowerCase();
+    return needles.some((n) => title.includes(n));
+  });
+}
+
 export function eventTimeLabel(ev: GEvent): string {
   if (ev.allDay) return '종일';
   const s = format(parseISO(ev.start), 'HH:mm');

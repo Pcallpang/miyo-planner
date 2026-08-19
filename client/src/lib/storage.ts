@@ -26,6 +26,7 @@ export function defaultSettings(): Settings {
     reminderMinutes: 10,
     urgentDays: 3,
     showSchoolSchedule: true,
+    eventKeywords: [],
     overtimeHourlyRate: 0,
     morningOvertimeEndTime: '08:50',
     eveningOvertimeStartTime: '17:50',

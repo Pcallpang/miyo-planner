@@ -67,6 +67,8 @@ export interface Settings {
   school?: School;
   /** 대시보드 캘린더에 학사일정을 겹쳐서 표시할지 */
   showSchoolSchedule: boolean;
+  /** 캘린더 키워드 필터에 쓸 키워드. 제목에 이 중 하나라도 들어간 일정만 보인다 */
+  eventKeywords: string[];
   /** 초과근무 예상 수당 계산용 시간당 단가(원). 미입력 시 0 */
   overtimeHourlyRate: number;
   /** 아침 초과근무 자동 종료 시각(HH:mm). 출근만 찍으면 이 시각까지 계산됨 */
