@@ -93,8 +93,13 @@ export const api = {
   status: () => request<ServerStatus>('/api/status'),
 
   getData: () => request<{ state: import('../types').AppData }>('/api/data'),
-  putData: (state: Partial<import('../types').AppData>) =>
-    request<{ ok: true }>('/api/data', { method: 'PUT', body: JSON.stringify({ state }) }),
+  /** keepalive: 탭이 백그라운드로 가거나 닫히는 순간에도 요청이 살아남게 한다(초과근무 기록 유실 방지). */
+  putData: (state: Partial<import('../types').AppData>, opts?: { keepalive?: boolean }) =>
+    request<{ ok: true }>('/api/data', {
+      method: 'PUT',
+      body: JSON.stringify({ state }),
+      keepalive: opts?.keepalive,
+    }),
 
   authUrl: () => request<{ url: string }>('/api/auth/url'),
   logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),

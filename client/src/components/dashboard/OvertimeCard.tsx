@@ -8,6 +8,7 @@ import {
   durationMinutes,
   estimatedPay,
   formatDuration,
+  monthlyCappedTotalMinutes,
   monthlyTotalMinutes,
   nowHHmm,
   OVERTIME_MONTHLY_CAP_MINUTES,
@@ -48,7 +49,8 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
 
   const morningMinutes = monthlyTotalMinutes(logs, now, '아침');
   const eveningMinutes = monthlyTotalMinutes(logs, now, '저녁');
-  const totalMinutes = morningMinutes + eveningMinutes;
+  // 하루 4시간 상한이 적용된 값 — 아침+저녁 실제 합계가 아니라 인정되는 합계다.
+  const totalMinutes = monthlyCappedTotalMinutes(logs, now);
   const ratio = totalMinutes / OVERTIME_MONTHLY_CAP_MINUTES;
   const capColor =
     ratio >= 1

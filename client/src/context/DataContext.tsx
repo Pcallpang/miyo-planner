@@ -41,6 +41,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // 저장 대기 중(800ms 디바운스)인 변경사항을, 탭이 백그라운드로 가거나
+    // 앱이 닫히는 순간 즉시 전송한다. 예: 모바일에서 초과근무 버튼을 누르자마자
+    // 화면을 끄면 타이머가 돌기 전에 앱이 종료되어 기록이 유실될 수 있었다.
+    const flushImmediately = () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+        timer.current = null;
+      }
+      if (Object.keys(pending.current).length === 0) return;
+      const toSend = pending.current;
+      pending.current = {};
+      api.putData(toSend, { keepalive: true }).catch(() => {
+        pending.current = { ...toSend, ...pending.current };
+      });
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flushImmediately();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', flushImmediately);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pagehide', flushImmediately);
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);

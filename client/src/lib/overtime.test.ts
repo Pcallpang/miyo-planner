@@ -2,11 +2,14 @@ import { describe, expect, test } from 'vitest';
 import {
   durationMinutes,
   monthlyTotalMinutes,
+  monthlyCappedTotalMinutes,
+  dailyCappedMinutes,
   formatDuration,
   estimatedPay,
   buildMorningPunchLog,
   buildEveningPunchLog,
   OVERTIME_MONTHLY_CAP_MINUTES,
+  DAILY_OVERTIME_CAP_MINUTES,
 } from './overtime';
 import type { OvertimeLog } from '../types';
 
@@ -55,6 +58,41 @@ describe('monthlyTotalMinutes', () => {
   test('57시간 상한 상수는 3420분이다', () => {
     expect(OVERTIME_MONTHLY_CAP_MINUTES).toBe(3420);
   });
+});
+
+describe('dailyCappedMinutes / monthlyCappedTotalMinutes', () => {
+  test('하루 상한 상수는 240분(4시간)이다', () => {
+    expect(DAILY_OVERTIME_CAP_MINUTES).toBe(240);
+  });
+
+  test('하루 합계가 4시간 이하면 그대로 인정한다', () => {
+    const logs: OvertimeLog[] = [
+      log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:00', endTime: '08:30' }), // 90
+    ];
+    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(90);
+  });
+
+  test('아침+저녁 합계가 4시간을 넘으면 4시간만 인정한다', () => {
+    const logs: OvertimeLog[] = [
+      log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:00', endTime: '08:50' }), // 110
+      log({ id: '2', date: '2026-08-18', session: '저녁', startTime: '17:50', endTime: '21:30' }), // 220
+    ];
+    expect(dailyRawSum(logs)).toBe(330);
+    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(240);
+  });
+
+  test('월 합계는 날짜별 상한을 적용한 뒤 합산한다', () => {
+    const logs: OvertimeLog[] = [
+      log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:00', endTime: '08:50' }), // 110
+      log({ id: '2', date: '2026-08-18', session: '저녁', startTime: '17:50', endTime: '21:30' }), // 220 → 이 날은 240으로 캡
+      log({ id: '3', date: '2026-08-19', session: '아침', startTime: '07:00', endTime: '08:00' }), // 60, 캡 안 걸림
+    ];
+    expect(monthlyCappedTotalMinutes(logs, new Date('2026-08-01T00:00:00'))).toBe(240 + 60);
+  });
+
+  function dailyRawSum(logs: OvertimeLog[]): number {
+    return logs.reduce((sum, l) => sum + durationMinutes(l), 0);
+  }
 });
 
 describe('formatDuration', () => {
