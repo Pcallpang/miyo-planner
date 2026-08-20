@@ -66,11 +66,20 @@ export function formatDuration(minutes: number): string {
 }
 
 /**
- * 참고용 예상 수당(원). 실제 지급 규정의 공제·가산율 등 세부 보정은 반영하지 않은
- * 단순 계산(분/60 × 시간당 단가)이다.
+ * 수당이 지급되는 시간 수. 분 단위는 절삭한다 —
+ * 초과근무 수당은 시간 단위로만 지급되므로 8시간 19분은 8시간으로 친다.
+ * 절삭은 월 합계에 한 번만 적용한다(날짜별로 버리지 않는다).
+ */
+export function payableHours(minutes: number): number {
+  return Math.floor(minutes / 60);
+}
+
+/**
+ * 참고용 예상 수당(원). 분 단위를 절삭한 시간 수 × 시간당 단가로 계산한다.
+ * 실제 지급 규정의 공제·가산율 등 세부 보정은 반영하지 않는다.
  */
 export function estimatedPay(minutes: number, hourlyRate: number): number {
-  return Math.round((minutes / 60) * hourlyRate);
+  return Math.round(payableHours(minutes) * hourlyRate);
 }
 
 /** 현재 시각을 "HH:mm"으로 (원터치 출퇴근 버튼용) */

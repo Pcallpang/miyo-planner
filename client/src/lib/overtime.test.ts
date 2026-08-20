@@ -6,6 +6,7 @@ import {
   dailyCappedMinutes,
   formatDuration,
   estimatedPay,
+  payableHours,
   buildMorningPunchLog,
   buildEveningPunchLog,
   OVERTIME_MONTHLY_CAP_MINUTES,
@@ -113,13 +114,44 @@ describe('formatDuration', () => {
   });
 });
 
+describe('payableHours', () => {
+  test('분 단위는 절삭한다', () => {
+    expect(payableHours(8 * 60 + 19)).toBe(8);
+    expect(payableHours(90)).toBe(1);
+  });
+
+  test('한 시간을 못 채우면 0시간', () => {
+    expect(payableHours(59)).toBe(0);
+    expect(payableHours(0)).toBe(0);
+  });
+
+  test('정확히 떨어지면 그대로', () => {
+    expect(payableHours(120)).toBe(2);
+  });
+});
+
 describe('estimatedPay', () => {
-  test('시간당 단가 × 시간으로 계산한다', () => {
-    expect(estimatedPay(90, 12000)).toBe(18000); // 1.5h × 12000
+  test('분을 절삭한 시간 수 × 단가로 계산한다', () => {
+    // 8시간 19분 → 8시간만 인정
+    expect(estimatedPay(8 * 60 + 19, 14213)).toBe(8 * 14213);
+  });
+
+  test('1시간 30분은 1시간으로 친다', () => {
+    expect(estimatedPay(90, 12000)).toBe(12000);
+  });
+
+  test('한 시간을 못 채우면 0원', () => {
+    expect(estimatedPay(59, 12000)).toBe(0);
   });
 
   test('단가가 0이면 0원', () => {
     expect(estimatedPay(120, 0)).toBe(0);
+  });
+
+  test('절삭은 월 합계에 한 번만 적용된다 (날짜별로 버리지 않는다)', () => {
+    // 하루 1시간 50분씩 3일 = 5시간 30분 → 5시간.
+    // 날짜별로 버렸다면 1시간씩 3일 = 3시간이 됐을 것이다.
+    expect(estimatedPay(3 * 110, 10000)).toBe(5 * 10000);
   });
 });
 

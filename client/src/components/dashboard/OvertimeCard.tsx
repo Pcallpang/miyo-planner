@@ -9,6 +9,7 @@ import {
   estimatedPay,
   formatDuration,
   monthlyCappedTotalMinutes,
+  payableHours,
   monthlyTotalMinutes,
   nowHHmm,
   OVERTIME_MONTHLY_CAP_MINUTES,
@@ -59,6 +60,9 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
         ? 'text-amber-600 bg-amber-50 border-amber-200'
         : 'text-mint-600 bg-mint-50 border-mint-200';
 
+  // 수당은 시간 단위로만 지급되므로 분은 절삭한다 — 배지의 합계와 금액이 어긋나 보이지 않게
+  // 실제 지급 기준이 되는 시간 수를 금액 옆에 함께 적는다.
+  const paidHours = payableHours(totalMinutes);
   const pay = settings.overtimeHourlyRate > 0 ? estimatedPay(totalMinutes, settings.overtimeHourlyRate) : null;
 
   function recordMorning() {
@@ -154,6 +158,7 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
         {pay !== null && (
           <span className="ml-auto flex items-center gap-1 font-semibold text-slate-700">
             <Coins size={12} className="text-amber-500" /> 예상 {pay.toLocaleString('ko-KR')}원
+            <span className="font-normal text-slate-400">({paidHours}시간)</span>
           </span>
         )}
       </div>
