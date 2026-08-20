@@ -22,8 +22,11 @@ const { default: calendarRouter } = await import('./routes/calendar.js');
 const { default: geminiRouter } = await import('./routes/gemini.js');
 const { default: dataRouter } = await import('./routes/data.js');
 const { default: schoolRouter } = await import('./routes/school.js');
+const { checkNeisKey } = await import('./lib/neis.js');
 const { default: seatingRouter } = await import('./routes/seating.js');
 const { default: procurementRouter } = await import('./routes/procurement.js');
+
+checkNeisKey();
 
 if (process.env.NODE_ENV === 'production') {
   for (const k of ['SESSION_SECRET', 'TOKEN_ENC_KEY', 'DATABASE_URL']) {

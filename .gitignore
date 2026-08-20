@@ -15,3 +15,6 @@ server/data/
 !client/public/icon-192.png
 !client/public/icon-512.png
 !client/public/apple-touch-icon.png
+.vercel
+.env*
+!.env.example

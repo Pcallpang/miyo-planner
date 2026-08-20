@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { NeisError, extractRows, parseDish, splitLines, toCompact, toDashed } from './neis.js';
+import {
+  NeisError,
+  extractRows,
+  extractTotalCount,
+  fetchSchedule,
+  parseDish,
+  splitLines,
+  toCompact,
+  toDashed,
+} from './neis.js';
 
 test('정상 응답에서 row 배열을 꺼낸다', () => {
   const body = {
@@ -71,4 +80,81 @@ test('날짜 형식을 서로 변환한다', () => {
 test('형식이 다른 날짜 값은 건드리지 않는다', () => {
   assert.equal(toDashed(''), '');
   assert.equal(toDashed(null), '');
+});
+
+test('head에서 전체 건수를 꺼낸다', () => {
+  const body = {
+    SchoolSchedule: [{ head: [{ list_total_count: 23 }, { RESULT: { CODE: 'INFO-000' } }] }],
+  };
+  assert.equal(extractTotalCount(body, 'SchoolSchedule'), 23);
+});
+
+test('전체 건수가 없으면 null이다', () => {
+  assert.equal(extractTotalCount({}, 'SchoolSchedule'), null);
+  assert.equal(extractTotalCount(null, 'SchoolSchedule'), null);
+});
+
+/** 지정한 페이지들을 순서대로 돌려주는 가짜 fetch를 깐다 */
+function stubNeis(pages) {
+  const calls = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    calls.push(String(url));
+    const pIndex = Number(new URL(String(url)).searchParams.get('pIndex'));
+    const rows = pages[pIndex - 1] ?? [];
+    const total = pages.flat().length;
+    return {
+      ok: true,
+      json: async () => ({
+        SchoolSchedule: [
+          { head: [{ list_total_count: total }, { RESULT: { CODE: 'INFO-000' } }] },
+          { row: rows },
+        ],
+      }),
+    };
+  };
+  return { calls, restore: () => { globalThis.fetch = original; } };
+}
+
+function scheduleRow(ymd, name) {
+  return { AA_YMD: ymd, EVENT_NM: name, EVENT_CNTNT: '', SBTR_DD_SC_NM: '해당없음' };
+}
+
+test('여러 페이지에 걸친 응답을 모두 모아 온다', async () => {
+  // pSize(1000)를 꽉 채운 페이지가 오면 다음 페이지를 이어 받아야 한다
+  const page1 = Array.from({ length: 1000 }, (_, i) => scheduleRow('20260801', `일정${i}`));
+  const page2 = [scheduleRow('20260802', '개학식')];
+  const { calls, restore } = stubNeis([page1, page2]);
+  try {
+    const result = await fetchSchedule({
+      atptCode: 'B10',
+      schoolCode: 'TEST-PAGING',
+      from: '2026-08-01',
+      to: '2026-08-31',
+    });
+    assert.equal(result.length, 1001);
+    assert.equal(calls.length, 2);
+    assert.ok(result.some((e) => e.name === '개학식'));
+  } finally {
+    restore();
+  }
+});
+
+test('받은 행이 요청량보다 적으면 더 조르지 않는다', async () => {
+  // 인증키가 없을 때 나이스는 pIndex를 무시하고 같은 5건을 계속 준다.
+  // 여기서 멈추지 않으면 같은 페이지를 무한히 받게 된다.
+  const five = Array.from({ length: 5 }, (_, i) => scheduleRow('20260801', `일정${i}`));
+  const { calls, restore } = stubNeis([five, five, five]);
+  try {
+    const result = await fetchSchedule({
+      atptCode: 'B10',
+      schoolCode: 'TEST-NOKEY',
+      from: '2026-08-01',
+      to: '2026-08-31',
+    });
+    assert.equal(result.length, 5);
+    assert.equal(calls.length, 1, '첫 페이지만 요청해야 한다');
+  } finally {
+    restore();
+  }
 });

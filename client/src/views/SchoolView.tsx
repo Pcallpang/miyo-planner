@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { addDays, format, startOfWeek } from 'date-fns';
+import { addDays, endOfMonth, format, isSameMonth, startOfMonth, startOfWeek } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { CalendarRange, ChevronLeft, ChevronRight, School, UtensilsCrossed } from 'lucide-react';
 import { api } from '../lib/api';
@@ -21,8 +21,9 @@ export default function SchoolView() {
     if (!school) return;
     const from = format(weekStart, 'yyyy-MM-dd');
     const to = format(addDays(weekStart, 6), 'yyyy-MM-dd');
-    const monthFrom = format(new Date(weekStart.getFullYear(), weekStart.getMonth(), 1), 'yyyy-MM-dd');
-    const monthTo = format(new Date(weekStart.getFullYear(), weekStart.getMonth() + 1, 0), 'yyyy-MM-dd');
+    // 한 주가 달을 걸치면(예: 8/31~9/4) 두 달을 모두 덮어야 다음 달 일정이 빠지지 않는다
+    const monthFrom = format(startOfMonth(weekStart), 'yyyy-MM-dd');
+    const monthTo = format(endOfMonth(addDays(weekStart, 4)), 'yyyy-MM-dd');
     setLoading(true);
     try {
       const [m, s] = await Promise.all([
@@ -51,7 +52,11 @@ export default function SchoolView() {
   }
 
   const days = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
-  const monthLabel = format(weekStart, 'yyyy년 M월', { locale: ko });
+  const weekEnd = addDays(weekStart, 4);
+  // 주가 달을 걸치면 "2026년 8~9월"처럼 두 달을 함께 적는다
+  const monthLabel = isSameMonth(weekStart, weekEnd)
+    ? format(weekStart, 'yyyy년 M월', { locale: ko })
+    : `${format(weekStart, 'yyyy년 M월', { locale: ko })}~${format(weekEnd, 'M월', { locale: ko })}`;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -70,7 +75,7 @@ export default function SchoolView() {
             <ChevronLeft size={16} />
           </button>
           <span className="min-w-32 text-center text-sm font-medium text-slate-600">
-            {format(weekStart, 'M/d', { locale: ko })} ~ {format(addDays(weekStart, 4), 'M/d', { locale: ko })}
+            {format(weekStart, 'M/d', { locale: ko })} ~ {format(weekEnd, 'M/d', { locale: ko })}
           </span>
           <button
             onClick={() => setWeekStart((d) => addDays(d, 7))}

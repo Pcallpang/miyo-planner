@@ -70,7 +70,12 @@ export default function DashboardView() {
     void ensureEvents(month);
   }, [month, ensureEvents]);
 
-  const schoolSchedule = useSchoolSchedule(settings.school, month, settings.showSchoolSchedule);
+  const { schedule: schoolSchedule, error: scheduleError } = useSchoolSchedule(
+    settings.school,
+    month,
+    settings.showSchoolSchedule,
+    settings.weekStartsOn,
+  );
 
   // 구글 캘린더 변경(수정·삭제)을 연동된 회의록에 반영
   useEffect(() => {
@@ -218,6 +223,12 @@ export default function DashboardView() {
                   : `제목에 키워드가 든 일정만 표시 중 · ${hiddenCount}개 숨김`}
               </p>
             </div>
+          )}
+          {/* 학사일정은 부가 정보라 토스트로 막지 않고, 왜 비었는지만 조용히 알린다 */}
+          {scheduleError && (
+            <p className="mb-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+              학사일정을 불러오지 못했습니다 — {scheduleError}
+            </p>
           )}
           <MonthCalendar
             month={month}

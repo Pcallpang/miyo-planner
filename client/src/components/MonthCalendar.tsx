@@ -178,10 +178,18 @@ export default function MonthCalendar({
                   {(() => {
                     const shownSchedule = Math.min(daySchedule.length, 2);
                     const shownEvents = Math.min(dayEvents.length, daySchedule.length > 0 ? 1 : 2);
-                    const hidden =
-                      daySchedule.length - shownSchedule + (dayEvents.length - shownEvents);
-                    return hidden > 0 ? (
-                      <span className="px-1 text-[10px] text-slate-400">+{hidden}건</span>
+                    const hiddenNames = [
+                      ...daySchedule.slice(shownSchedule).map((s) => s.name),
+                      ...dayEvents.slice(shownEvents).map((ev) => ev.title),
+                    ];
+                    // 칸이 좁아 접었을 뿐이니, 무엇이 숨었는지는 마우스를 올리면 보이게 한다
+                    return hiddenNames.length > 0 ? (
+                      <span
+                        className="px-1 text-[10px] text-slate-400"
+                        title={hiddenNames.join(', ')}
+                      >
+                        +{hiddenNames.length}건
+                      </span>
                     ) : null;
                   })()}
                 </span>
