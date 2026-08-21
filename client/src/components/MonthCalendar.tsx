@@ -154,9 +154,10 @@ export default function MonthCalendar({
                   ))}
                 </span>
               ) : (
-                <span className="mt-1 flex flex-col gap-0.5 overflow-hidden">
-                  {/* 학사일정은 학교가 정한 일정이라 내 일정보다 위에 둔다 */}
-                  {daySchedule.slice(0, 2).map((s, i) => (
+                <span className="mt-1 flex flex-col gap-0.5">
+                  {/* 개수를 제한하면 일정을 놓칠 수 있으므로 그 날의 모든 일정을 다 보여준다.
+                      학사일정은 학교가 정한 일정이라 내 일정보다 위에 둔다. */}
+                  {daySchedule.map((s, i) => (
                     <span
                       key={`s-${i}`}
                       title={s.content || s.name}
@@ -167,7 +168,7 @@ export default function MonthCalendar({
                       {s.name}
                     </span>
                   ))}
-                  {dayEvents.slice(0, daySchedule.length > 0 ? 1 : 2).map((ev) => (
+                  {dayEvents.map((ev) => (
                     <span
                       key={ev.id}
                       className="truncate rounded-md bg-mint-100 px-1.5 py-0.5 text-[11px] font-medium text-mint-800"
@@ -175,23 +176,6 @@ export default function MonthCalendar({
                       {ev.title}
                     </span>
                   ))}
-                  {(() => {
-                    const shownSchedule = Math.min(daySchedule.length, 2);
-                    const shownEvents = Math.min(dayEvents.length, daySchedule.length > 0 ? 1 : 2);
-                    const hiddenNames = [
-                      ...daySchedule.slice(shownSchedule).map((s) => s.name),
-                      ...dayEvents.slice(shownEvents).map((ev) => ev.title),
-                    ];
-                    // 칸이 좁아 접었을 뿐이니, 무엇이 숨었는지는 마우스를 올리면 보이게 한다
-                    return hiddenNames.length > 0 ? (
-                      <span
-                        className="px-1 text-[10px] text-slate-400"
-                        title={hiddenNames.join(', ')}
-                      >
-                        +{hiddenNames.length}건
-                      </span>
-                    ) : null;
-                  })()}
                 </span>
               )}
             </button>
