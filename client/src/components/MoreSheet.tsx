@@ -129,7 +129,7 @@ export default function MoreSheet({ onNavigate, onClose, onOpenNote }: Props) {
             onClick={close}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100"
           >
-            <img src="/miyo.png" alt="미요" width={18} height={18} draggable={false} />
+            <img src="/miyo-lab.png" alt="미요 Lab" width={18} height={18} draggable={false} />
             미요 실험실 바로가기
           </a>
           <button

@@ -136,7 +136,7 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
           rel="noreferrer"
           className="mt-6 flex flex-col items-center gap-1.5 rounded-2xl bg-mint-50 p-3 text-center transition hover:bg-mint-100"
         >
-          <img src="/miyo.png" alt="미요" width={48} height={48} draggable={false} />
+          <img src="/miyo-lab.png" alt="미요 Lab" width={48} height={48} draggable={false} />
           <span className="text-xs font-semibold text-mint-700">미요 실험실 바로가기 →</span>
         </a>
       </nav>
