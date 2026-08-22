@@ -75,6 +75,8 @@ export interface Settings {
   morningOvertimeEndTime: string;
   /** 저녁 초과근무 시작 시각(HH:mm). 이 시각부터 퇴근 시각까지 자동 계산됨 */
   eveningOvertimeStartTime: string;
+  /** 사이드바 "나의 하루" 항목 순서. 비어 있으면 기본 순서를 쓴다. */
+  sidebarOrder: string[];
 }
 
 /** 나이스 학교 식별 정보 */
