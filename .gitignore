@@ -20,3 +20,4 @@ server/data/
 .env*
 !.env.example
 .worktrees/
+.claude/
