@@ -19,3 +19,4 @@ server/data/
 .vercel
 .env*
 !.env.example
+.worktrees/
