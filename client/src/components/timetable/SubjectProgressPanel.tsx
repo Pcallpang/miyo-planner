@@ -7,7 +7,10 @@ import { addDay, canceledCountByDate, countLessonsUntil, weeklyOccurrences } fro
 import LessonDetailPanel from './LessonDetailPanel';
 import type { SchoolScheduleItem } from '../../types';
 
-const TERM2_START_KEYWORDS = ['2학기 개학', '2학기개학', '개학식', '개학'];
+// "개학식"은 1학기든 2학기든 같은 이름으로 나오는 경우가 많아, 어느 학기인지는
+// 찾은 날짜(1~6월=1학기, 7~12월=2학기)로 판단한다 — 이러면 내년 1학기가 와도 코드
+// 수정 없이 그대로 동작한다.
+const TERM_START_KEYWORDS = ['1학기 개학', '1학기개학', '2학기 개학', '2학기개학', '개학식', '개학'];
 const EXAM1_KEYWORDS = ['중간고사', '1차 지필'];
 const EXAM2_KEYWORDS = ['기말고사', '2차 지필'];
 const TERM_END_KEYWORDS = ['졸업식', '종업식'];
@@ -117,18 +120,24 @@ export default function SubjectProgressPanel() {
   }, [settings.school]);
 
   const noClassDates = new Set(schoolSchedule.filter((item) => item.noClass).map((item) => item.date));
-  const term2Start = findEventRange(schoolSchedule, TERM2_START_KEYWORDS, null);
+  const termStart = findEventRange(schoolSchedule, TERM_START_KEYWORDS, null);
   const exam1 = findEventRange(schoolSchedule, EXAM1_KEYWORDS, null);
   const exam2 = findEventRange(schoolSchedule, EXAM2_KEYWORDS, exam1?.end ?? null);
   const termEnd = findEventRange(schoolSchedule, TERM_END_KEYWORDS, exam2?.end ?? null);
+  // 개학일이 1~6월이면 1학기, 7~12월이면 2학기 — 내년에 1학기가 와도 그대로 맞는다.
+  const termLabel = termStart
+    ? new Date(`${termStart.start}T00:00:00`).getMonth() < 6
+      ? '1학기'
+      : '2학기'
+    : '학기';
 
-  // 1차 지필평가·학기종료일은 둘 다 2학기 개학날부터 세므로, 오늘까지 이미 지난 차시도
-  // 함께 계산해 현재 차시(진도율)에 반영한다. 1차-2차 지필평가는 개학날이 기준이 아니라
-  // 구간 자체이므로 지난 차시를 새로 매기지 않는다.
+  // 1차 지필·학기끝은 둘 다 개학날부터 세므로, 오늘까지 이미 지난 차시도 함께 계산해
+  // 현재 차시(진도율)에 반영한다. 1-2차 지필은 개학날이 기준이 아니라 구간 자체이므로
+  // 지난 차시를 새로 매기지 않는다.
   const milestones: { label: string; from: string | null; to: string | null; computeCurrent: boolean }[] = [
-    { label: '1차 지필평가', from: term2Start?.start ?? null, to: exam1?.start ?? null, computeCurrent: true },
-    { label: '1차-2차 지필평가', from: exam1 ? addDay(exam1.end) : null, to: exam2?.start ?? null, computeCurrent: false },
-    { label: '학기종료일', from: term2Start?.start ?? null, to: termEnd?.start ?? null, computeCurrent: true },
+    { label: '1차 지필', from: termStart?.start ?? null, to: exam1?.start ?? null, computeCurrent: true },
+    { label: '1-2차 지필', from: exam1 ? addDay(exam1.end) : null, to: exam2?.start ?? null, computeCurrent: false },
+    { label: '학기끝', from: termStart?.start ?? null, to: termEnd?.start ?? null, computeCurrent: true },
   ];
 
   function applyMilestone(from: string, to: string, computeCurrent: boolean) {
@@ -175,7 +184,7 @@ export default function SubjectProgressPanel() {
         <h3 className="text-sm font-bold text-slate-700">차시 계획표</h3>
         {settings.school && classes.length > 0 && (
           <div className="flex items-center gap-1">
-            <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-400">2학기</span>
+            <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-400">{termLabel}</span>
             {milestones.map((m) => (
               <button
                 key={m.label}
@@ -187,7 +196,7 @@ export default function SubjectProgressPanel() {
                     ? '학사일정 기준으로 전체 반별 과목의 총 차시를 계산합니다'
                     : '학사일정에서 날짜를 찾을 수 없습니다'
                 }
-                className="rounded-full border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:border-mint-300 hover:text-mint-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-500"
+                className="shrink-0 whitespace-nowrap rounded-full border border-slate-200 px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:border-mint-300 hover:text-mint-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-500"
               >
                 {m.label}
               </button>
