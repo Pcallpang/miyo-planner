@@ -6,10 +6,12 @@ import LoginScreen from './components/LoginScreen';
 import MobileTabBar from './components/MobileTabBar';
 import MoreSheet from './components/MoreSheet';
 import NotePasteModal from './components/NotePasteModal';
+import WhatsNewModal, { WHATS_NEW_VERSION } from './components/WhatsNewModal';
 import { useApp } from './context/AppContext';
 import { useData } from './context/DataContext';
 import { useReminders } from './hooks/useReminders';
 import { useTodoReminders } from './hooks/useTodoReminders';
+import { useLocalStorage } from './lib/storage';
 import DashboardView from './views/DashboardView';
 import MatrixView from './views/MatrixView';
 import MemoView from './views/MemoView';
@@ -33,6 +35,7 @@ export default function App() {
   const [view, setView] = useState<ViewId>('dashboard');
   const [noteOpen, setNoteOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [seenWhatsNew, setSeenWhatsNew] = useLocalStorage('haru.whatsnew.seen', '');
   const { status, toasts, events, settings } = useApp();
   const { data } = useData();
 
@@ -70,6 +73,10 @@ export default function App() {
       />
 
       {noteOpen && <NotePasteModal onClose={() => setNoteOpen(false)} />}
+
+      {seenWhatsNew !== WHATS_NEW_VERSION && (
+        <WhatsNewModal onClose={() => setSeenWhatsNew(WHATS_NEW_VERSION)} />
+      )}
 
       {moreOpen && (
         <MoreSheet onNavigate={setView} onClose={() => setMoreOpen(false)} onOpenNote={() => setNoteOpen(true)} />
