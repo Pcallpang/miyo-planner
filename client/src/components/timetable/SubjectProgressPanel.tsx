@@ -4,6 +4,7 @@ import { useData } from '../../context/DataContext';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/api';
 import { addDay, canceledCountByDate, countLessonsUntil, weeklyOccurrences } from '../../lib/subjectProgress';
+import LessonDetailPanel from './LessonDetailPanel';
 import type { SchoolScheduleItem } from '../../types';
 
 const TERM2_START_KEYWORDS = ['2학기 개학', '2학기개학', '개학식', '개학'];
@@ -46,8 +47,9 @@ function findEventRange(
 export default function SubjectProgressPanel() {
   const { data, update } = useData();
   const { settings } = useApp();
-  const { timetable, subjectProgress, canceledLessons } = data;
+  const { timetable, subjectProgress, canceledLessons, subjectLessonNotes } = data;
   const [schoolSchedule, setSchoolSchedule] = useState<SchoolScheduleItem[]>([]);
+  const [openDetailFor, setOpenDetailFor] = useState<string | null>(null);
 
   // 시간표에 등장하는 (과목, 반) 조합(중복 제거), 과목 다음 반 순으로 정렬
   const classes: SubjectClass[] = [];
@@ -154,6 +156,19 @@ export default function SubjectProgressPanel() {
     }));
   }
 
+  /** 차시별 메모는 반과 무관하게 과목 하나에 한 벌만 있다 — 반이 달라도 같은 과목이면 공유한다. */
+  function setLessonNote(subject: string, index: number, value: string) {
+    update((prev) => {
+      const notes = [...(prev.subjectLessonNotes[subject] ?? [])];
+      while (notes.length <= index) notes.push('');
+      notes[index] = value;
+      return { subjectLessonNotes: { ...prev.subjectLessonNotes, [subject]: notes } };
+    });
+  }
+
+  const openEntry = openDetailFor ? classes.find((c) => classKey(c) === openDetailFor) : null;
+  const openProgress = openDetailFor ? subjectProgress.find((p) => classKey(p) === openDetailFor) : null;
+
   return (
     <section className="w-full shrink-0 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100 lg:w-96">
       <div className="mb-3 flex items-center justify-between">
@@ -195,12 +210,16 @@ export default function SubjectProgressPanel() {
             return (
               <li key={key} className="rounded-xl bg-slate-50 px-3 py-2.5">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="truncate font-medium text-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => setOpenDetailFor(key)}
+                    className="truncate font-medium text-slate-700 hover:text-mint-600 hover:underline"
+                  >
                     {entry.subject}
                     {entry.className && (
                       <span className="ml-1 font-normal text-slate-400">{entry.className}</span>
                     )}
-                  </span>
+                  </button>
                   <span className="shrink-0 text-xs text-slate-400">{percent}%</span>
                 </div>
                 <div className="mt-1.5 flex items-center gap-1.5">
@@ -228,6 +247,18 @@ export default function SubjectProgressPanel() {
             );
           })}
         </ul>
+      )}
+
+      {openEntry && openProgress && (
+        <LessonDetailPanel
+          subject={openEntry.subject}
+          className={openEntry.className}
+          total={openProgress.totalLessons}
+          current={openProgress.currentLesson}
+          notes={subjectLessonNotes[openEntry.subject] ?? []}
+          onClose={() => setOpenDetailFor(null)}
+          onSaveNote={(index, value) => setLessonNote(openEntry.subject, index, value)}
+        />
       )}
     </section>
   );

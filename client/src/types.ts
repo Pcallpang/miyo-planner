@@ -186,6 +186,8 @@ export interface AppData {
   overtimePunches: OvertimePunch[];
   subjectProgress: SubjectProgress[];
   canceledLessons: CanceledLesson[];
+  /** 과목 이름 -> 차시별 한 줄 메모(index 0 = 1차시). 반이 달라도 같은 과목이면 공유한다. */
+  subjectLessonNotes: Record<string, string[]>;
 }
 
 export type OvertimeSession = '아침' | '저녁';

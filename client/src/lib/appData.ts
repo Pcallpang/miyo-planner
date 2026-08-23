@@ -13,6 +13,7 @@ export function defaultAppData(): AppData {
     overtimePunches: [],
     subjectProgress: [],
     canceledLessons: [],
+    subjectLessonNotes: {},
   };
 }
 
