@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { LogOut, Settings as SettingsIcon, Unplug } from 'lucide-react';
+import { Clock, LogOut, Settings as SettingsIcon, Unplug } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { api } from '../lib/api';
 import { defaultAppData } from '../lib/appData';
 import { clearAppData, defaultSettings } from '../lib/storage';
 import SchoolPicker from '../components/SchoolPicker';
+import PeriodTimesModal from '../components/PeriodTimesModal';
 
 export default function SettingsView() {
   const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
@@ -13,6 +14,7 @@ export default function SettingsView() {
   const { update } = useData();
   const [geminiKeyInput, setGeminiKeyInput] = useState('');
   const [savingKey, setSavingKey] = useState(false);
+  const [editingPeriodTimes, setEditingPeriodTimes] = useState(false);
 
   async function appLogout() {
     await api.logout();
@@ -86,7 +88,7 @@ export default function SettingsView() {
           <div className={rowCls}>
             <div>
               <p className={labelCls}>교시 수</p>
-              <p className={descCls}>하루 일과의 교시 수 (1~10). 교시별 시간은 시간표 화면에서 수정합니다.</p>
+              <p className={descCls}>하루 일과의 교시 수 (1~10).</p>
             </div>
             <input
               type="number"
@@ -96,6 +98,20 @@ export default function SettingsView() {
               onChange={(e) => setPeriodCount(Number(e.target.value) || 1)}
               className="w-20 rounded-xl border border-slate-200 px-3 py-2 text-center text-sm outline-none focus:border-mint-400"
             />
+          </div>
+
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>일과 시간</p>
+              <p className={descCls}>교시별 시작~종료 시각을 정합니다.</p>
+            </div>
+            <button
+              onClick={() => setEditingPeriodTimes(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-mint-300 hover:bg-mint-50"
+            >
+              <Clock size={14} className="text-slate-400" />
+              시간 편집
+            </button>
           </div>
 
           <div className={rowCls}>
@@ -319,6 +335,8 @@ export default function SettingsView() {
           )}
         </div>
       </section>
+
+      {editingPeriodTimes && <PeriodTimesModal onClose={() => setEditingPeriodTimes(false)} />}
     </div>
   );
 }

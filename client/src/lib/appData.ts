@@ -11,6 +11,8 @@ export function defaultAppData(): AppData {
     holidays: {},
     overtimeLogs: [],
     overtimePunches: [],
+    subjectProgress: [],
+    canceledLessons: [],
   };
 }
 

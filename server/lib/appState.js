@@ -24,10 +24,15 @@ export function defaultAppState() {
     holidays: {},
     overtimeLogs: [],
     overtimePunches: [],
+    subjectProgress: [],
+    canceledLessons: [],
   };
 }
 
-const KEYS = ['todos', 'meetings', 'memos', 'timetable', 'settings', 'holidays', 'overtimeLogs', 'overtimePunches'];
+const KEYS = [
+  'todos', 'meetings', 'memos', 'timetable', 'settings', 'holidays', 'overtimeLogs', 'overtimePunches',
+  'subjectProgress', 'canceledLessons',
+];
 
 export function mergeAppState(existing, patch) {
   if (!patch || typeof patch !== 'object' || Object.keys(patch).length === 0) return existing;

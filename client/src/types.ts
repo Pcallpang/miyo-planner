@@ -48,10 +48,11 @@ export interface PeriodTime {
 
 export interface PeriodSlot {
   subject: string;
+  /** 반(예: "1-3"). 필드 이름은 이전 "교실" 시절 그대로 남아 있다. */
   room: string;
 }
 
-/** 요일(1=월 ~ 5=금) → 교시별 과목/교실 */
+/** 요일(1=월 ~ 5=금) → 교시별 과목/반 */
 export type Timetable = Record<number, PeriodSlot[]>;
 
 export interface Settings {
@@ -157,6 +158,22 @@ export interface ServerStatus {
   authenticated: boolean;
 }
 
+/** 시간표에 등장하는 (과목, 반) 조합마다 진도(차시)를 따로 관리한다 —
+ *  같은 과목이라도 반마다 진도가 다를 수 있어, 오늘의 시간표 화면 전용으로 가볍게 둔다. */
+export interface SubjectProgress {
+  subject: string; // 시간표의 과목 이름과 매칭
+  className: string; // 시간표의 반(구 "교실" 칸)과 매칭. 반을 안 적었으면 빈 문자열
+  currentLesson: number; // 0부터 시작
+  totalLessons: number;
+}
+
+/** 시간표는 요일마다 반복되지만, 학교 행사 등으로 특정 날짜 하루만 수업이 없어질 수 있다.
+ *  그 하루만 휴강 처리하기 위한 예외 — 반복 시간표(timetable) 자체는 건드리지 않는다. */
+export interface CanceledLesson {
+  date: string; // YYYY-MM-DD
+  period: number; // 0부터 시작, 그 요일의 PeriodSlot[] 안 인덱스
+}
+
 export interface AppData {
   todos: Todo[];
   meetings: Meeting[];
@@ -167,6 +184,8 @@ export interface AppData {
   holidays: Record<string, string>;
   overtimeLogs: OvertimeLog[];
   overtimePunches: OvertimePunch[];
+  subjectProgress: SubjectProgress[];
+  canceledLessons: CanceledLesson[];
 }
 
 export type OvertimeSession = '아침' | '저녁';
