@@ -154,13 +154,9 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
                   }
                   className={`h-4 w-4 shrink-0 rounded border-2 accent-mint-500 ${CATEGORY_COLORS[todo.category]}`}
                 />
-                <button
-                  type="button"
-                  onClick={() => hasMemo && setOpenMemoId(memoOpen ? null : todo.id)}
-                  aria-expanded={hasMemo ? memoOpen : undefined}
-                  className={`relative flex min-w-0 flex-1 items-center gap-1 text-left ${
-                    hasMemo ? 'cursor-pointer' : 'cursor-default'
-                  }`}
+                <div
+                  onClick={() => onEdit(todo)}
+                  className="relative flex min-w-0 flex-1 cursor-pointer items-center gap-1 text-left"
                 >
                   {todo.important && (
                     <Star size={11} className="shrink-0 text-amber-400" fill="currentColor" />
@@ -173,22 +169,31 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
                     {todo.text}
                   </span>
                   {hasMemo && (
-                    <>
-                      <StickyNote size={11} className="shrink-0 text-mint-400" />
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMemoId(memoOpen ? null : todo.id);
+                      }}
+                      aria-expanded={memoOpen}
+                      aria-label="메모 보기"
+                      className="flex shrink-0 items-center gap-0.5 p-0.5"
+                    >
+                      <StickyNote size={11} className="text-mint-400" />
                       <ChevronDown
                         size={12}
-                        className={`shrink-0 text-slate-300 transition-transform duration-200 ${
+                        className={`text-slate-300 transition-transform duration-200 ${
                           memoOpen ? 'rotate-180' : ''
                         }`}
                       />
-                    </>
+                    </button>
                   )}
                   <span
                     className={`pointer-events-none absolute top-1/2 left-0 h-px w-full origin-left bg-slate-400 transition-transform duration-300 ease-out ${
                       todo.done ? 'scale-x-100' : 'scale-x-0'
                     }`}
                   />
-                </button>
+                </div>
                 {todo.link && (
                   <a
                     href={todo.link}
@@ -209,14 +214,14 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
                 )}
                 <button
                   onClick={() => onEdit(todo)}
-                  className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-mint-500"
+                  className="shrink-0 rounded p-1 text-slate-300 transition hover:text-mint-500"
                   aria-label="수정"
                 >
                   <Pencil size={13} />
                 </button>
                 <button
                   onClick={() => setTodos((prev) => prev.filter((t) => t.id !== todo.id))}
-                  className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
+                  className="shrink-0 rounded p-1 text-slate-300 transition hover:text-rose-400"
                   aria-label="삭제"
                 >
                   <Trash2 size={14} />

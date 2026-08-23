@@ -48,9 +48,13 @@ export default function MeetingsCard({ meetings, setMeetings, onAdd, onEdit }: P
         {sorted.map((m) => (
           <li key={m.id} className="group rounded-xl px-2 py-2 transition hover:bg-slate-50">
             <div className="flex items-center gap-2">
-              <span className="line-clamp-2 min-w-0 flex-1 text-sm font-medium break-words text-slate-700">
+              <button
+                type="button"
+                onClick={() => onEdit(m)}
+                className="line-clamp-2 min-w-0 flex-1 text-left text-sm font-medium break-words text-slate-700"
+              >
                 {m.title}
-              </span>
+              </button>
               {m.link && (
                 <a
                   href={m.link}
@@ -64,14 +68,14 @@ export default function MeetingsCard({ meetings, setMeetings, onAdd, onEdit }: P
               )}
               <button
                 onClick={() => onEdit(m)}
-                className="rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-mint-500"
+                className="rounded p-1 text-slate-300 transition hover:text-mint-500"
                 aria-label="수정"
               >
                 <Pencil size={13} />
               </button>
               <button
                 onClick={() => void remove(m)}
-                className="rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
+                className="rounded p-1 text-slate-300 transition hover:text-rose-400"
                 aria-label="삭제"
               >
                 <Trash2 size={13} />
