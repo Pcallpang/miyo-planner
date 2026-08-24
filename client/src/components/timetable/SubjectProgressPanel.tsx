@@ -131,6 +131,28 @@ export default function SubjectProgressPanel() {
       : '2학기'
     : '학기';
 
+  // 날짜가 지나가면 버튼을 누르지 않아도 지난 차시만큼 현재 차시를 자동으로 따라잡는다.
+  // 이미 직접 고쳐서 계산값보다 앞서 있으면 절대 건드리지 않는다(따라잡기만, 되돌리지 않음).
+  useEffect(() => {
+    if (!termStart || classes.length === 0) return;
+    const today = format(new Date(), 'yyyy-MM-dd');
+    update((prev) => {
+      let changed = false;
+      const nextProgress = prev.subjectProgress.map((p) => {
+        if (!classes.some((c) => classKey(c) === classKey(p))) return p;
+        const occurrences = weeklyOccurrences(timetable, p.subject, p.className);
+        const canceledByDate = canceledCountByDate(timetable, canceledLessons, p.subject, p.className);
+        const elapsed = countLessonsUntil(occurrences, termStart.start, today, noClassDates, canceledByDate);
+        const caughtUp = Math.min(elapsed, p.totalLessons);
+        if (caughtUp <= p.currentLesson) return p;
+        changed = true;
+        return { ...p, currentLesson: caughtUp };
+      });
+      return changed ? { subjectProgress: nextProgress } : {};
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classesKey, termStart?.start, schoolSchedule.length]);
+
   // 1차 지필·학기끝은 둘 다 개학날부터 세므로, 오늘까지 이미 지난 차시도 함께 계산해
   // 현재 차시(진도율)에 반영한다. 1-2차 지필은 개학날이 기준이 아니라 구간 자체이므로
   // 지난 차시를 새로 매기지 않는다.
@@ -216,6 +238,7 @@ export default function SubjectProgressPanel() {
             const current = progress?.currentLesson ?? 0;
             const total = progress?.totalLessons ?? 1;
             const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+            const nextLesson = current < total ? current + 1 : null;
             return (
               <li key={key} className="rounded-xl bg-slate-50 px-3 py-2.5">
                 <div className="flex items-center justify-between text-sm">
@@ -229,7 +252,14 @@ export default function SubjectProgressPanel() {
                       <span className="ml-1 font-normal text-slate-400">{entry.className}</span>
                     )}
                   </button>
-                  <span className="shrink-0 text-xs text-slate-400">{percent}%</span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {nextLesson && (
+                      <span className="rounded bg-mint-100 px-1.5 py-0.5 text-[10px] font-semibold text-mint-700">
+                        이번 {nextLesson}차시
+                      </span>
+                    )}
+                    <span className="text-xs text-slate-400">{percent}%</span>
+                  </div>
                 </div>
                 <div className="mt-1.5 flex items-center gap-1.5">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">

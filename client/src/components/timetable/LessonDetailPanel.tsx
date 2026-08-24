@@ -30,18 +30,30 @@ export default function LessonDetailPanel({
             메모는 같은 과목의 모든 반에 함께 적용됩니다.
           </p>
           <ul className="space-y-1.5">
-            {Array.from({ length: total }, (_, i) => (
-              <li key={i} className={`flex items-center gap-2 rounded-lg p-1.5 ${i < current ? 'bg-mint-50' : ''}`}>
-                <span className="w-14 shrink-0 text-xs font-medium text-slate-500">{i + 1}차시</span>
-                <input
-                  type="text"
-                  value={notes[i] ?? ''}
-                  onChange={(e) => onSaveNote(i, e.target.value)}
-                  placeholder="이 차시에 배울 내용"
-                  className="w-full min-w-0 rounded-lg border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-mint-400"
-                />
-              </li>
-            ))}
+            {Array.from({ length: total }, (_, i) => {
+              const isDone = i < current;
+              const isNext = i === current;
+              return (
+                <li
+                  key={i}
+                  className={`flex items-center gap-2 rounded-lg p-1.5 ${
+                    isDone ? 'bg-mint-50' : isNext ? 'ring-2 ring-mint-300' : ''
+                  }`}
+                >
+                  <span className="w-14 shrink-0 text-xs font-medium text-slate-500">
+                    {i + 1}차시
+                    {isNext && <span className="ml-1 text-[10px] font-semibold text-mint-600">이번</span>}
+                  </span>
+                  <input
+                    type="text"
+                    value={notes[i] ?? ''}
+                    onChange={(e) => onSaveNote(i, e.target.value)}
+                    placeholder="이 차시에 배울 내용"
+                    className="w-full min-w-0 rounded-lg border border-slate-200 px-2 py-1.5 text-sm outline-none focus:border-mint-400"
+                  />
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
