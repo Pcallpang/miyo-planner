@@ -91,6 +91,16 @@ export default function DashboardView() {
     }
   }, [events, eventsRange, meetings, setMeetings, showToast]);
 
+  // 날짜가 지난 회의록&일정은 자동으로 목록에서 정리한다(연동된 구글 캘린더 일정 자체는 건드리지 않는다)
+  useEffect(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const pastCount = meetings.filter((m) => m.date < today).length;
+    if (pastCount === 0) return;
+    setMeetings((prev) => prev.filter((m) => m.date >= today));
+    showToast('info', `지난 회의록 ${pastCount}건을 정리했습니다.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetings]);
+
   function selectDate(day: Date) {
     setSelected(day);
     setDateAction(day);

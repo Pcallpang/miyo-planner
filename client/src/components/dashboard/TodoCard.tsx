@@ -147,11 +147,21 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
                 <input
                   type="checkbox"
                   checked={todo.done}
-                  onChange={() =>
+                  onChange={() => {
+                    if (todo.done) {
+                      setTodos((prev) =>
+                        prev.map((t) => (t.id === todo.id ? { ...t, done: false } : t)),
+                      );
+                      return;
+                    }
+                    // 체크 표시(취소선)가 보이도록 잠깐 기다렸다가 목록에서 지운다.
                     setTodos((prev) =>
-                      prev.map((t) => (t.id === todo.id ? { ...t, done: !t.done } : t)),
-                    )
-                  }
+                      prev.map((t) => (t.id === todo.id ? { ...t, done: true } : t)),
+                    );
+                    window.setTimeout(() => {
+                      setTodos((prev) => prev.filter((t) => t.id !== todo.id));
+                    }, 300);
+                  }}
                   className={`h-4 w-4 shrink-0 rounded border-2 accent-mint-500 ${CATEGORY_COLORS[todo.category]}`}
                 />
                 <div
