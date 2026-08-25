@@ -2,16 +2,27 @@ import { X } from 'lucide-react';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
 /** 새 공지를 추가할 때마다 이 값을 올린다 — 이전 값을 본 사용자에게는 다시 뜬다. */
-export const WHATS_NEW_VERSION = '2026-08-24';
+export const WHATS_NEW_VERSION = '2026-08-25';
 
 const ITEMS = [
   {
-    title: '사이드바 순서를 내 마음대로',
-    desc: '"나의 하루" 메뉴 항목을 드래그해서 순서를 바꿀 수 있어요.',
+    title: 'To-Do 자동 정리',
+    desc: '데일리 To-Do를 체크하면 취소선이 보인 뒤 목록에서 자동으로 삭제돼요.',
   },
   {
-    title: '오늘의 시간표 새단장',
-    desc: '주간 그리드로 바뀌고, 반별 차시 계획표에서 진도와 총 차시를 자동으로 계산해줘요.',
+    title: '지난 회의록 자동 정리',
+    desc: '날짜가 지난 회의록 & 일정은 자동으로 목록에서 정리돼요. 연동된 구글 캘린더 원본 일정은 그대로 남아요.',
+  },
+];
+
+const UPCOMING = [
+  {
+    title: '오늘의 시간표 교환·보강 시스템',
+    desc: '이번 주 목요일 이후 업데이트 예정이에요.',
+  },
+  {
+    title: '초과근무 1시간 제외 계산',
+    desc: '9월부터 업데이트 예정이에요.',
   },
 ];
 
@@ -45,6 +56,18 @@ export default function WhatsNewModal({ onClose }: Props) {
         <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-400">
           화면이 그대로면 새로고침하면 바로 사용할 수 있어요.
         </p>
+
+        <div className="mt-4 rounded-xl border border-dashed border-slate-200 p-3">
+          <p className="mb-2 text-xs font-semibold text-slate-400">🔜 업데이트 예정</p>
+          <ul className="space-y-2">
+            {UPCOMING.map((item) => (
+              <li key={item.title}>
+                <p className="text-sm font-medium text-slate-600">{item.title}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{item.desc}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
 
         <button
           type="button"
