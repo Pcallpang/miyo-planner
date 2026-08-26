@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Clock } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { useData } from '../../context/DataContext';
-import { getDayPhase } from '../../lib/schedule';
+import { getDayPhase, periodTimesForWeekday } from '../../lib/schedule';
 
 export default function LiveStatusCard() {
   const { settings } = useApp();
@@ -15,7 +15,8 @@ export default function LiveStatusCard() {
   }, []);
 
   const timetable = data.timetable;
-  const phase = getDayPhase(now, settings.periodTimes, settings.periodCount);
+  const periodTimes = periodTimesForWeekday(settings.periodTimes, settings.periodTimeOverrides, now.getDay());
+  const phase = getDayPhase(now, periodTimes, settings.periodCount);
   const todaySlots = timetable[now.getDay()] ?? [];
 
   // 수업이 잡혀 있는 교시면 빡미요, 그 밖(공강·쉬는 시간·일과 전후·주말)이면 무뚝미요
@@ -30,20 +31,20 @@ export default function LiveStatusCard() {
       break;
     case 'before':
       title = '일과 전';
-      detail = `오늘 일과는 ${settings.periodTimes[0]?.start ?? ''}에 시작합니다.`;
+      detail = `오늘 일과는 ${periodTimes[0]?.start ?? ''}에 시작합니다.`;
       break;
     case 'period': {
       const slot = todaySlots[phase.index];
       title = `${phase.index + 1}교시`;
       detail = slot?.subject
-        ? `${slot.subject}${slot.room ? ` · ${slot.room}` : ''} (${settings.periodTimes[phase.index]?.start}~${settings.periodTimes[phase.index]?.end})`
-        : `${settings.periodTimes[phase.index]?.start}~${settings.periodTimes[phase.index]?.end}`;
+        ? `${slot.subject}${slot.room ? ` · ${slot.room}` : ''} (${periodTimes[phase.index]?.start}~${periodTimes[phase.index]?.end})`
+        : `${periodTimes[phase.index]?.start}~${periodTimes[phase.index]?.end}`;
       break;
     }
     case 'break': {
       const next = todaySlots[phase.nextIndex];
       title = '쉬는 시간';
-      detail = `다음은 ${phase.nextIndex + 1}교시${next?.subject ? ` ${next.subject}` : ''} (${settings.periodTimes[phase.nextIndex]?.start} 시작)`;
+      detail = `다음은 ${phase.nextIndex + 1}교시${next?.subject ? ` ${next.subject}` : ''} (${periodTimes[phase.nextIndex]?.start} 시작)`;
       break;
     }
     case 'after':

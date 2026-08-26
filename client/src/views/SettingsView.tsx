@@ -48,19 +48,25 @@ export default function SettingsView() {
 
   function setPeriodCount(count: number) {
     const n = Math.max(1, Math.min(10, count));
-    setSettings((prev) => {
-      const times = [...prev.periodTimes];
-      const defaults = defaultSettings().periodTimes;
-      while (times.length < n) {
-        const last = times[times.length - 1];
-        times.push(
-          defaults[times.length] ?? {
+    const defaults = defaultSettings().periodTimes;
+    const grow = (times: { start: string; end: string }[]) => {
+      const next = [...times];
+      while (next.length < n) {
+        const last = next[next.length - 1];
+        next.push(
+          defaults[next.length] ?? {
             start: last ? last.end : '09:00',
             end: last ? last.end : '09:50',
           },
         );
       }
-      return { ...prev, periodCount: n, periodTimes: times };
+      return next;
+    };
+    setSettings((prev) => {
+      const periodTimeOverrides = Object.fromEntries(
+        Object.entries(prev.periodTimeOverrides).map(([weekday, times]) => [weekday, grow(times)]),
+      );
+      return { ...prev, periodCount: n, periodTimes: grow(prev.periodTimes), periodTimeOverrides };
     });
   }
 

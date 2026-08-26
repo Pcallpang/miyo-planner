@@ -4,7 +4,7 @@ import { ko } from 'date-fns/locale';
 import { LogIn, Plus } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
-import { getDayPhase } from '../lib/schedule';
+import { getDayPhase, periodTimesForWeekday } from '../lib/schedule';
 import { ddayDiff, ddayLabel } from '../lib/dday';
 import DdayModal from './DdayModal';
 import type { PeriodTime, Timetable } from '../types';
@@ -52,7 +52,12 @@ export default function Header() {
           {format(now, 'HH:mm:ss')}
         </span>
         <span className="hidden shrink-0 rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-600 sm:inline-block">
-          {phaseLabel(now, settings.periodTimes, settings.periodCount, data.timetable)}
+          {phaseLabel(
+            now,
+            periodTimesForWeekday(settings.periodTimes, settings.periodTimeOverrides, now.getDay()),
+            settings.periodCount,
+            data.timetable,
+          )}
         </span>
         <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5">
           {sortedDdays.map((d) => (
