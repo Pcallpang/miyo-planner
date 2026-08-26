@@ -36,14 +36,3 @@ export function getDayPhase(now: Date, periodTimes: PeriodTime[], periodCount: n
 }
 
 export const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토'];
-
-/** 그 요일에 실제로 적용할 교시 시간표. 예외가 지정된 요일이면 그걸, 아니면 기본
- *  periodTimes를 그대로 쓴다. weekday는 Date.getDay() 값(0=일~6=토)을 그대로 넘기면
- *  된다 — 시간표(Timetable)의 1~5 요일 키와 값이 같다. */
-export function periodTimesForWeekday(
-  periodTimes: PeriodTime[],
-  periodTimeOverrides: Record<number, PeriodTime[]>,
-  weekday: number,
-): PeriodTime[] {
-  return periodTimeOverrides[weekday] ?? periodTimes;
-}

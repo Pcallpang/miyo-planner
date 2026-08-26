@@ -66,9 +66,6 @@ export type Timetable = Record<number, PeriodSlot[]>;
 export interface Settings {
   periodCount: number;
   periodTimes: PeriodTime[];
-  /** 요일(1=월~5=금)별로 기본 교시 시간표(periodTimes)를 다르게 쓰고 싶을 때의 예외.
-   *  키가 없는 요일은 기본 periodTimes를 그대로 쓴다(점심 위치가 요일마다 다른 학교용). */
-  periodTimeOverrides: Record<number, PeriodTime[]>;
   weekStartsOn: 0 | 1;
   calendarId: string;
   /** 일정 시작 몇 분 전에 브라우저 알림을 띄울지. 0이면 끔. */

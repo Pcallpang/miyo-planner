@@ -21,7 +21,6 @@ export function defaultSettings(): Settings {
       { start: '14:50', end: '15:40' },
       { start: '15:50', end: '16:40' },
     ],
-    periodTimeOverrides: {},
     weekStartsOn: 0,
     calendarId: 'primary',
     reminderMinutes: 10,

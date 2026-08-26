@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useApp } from '../../context/AppContext';
 import { useData } from '../../context/DataContext';
-import { getDayPhase, periodTimesForWeekday } from '../../lib/schedule';
+import { getDayPhase } from '../../lib/schedule';
 import { effectiveSlot } from '../../lib/subjectProgress';
 import { buildSubjectColors, classColorKey } from '../../lib/subjectColors';
 import TimetableCellModal from './TimetableCellModal';
@@ -78,11 +78,7 @@ export default function WeeklyGrid() {
   const now = new Date();
   const todayKey = format(now, 'yyyy-MM-dd');
   const isThisWeek = format(weekStart, 'yyyy-MM-dd') === format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-  const phase = getDayPhase(
-    now,
-    periodTimesForWeekday(settings.periodTimes, settings.periodTimeOverrides, now.getDay()),
-    settings.periodCount,
-  );
+  const phase = getDayPhase(now, settings.periodTimes, settings.periodCount);
   const currentPeriod = phase.kind === 'period' ? phase.index : -1;
 
   const subjectColors = buildSubjectColors(timetable, data.subjectColors);
@@ -203,12 +199,7 @@ export default function WeeklyGrid() {
     : null;
   const editingDateKey = editing ? format(addDays(weekStart, editing.day - 1), 'yyyy-MM-dd') : '';
   const editingEffectiveSlot = editing ? slotAt(editingDateKey, editing.period) : null;
-  const editingTime = editing
-    ? periodTimesForWeekday(settings.periodTimes, settings.periodTimeOverrides, editing.day)[editing.period] ?? {
-        start: '',
-        end: '',
-      }
-    : null;
+  const editingTime = editing ? settings.periodTimes[editing.period] ?? { start: '', end: '' } : null;
   const editingLabel = editing ? WEEKDAYS.find((w) => w.day === editing.day)?.label : '';
   const editingCanceled = editing
     ? canceledLessons.some((c) => c.date === editingDateKey && c.period === editing.period)
