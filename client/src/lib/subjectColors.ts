@@ -13,7 +13,21 @@ export const SUBJECT_COLORS = [
   { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800', dot: 'bg-fuchsia-400', name: '푸시아' },
 ] as const;
 
-export type SubjectColor = (typeof SUBJECT_COLORS)[number];
+export interface SubjectColor {
+  bg: string;
+  text: string;
+  dot: string;
+  name: string;
+}
+
+/** 점심시간처럼 실제 수업이 아닌 항목 전용 색 — 과목 팔레트와 겹치지 않게 눈에 띄는
+ *  노란색으로 고정한다. 자동 배정 순서에도 끼지 않는다. */
+export const NON_CLASS_COLOR: SubjectColor = {
+  bg: 'bg-yellow-200',
+  text: 'text-yellow-900',
+  dot: 'bg-yellow-400',
+  name: '점심',
+};
 
 /** 색상 저장/조회에 쓰는 (과목, 반) 키. 반이 달라도 같은 과목이면 기본은 같은 색을
  *  쓰지만, 이 키 단위로 따로 지정할 수 있다. */
@@ -37,10 +51,15 @@ export function buildSubjectColors(
   for (const day of [1, 2, 3, 4, 5]) {
     for (const slot of timetable[day] ?? []) {
       const name = slot.subject.trim();
-      if (!name || isNonClassSubject(name)) continue;
+      if (!name) continue;
       const className = slot.room.trim();
       const key = classColorKey(name, className);
       if (map.has(key)) continue;
+
+      if (isNonClassSubject(name)) {
+        map.set(key, NON_CLASS_COLOR);
+        continue;
+      }
 
       const overrideIndex = overrides[key];
       if (overrideIndex !== undefined && SUBJECT_COLORS[overrideIndex]) {

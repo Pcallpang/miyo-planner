@@ -56,6 +56,7 @@ export default function SubjectProgressPanel() {
   const [schoolSchedule, setSchoolSchedule] = useState<SchoolScheduleItem[]>([]);
   const [openDetailFor, setOpenDetailFor] = useState<string | null>(null);
   const [openColorFor, setOpenColorFor] = useState<string | null>(null);
+  const [applyAllColor, setApplyAllColor] = useState(false);
 
   // 시간표에 등장하는 (과목, 반) 조합(중복 제거), 과목 다음 반 순으로 정렬
   const classes: SubjectClass[] = [];
@@ -202,13 +203,18 @@ export default function SubjectProgressPanel() {
     });
   }
 
-  /** (과목, 반) 하나만 색을 수동으로 고르거나(colorIndex), null이면 자동 배정으로
-   *  되돌린다 — 같은 과목의 다른 반에는 영향을 주지 않는다. */
-  function setClassColor(colorKey: string, colorIndex: number | null) {
+  /** (과목, 반) 하나만 색을 지정한다 — 같은 과목의 다른 반에는 영향을 주지 않는다. */
+  function setClassColor(colorKey: string, colorIndex: number) {
+    update((prev) => ({ subjectColors: { ...prev.subjectColors, [colorKey]: colorIndex } }));
+  }
+
+  /** 같은 과목이면 반 상관없이 전부 같은 색으로 지정한다. */
+  function applyColorToSubject(subject: string, colorIndex: number) {
     update((prev) => {
       const next = { ...prev.subjectColors };
-      if (colorIndex === null) delete next[colorKey];
-      else next[colorKey] = colorIndex;
+      for (const cls of classes) {
+        if (cls.subject === subject) next[classKey(cls)] = colorIndex;
+      }
       return { subjectColors: next };
     });
   }
@@ -265,7 +271,10 @@ export default function SubjectProgressPanel() {
                   <div className="flex min-w-0 items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setOpenColorFor((cur) => (cur === key ? null : key))}
+                      onClick={() => {
+                        setOpenColorFor((cur) => (cur === key ? null : key));
+                        setApplyAllColor(false);
+                      }}
                       className={`h-3 w-3 shrink-0 rounded-full ${color?.dot ?? 'bg-slate-300'}`}
                       aria-label={`${entry.subject}${entry.className ? ` ${entry.className}` : ''} 색상 선택`}
                       title="색상 선택"
@@ -291,32 +300,43 @@ export default function SubjectProgressPanel() {
                   </div>
                 </div>
                 {openColorFor === key && (
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5 rounded-lg bg-white p-2 ring-1 ring-slate-100">
-                    {SUBJECT_COLORS.map((c, idx) => (
+                  <div className="mt-2 rounded-lg bg-white p-2 ring-1 ring-slate-100">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {SUBJECT_COLORS.map((c, idx) => (
+                        <button
+                          key={c.name}
+                          type="button"
+                          onClick={() => {
+                            if (applyAllColor) applyColorToSubject(entry.subject, idx);
+                            else setClassColor(key, idx);
+                            setOpenColorFor(null);
+                            setApplyAllColor(false);
+                          }}
+                          className={`h-5 w-5 rounded-full ${c.dot} ${
+                            subjectColors[key] === idx ? 'ring-2 ring-offset-1 ring-slate-400' : ''
+                          }`}
+                          aria-label={c.name}
+                          title={c.name}
+                        />
+                      ))}
                       <button
-                        key={c.name}
                         type="button"
-                        onClick={() => {
-                          setClassColor(key, idx);
-                          setOpenColorFor(null);
-                        }}
-                        className={`h-5 w-5 rounded-full ${c.dot} ${
-                          subjectColors[key] === idx ? 'ring-2 ring-offset-1 ring-slate-400' : ''
+                        onClick={() => setApplyAllColor((v) => !v)}
+                        aria-pressed={applyAllColor}
+                        className={`ml-1 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium transition ${
+                          applyAllColor
+                            ? 'border-mint-300 bg-mint-50 text-mint-600'
+                            : 'border-slate-200 text-slate-500 hover:bg-slate-50'
                         }`}
-                        aria-label={c.name}
-                        title={c.name}
-                      />
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setClassColor(key, null);
-                        setOpenColorFor(null);
-                      }}
-                      className="ml-1 shrink-0 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500 transition hover:bg-slate-50"
-                    >
-                      자동
-                    </button>
+                      >
+                        전체 적용
+                      </button>
+                    </div>
+                    {applyAllColor && (
+                      <p className="mt-1.5 text-[10px] text-slate-400">
+                        반 상관없이 &apos;{entry.subject}&apos; 전체에 같은 색이 적용돼요
+                      </p>
+                    )}
                   </div>
                 )}
                 <div className="mt-1.5 flex items-center gap-1.5">
