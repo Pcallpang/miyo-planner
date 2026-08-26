@@ -220,7 +220,8 @@ export interface AppData {
   makeupLessons: MakeupLesson[];
   /** 과목 이름 -> 차시별 한 줄 메모(index 0 = 1차시). 반이 달라도 같은 과목이면 공유한다. */
   subjectLessonNotes: Record<string, string[]>;
-  /** 과목 이름 -> 수동으로 고른 색상(SUBJECT_COLORS 팔레트 인덱스). 지정 안 하면 자동 배정. */
+  /** "과목::반" -> 수동으로 고른 색상(SUBJECT_COLORS 팔레트 인덱스). 지정 안 하면
+   *  같은 과목의 다른 반과 같은 색을 자동 배정. */
   subjectColors: Record<string, number>;
   ddays: Dday[];
 }

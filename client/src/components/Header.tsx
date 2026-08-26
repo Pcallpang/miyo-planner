@@ -5,7 +5,7 @@ import { LogIn, Plus } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { getDayPhase } from '../lib/schedule';
-import { ddayDiff, ddayLabel, nearestDday } from '../lib/dday';
+import { ddayDiff, ddayLabel } from '../lib/dday';
 import DdayModal from './DdayModal';
 import type { PeriodTime, Timetable } from '../types';
 
@@ -40,37 +40,41 @@ export default function Header() {
     return () => clearInterval(id);
   }, []);
 
-  const nearest = nearestDday(data.ddays, now);
+  const sortedDdays = [...data.ddays].sort((a, b) => ddayDiff(a.date, now) - ddayDiff(b.date, now));
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200/70 bg-white/80 px-6 py-3.5 backdrop-blur lg:px-8">
-      <div className="flex items-baseline gap-3">
-        <span className="text-base font-semibold text-slate-700">
+    <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200/70 bg-white/80 px-6 py-3.5 backdrop-blur lg:px-8">
+      <div className="flex min-w-0 flex-1 items-baseline gap-3">
+        <span className="shrink-0 text-base font-semibold text-slate-700">
           {format(now, 'M월 d일 (EEE)', { locale: ko })}
         </span>
-        <span className="text-xl font-bold tabular-nums text-mint-600">
+        <span className="shrink-0 text-xl font-bold tabular-nums text-mint-600">
           {format(now, 'HH:mm:ss')}
         </span>
-        <span className="hidden rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-600 sm:inline-block">
+        <span className="hidden shrink-0 rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-600 sm:inline-block">
           {phaseLabel(now, settings.periodTimes, settings.periodCount, data.timetable)}
         </span>
-        <button
-          type="button"
-          onClick={() => setDdayOpen(true)}
-          className="flex items-center gap-1 rounded-full border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-500 transition hover:border-amber-300 hover:text-amber-600"
-        >
-          {nearest ? (
-            <>
-              <span className="text-amber-600">{ddayLabel(ddayDiff(nearest.date, now))}</span>
-              <span className="hidden font-normal text-slate-400 sm:inline">{nearest.label}</span>
-            </>
-          ) : (
-            <>
-              <Plus size={12} />
-              D-day
-            </>
-          )}
-        </button>
+        <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto pb-0.5">
+          {sortedDdays.map((d) => (
+            <button
+              key={d.id}
+              type="button"
+              onClick={() => setDdayOpen(true)}
+              className="flex shrink-0 items-center gap-1 rounded-full border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-500 transition hover:border-amber-300 hover:text-amber-600"
+            >
+              <span className="text-amber-600">{ddayLabel(ddayDiff(d.date, now))}</span>
+              <span className="hidden font-normal text-slate-400 sm:inline">{d.label}</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setDdayOpen(true)}
+            className="flex shrink-0 items-center gap-1 rounded-full border border-dashed border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-400 transition hover:border-amber-300 hover:text-amber-600"
+          >
+            <Plus size={12} />
+            {sortedDdays.length === 0 && 'D-day'}
+          </button>
+        </div>
       </div>
 
       {ddayOpen && <DdayModal onClose={() => setDdayOpen(false)} />}

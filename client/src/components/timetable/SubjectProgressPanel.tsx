@@ -202,18 +202,19 @@ export default function SubjectProgressPanel() {
     });
   }
 
-  /** 과목 색을 수동으로 고르거나(colorIndex), null이면 자동 배정으로 되돌린다. */
-  function setSubjectColor(subject: string, colorIndex: number | null) {
+  /** (과목, 반) 하나만 색을 수동으로 고르거나(colorIndex), null이면 자동 배정으로
+   *  되돌린다 — 같은 과목의 다른 반에는 영향을 주지 않는다. */
+  function setClassColor(colorKey: string, colorIndex: number | null) {
     update((prev) => {
       const next = { ...prev.subjectColors };
-      if (colorIndex === null) delete next[subject];
-      else next[subject] = colorIndex;
+      if (colorIndex === null) delete next[colorKey];
+      else next[colorKey] = colorIndex;
       return { subjectColors: next };
     });
   }
 
   // 시간표 칸과 같은 색 배정 로직을 그대로 써서, 여기서 고른 색이 시간표에도 똑같이 보인다.
-  const colorBySubject = buildSubjectColors(timetable, subjectColors);
+  const colorByClass = buildSubjectColors(timetable, subjectColors);
 
   const openEntry = openDetailFor ? classes.find((c) => classKey(c) === openDetailFor) : null;
   const openProgress = openDetailFor ? subjectProgress.find((p) => classKey(p) === openDetailFor) : null;
@@ -257,16 +258,16 @@ export default function SubjectProgressPanel() {
             const total = progress?.totalLessons ?? 1;
             const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
             const nextLesson = current < total ? current + 1 : null;
-            const color = colorBySubject.get(entry.subject);
+            const color = colorByClass.get(key);
             return (
               <li key={key} className="rounded-xl bg-slate-50 px-3 py-2.5">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex min-w-0 items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setOpenColorFor((cur) => (cur === entry.subject ? null : entry.subject))}
+                      onClick={() => setOpenColorFor((cur) => (cur === key ? null : key))}
                       className={`h-3 w-3 shrink-0 rounded-full ${color?.dot ?? 'bg-slate-300'}`}
-                      aria-label={`${entry.subject} 색상 선택`}
+                      aria-label={`${entry.subject}${entry.className ? ` ${entry.className}` : ''} 색상 선택`}
                       title="색상 선택"
                     />
                     <button
@@ -289,18 +290,18 @@ export default function SubjectProgressPanel() {
                     <span className="text-xs text-slate-400">{percent}%</span>
                   </div>
                 </div>
-                {openColorFor === entry.subject && (
+                {openColorFor === key && (
                   <div className="mt-2 flex flex-wrap items-center gap-1.5 rounded-lg bg-white p-2 ring-1 ring-slate-100">
                     {SUBJECT_COLORS.map((c, idx) => (
                       <button
                         key={c.name}
                         type="button"
                         onClick={() => {
-                          setSubjectColor(entry.subject, idx);
+                          setClassColor(key, idx);
                           setOpenColorFor(null);
                         }}
                         className={`h-5 w-5 rounded-full ${c.dot} ${
-                          subjectColors[entry.subject] === idx ? 'ring-2 ring-offset-1 ring-slate-400' : ''
+                          subjectColors[key] === idx ? 'ring-2 ring-offset-1 ring-slate-400' : ''
                         }`}
                         aria-label={c.name}
                         title={c.name}
@@ -309,7 +310,7 @@ export default function SubjectProgressPanel() {
                     <button
                       type="button"
                       onClick={() => {
-                        setSubjectColor(entry.subject, null);
+                        setClassColor(key, null);
                         setOpenColorFor(null);
                       }}
                       className="ml-1 shrink-0 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500 transition hover:bg-slate-50"

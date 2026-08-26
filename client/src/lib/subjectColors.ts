@@ -15,28 +15,46 @@ export const SUBJECT_COLORS = [
 
 export type SubjectColor = (typeof SUBJECT_COLORS)[number];
 
+/** 색상 저장/조회에 쓰는 (과목, 반) 키. 반이 달라도 같은 과목이면 기본은 같은 색을
+ *  쓰지만, 이 키 단위로 따로 지정할 수 있다. */
+export function classColorKey(subject: string, className: string): string {
+  return `${subject.trim()}::${className.trim()}`;
+}
+
 /**
- * 시간표 전체(모든 요일)를 훑어 처음 등장한 순서대로 과목마다 색을 하나씩 자동 배정한다.
- * overrides(과목 이름 -> SUBJECT_COLORS 인덱스)에 지정된 과목은 그 색을 그대로 쓰고,
- * 자동 배정 순서에서는 건너뛴다 — 다른 과목들이 색을 밀려 받지 않도록.
+ * 시간표 전체(모든 요일)를 훑어, 처음 등장한 순서대로 과목마다 색을 하나씩 자동
+ * 배정한다 — 같은 과목은 반이 달라도 기본은 같은 색을 공유한다. overrides(반별
+ * classColorKey -> SUBJECT_COLORS 인덱스)에 지정된 (과목, 반) 조합은 그 반만 다른
+ * 색을 쓰고, 자동 배정 순서에는 영향을 주지 않는다.
  */
 export function buildSubjectColors(
   timetable: Timetable,
   overrides: Record<string, number> = {},
 ): Map<string, SubjectColor> {
   const map = new Map<string, SubjectColor>();
+  const autoBySubject = new Map<string, SubjectColor>();
   let autoIndex = 0;
   for (const day of [1, 2, 3, 4, 5]) {
     for (const slot of timetable[day] ?? []) {
       const name = slot.subject.trim();
-      if (!name || map.has(name) || isNonClassSubject(name)) continue;
-      const overrideIndex = overrides[name];
+      if (!name || isNonClassSubject(name)) continue;
+      const className = slot.room.trim();
+      const key = classColorKey(name, className);
+      if (map.has(key)) continue;
+
+      const overrideIndex = overrides[key];
       if (overrideIndex !== undefined && SUBJECT_COLORS[overrideIndex]) {
-        map.set(name, SUBJECT_COLORS[overrideIndex]);
-      } else {
-        map.set(name, SUBJECT_COLORS[autoIndex % SUBJECT_COLORS.length]);
+        map.set(key, SUBJECT_COLORS[overrideIndex]);
+        continue;
+      }
+
+      let autoColor = autoBySubject.get(name);
+      if (!autoColor) {
+        autoColor = SUBJECT_COLORS[autoIndex % SUBJECT_COLORS.length];
+        autoBySubject.set(name, autoColor);
         autoIndex++;
       }
+      map.set(key, autoColor);
     }
   }
   return map;

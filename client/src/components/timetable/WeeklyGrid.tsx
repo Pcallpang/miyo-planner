@@ -7,7 +7,7 @@ import { useApp } from '../../context/AppContext';
 import { useData } from '../../context/DataContext';
 import { getDayPhase } from '../../lib/schedule';
 import { effectiveSlot } from '../../lib/subjectProgress';
-import { buildSubjectColors } from '../../lib/subjectColors';
+import { buildSubjectColors, classColorKey } from '../../lib/subjectColors';
 import TimetableCellModal from './TimetableCellModal';
 import SwapConfirmModal from './SwapConfirmModal';
 import type { SchoolScheduleItem, Timetable } from '../../types';
@@ -301,7 +301,9 @@ export default function WeeklyGrid() {
                   const makeup = makeupLessons.find((m) => m.date === cellDateKey && m.period === i);
                   const isDragging = dragging?.day === day && dragging?.period === i;
                   const isNow = isThisWeek && i === currentPeriod && cellDateKey === todayKey;
-                  const color = slot.subject.trim() ? subjectColors.get(slot.subject.trim()) : undefined;
+                  const color = slot.subject.trim()
+                    ? subjectColors.get(classColorKey(slot.subject, slot.room))
+                    : undefined;
                   return (
                     <td
                       key={day}
