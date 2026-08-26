@@ -2,9 +2,13 @@ import { X } from 'lucide-react';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
 /** 새 공지를 추가할 때마다 이 값을 올린다 — 이전 값을 본 사용자에게는 다시 뜬다. */
-export const WHATS_NEW_VERSION = '2026-08-25';
+export const WHATS_NEW_VERSION = '2026-08-26';
 
 const ITEMS = [
+  {
+    title: '오늘의 시간표 교환·보강 시스템',
+    desc: '시간표 칸을 드래그하면 "이 날짜만 교환"할지 "매주 반복 시간표에 반영"할지 물어봐요. 칸을 클릭하면 보강 수업도 등록할 수 있어요 — 원래 수업 표시는 그대로 두고 보강 표시가 따로 붙어요.',
+  },
   {
     title: 'To-Do 자동 정리',
     desc: '데일리 To-Do를 체크하면 취소선이 보인 뒤 목록에서 자동으로 삭제돼요.',
@@ -16,10 +20,6 @@ const ITEMS = [
 ];
 
 const UPCOMING = [
-  {
-    title: '오늘의 시간표 교환·보강 시스템',
-    desc: '이번 주 목요일 이후 업데이트 예정이에요.',
-  },
   {
     title: '초과근무 1시간 제외 계산',
     desc: '9월부터 업데이트 예정이에요.',

@@ -3,7 +3,9 @@ import { addDays, format } from 'date-fns';
 import { useData } from '../../context/DataContext';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/api';
-import { addDay, canceledCountByDate, countLessonsUntil, weeklyOccurrences } from '../../lib/subjectProgress';
+import { addDay, countLessonsUntil, lessonAdjustmentByDate, weeklyOccurrences } from '../../lib/subjectProgress';
+import { SUBJECT_COLORS, buildSubjectColors } from '../../lib/subjectColors';
+import { isNonClassSubject } from '../../lib/nonClassSubjects';
 import LessonDetailPanel from './LessonDetailPanel';
 import type { SchoolScheduleItem } from '../../types';
 
@@ -50,9 +52,10 @@ function findEventRange(
 export default function SubjectProgressPanel() {
   const { data, update } = useData();
   const { settings } = useApp();
-  const { timetable, subjectProgress, canceledLessons, subjectLessonNotes } = data;
+  const { timetable, subjectProgress, canceledLessons, swapOverrides, subjectLessonNotes, subjectColors } = data;
   const [schoolSchedule, setSchoolSchedule] = useState<SchoolScheduleItem[]>([]);
   const [openDetailFor, setOpenDetailFor] = useState<string | null>(null);
+  const [openColorFor, setOpenColorFor] = useState<string | null>(null);
 
   // 시간표에 등장하는 (과목, 반) 조합(중복 제거), 과목 다음 반 순으로 정렬
   const classes: SubjectClass[] = [];
@@ -60,7 +63,7 @@ export default function SubjectProgressPanel() {
   for (const day of [1, 2, 3, 4, 5]) {
     for (const slot of timetable[day] ?? []) {
       const subject = slot.subject.trim();
-      if (!subject) continue;
+      if (!subject || isNonClassSubject(subject)) continue;
       const entry = { subject, className: slot.room.trim() };
       const key = classKey(entry);
       if (!seen.has(key)) {
@@ -133,6 +136,8 @@ export default function SubjectProgressPanel() {
 
   // 날짜가 지나가면 버튼을 누르지 않아도 지난 차시만큼 현재 차시를 자동으로 따라잡는다.
   // 이미 직접 고쳐서 계산값보다 앞서 있으면 절대 건드리지 않는다(따라잡기만, 되돌리지 않음).
+  // 휴강뿐 아니라 교환도 지난 날짜의 차시 수를 바꿀 수 있어(예: 과거 날짜로 수업을
+  // 옮겨온 교환), canceledLessons·swapOverrides가 바뀔 때마다 다시 계산한다.
   useEffect(() => {
     if (!termStart || classes.length === 0) return;
     const today = format(new Date(), 'yyyy-MM-dd');
@@ -141,8 +146,8 @@ export default function SubjectProgressPanel() {
       const nextProgress = prev.subjectProgress.map((p) => {
         if (!classes.some((c) => classKey(c) === classKey(p))) return p;
         const occurrences = weeklyOccurrences(timetable, p.subject, p.className);
-        const canceledByDate = canceledCountByDate(timetable, canceledLessons, p.subject, p.className);
-        const elapsed = countLessonsUntil(occurrences, termStart.start, today, noClassDates, canceledByDate);
+        const adjustmentByDate = lessonAdjustmentByDate(timetable, canceledLessons, swapOverrides, p.subject, p.className);
+        const elapsed = countLessonsUntil(occurrences, termStart.start, today, noClassDates, adjustmentByDate);
         const caughtUp = Math.min(elapsed, p.totalLessons);
         if (caughtUp <= p.currentLesson) return p;
         changed = true;
@@ -151,7 +156,7 @@ export default function SubjectProgressPanel() {
       return changed ? { subjectProgress: nextProgress } : {};
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classesKey, termStart?.start, schoolSchedule.length]);
+  }, [classesKey, termStart?.start, schoolSchedule.length, canceledLessons, swapOverrides]);
 
   // 1차 지필·학기끝은 둘 다 개학날부터 세므로, 오늘까지 이미 지난 차시도 함께 계산해
   // 현재 차시(진도율)에 반영한다. 1-2차 지필은 개학날이 기준이 아니라 구간 자체이므로
@@ -168,10 +173,10 @@ export default function SubjectProgressPanel() {
       subjectProgress: prev.subjectProgress.map((p) => {
         if (!classes.some((c) => classKey(c) === classKey(p))) return p;
         const occurrences = weeklyOccurrences(timetable, p.subject, p.className);
-        const canceledByDate = canceledCountByDate(timetable, canceledLessons, p.subject, p.className);
-        const total = Math.max(1, countLessonsUntil(occurrences, from, to, noClassDates, canceledByDate));
+        const adjustmentByDate = lessonAdjustmentByDate(timetable, canceledLessons, swapOverrides, p.subject, p.className);
+        const total = Math.max(1, countLessonsUntil(occurrences, from, to, noClassDates, adjustmentByDate));
         if (!computeCurrent) return { ...p, totalLessons: total };
-        const elapsed = countLessonsUntil(occurrences, from, today, noClassDates, canceledByDate);
+        const elapsed = countLessonsUntil(occurrences, from, today, noClassDates, adjustmentByDate);
         return { ...p, totalLessons: total, currentLesson: Math.max(0, Math.min(elapsed, total)) };
       }),
     }));
@@ -196,6 +201,19 @@ export default function SubjectProgressPanel() {
       return { subjectLessonNotes: { ...prev.subjectLessonNotes, [subject]: notes } };
     });
   }
+
+  /** 과목 색을 수동으로 고르거나(colorIndex), null이면 자동 배정으로 되돌린다. */
+  function setSubjectColor(subject: string, colorIndex: number | null) {
+    update((prev) => {
+      const next = { ...prev.subjectColors };
+      if (colorIndex === null) delete next[subject];
+      else next[subject] = colorIndex;
+      return { subjectColors: next };
+    });
+  }
+
+  // 시간표 칸과 같은 색 배정 로직을 그대로 써서, 여기서 고른 색이 시간표에도 똑같이 보인다.
+  const colorBySubject = buildSubjectColors(timetable, subjectColors);
 
   const openEntry = openDetailFor ? classes.find((c) => classKey(c) === openDetailFor) : null;
   const openProgress = openDetailFor ? subjectProgress.find((p) => classKey(p) === openDetailFor) : null;
@@ -239,19 +257,29 @@ export default function SubjectProgressPanel() {
             const total = progress?.totalLessons ?? 1;
             const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
             const nextLesson = current < total ? current + 1 : null;
+            const color = colorBySubject.get(entry.subject);
             return (
               <li key={key} className="rounded-xl bg-slate-50 px-3 py-2.5">
                 <div className="flex items-center justify-between text-sm">
-                  <button
-                    type="button"
-                    onClick={() => setOpenDetailFor(key)}
-                    className="truncate font-medium text-slate-700 hover:text-mint-600 hover:underline"
-                  >
-                    {entry.subject}
-                    {entry.className && (
-                      <span className="ml-1 font-normal text-slate-400">{entry.className}</span>
-                    )}
-                  </button>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setOpenColorFor((cur) => (cur === entry.subject ? null : entry.subject))}
+                      className={`h-3 w-3 shrink-0 rounded-full ${color?.dot ?? 'bg-slate-300'}`}
+                      aria-label={`${entry.subject} 색상 선택`}
+                      title="색상 선택"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setOpenDetailFor(key)}
+                      className="truncate font-medium text-slate-700 hover:text-mint-600 hover:underline"
+                    >
+                      {entry.subject}
+                      {entry.className && (
+                        <span className="ml-1 font-normal text-slate-400">{entry.className}</span>
+                      )}
+                    </button>
+                  </div>
                   <div className="flex shrink-0 items-center gap-1.5">
                     {nextLesson && (
                       <span className="rounded bg-mint-100 px-1.5 py-0.5 text-[10px] font-semibold text-mint-700">
@@ -261,6 +289,35 @@ export default function SubjectProgressPanel() {
                     <span className="text-xs text-slate-400">{percent}%</span>
                   </div>
                 </div>
+                {openColorFor === entry.subject && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 rounded-lg bg-white p-2 ring-1 ring-slate-100">
+                    {SUBJECT_COLORS.map((c, idx) => (
+                      <button
+                        key={c.name}
+                        type="button"
+                        onClick={() => {
+                          setSubjectColor(entry.subject, idx);
+                          setOpenColorFor(null);
+                        }}
+                        className={`h-5 w-5 rounded-full ${c.dot} ${
+                          subjectColors[entry.subject] === idx ? 'ring-2 ring-offset-1 ring-slate-400' : ''
+                        }`}
+                        aria-label={c.name}
+                        title={c.name}
+                      />
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSubjectColor(entry.subject, null);
+                        setOpenColorFor(null);
+                      }}
+                      className="ml-1 shrink-0 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] text-slate-500 transition hover:bg-slate-50"
+                    >
+                      자동
+                    </button>
+                  </div>
+                )}
                 <div className="mt-1.5 flex items-center gap-1.5">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-200">
                     <div className="h-full rounded-full bg-mint-400" style={{ width: `${percent}%` }} />

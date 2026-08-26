@@ -26,13 +26,18 @@ export function defaultAppState() {
     overtimePunches: [],
     subjectProgress: [],
     canceledLessons: [],
+    swapOverrides: [],
+    makeupLessons: [],
     subjectLessonNotes: {},
+    subjectColors: {},
+    ddays: [],
   };
 }
 
 const KEYS = [
   'todos', 'meetings', 'memos', 'timetable', 'settings', 'holidays', 'overtimeLogs', 'overtimePunches',
-  'subjectProgress', 'canceledLessons', 'subjectLessonNotes',
+  'subjectProgress', 'canceledLessons', 'swapOverrides', 'makeupLessons', 'subjectLessonNotes', 'subjectColors',
+  'ddays',
 ];
 
 export function mergeAppState(existing, patch) {

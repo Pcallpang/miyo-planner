@@ -41,6 +41,14 @@ export interface MemoNote {
   updatedAt: string;
 }
 
+/** 사용자가 직접 등록하는 D-day. 여러 개 등록할 수 있고, 헤더에는 오늘과 가장
+ *  가까운(지났으면 가장 최근에 지난) 것 하나만 보여준다. */
+export interface Dday {
+  id: string;
+  label: string;
+  date: string; // YYYY-MM-DD
+}
+
 export interface PeriodTime {
   start: string; // HH:mm
   end: string; // HH:mm
@@ -174,6 +182,28 @@ export interface CanceledLesson {
   period: number; // 0부터 시작, 그 요일의 PeriodSlot[] 안 인덱스
 }
 
+/** 다른 반/다른 선생님 수업과 "이 날짜만" 자리를 바꿨을 때 쓰는 예외. 그 특정
+ *  날짜·교시 한 칸에서만 반복 시간표 내용을 덮어써 보여준다 — 반복 시간표(timetable)
+ *  자체는 건드리지 않아 다른 주는 그대로 유지된다. 교환은 항상 두 칸(또는 한 칸과
+ *  빈 자리) 사이에서 일어나므로, 관련된 (date, period) 각각에 독립된 항목이 생긴다 —
+ *  관계를 따로 추적하지 않아도 칸 하나만 원래대로 되돌릴 수 있다. */
+export interface SwapOverride {
+  date: string; // YYYY-MM-DD
+  period: number; // 0부터 시작
+  subject: string; // 교환으로 이 날짜·교시에 표시할 과목(빈 문자열이면 그 시간이 빔)
+  room: string;
+}
+
+/** 특정 날짜 한 교시에, 원래 시간표 내용과 별도로 "추가로" 진행하는 보강 수업.
+ *  시간표 확인용 표시 전용이며 차시 계획표(SubjectProgress)와는 연동하지 않는다.
+ *  칸 하나(date+period)에는 보강을 최대 1건만 두고, 새로 저장하면 이전 것을 덮어쓴다. */
+export interface MakeupLesson {
+  date: string; // YYYY-MM-DD
+  period: number; // 0부터 시작
+  subject: string;
+  room: string;
+}
+
 export interface AppData {
   todos: Todo[];
   meetings: Meeting[];
@@ -186,8 +216,13 @@ export interface AppData {
   overtimePunches: OvertimePunch[];
   subjectProgress: SubjectProgress[];
   canceledLessons: CanceledLesson[];
+  swapOverrides: SwapOverride[];
+  makeupLessons: MakeupLesson[];
   /** 과목 이름 -> 차시별 한 줄 메모(index 0 = 1차시). 반이 달라도 같은 과목이면 공유한다. */
   subjectLessonNotes: Record<string, string[]>;
+  /** 과목 이름 -> 수동으로 고른 색상(SUBJECT_COLORS 팔레트 인덱스). 지정 안 하면 자동 배정. */
+  subjectColors: Record<string, number>;
+  ddays: Dday[];
 }
 
 export type OvertimeSession = '아침' | '저녁';

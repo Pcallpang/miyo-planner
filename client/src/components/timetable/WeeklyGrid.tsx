@@ -6,7 +6,10 @@ import { api } from '../../lib/api';
 import { useApp } from '../../context/AppContext';
 import { useData } from '../../context/DataContext';
 import { getDayPhase } from '../../lib/schedule';
+import { effectiveSlot } from '../../lib/subjectProgress';
+import { buildSubjectColors } from '../../lib/subjectColors';
 import TimetableCellModal from './TimetableCellModal';
+import SwapConfirmModal from './SwapConfirmModal';
 import type { SchoolScheduleItem, Timetable } from '../../types';
 
 const WEEKDAYS = [
@@ -20,31 +23,6 @@ const WEEKDAYS = [
 /** 지필평가 기간은 등교는 하지만 정상 수업이 없다 — 나이스는 이런 날을 noClass로
  *  표시하지 않으므로 이름으로 따로 찾아야 한다. 공휴일·재량휴업일 등은 noClass로 잡힌다. */
 const AUTO_CANCEL_EXAM_KEYWORDS = ['중간고사', '기말고사', '지필'];
-
-/** 같은 과목은 같은 색으로 보이도록 순서대로 돌려 쓰는 팔레트 */
-const SUBJECT_COLORS = [
-  { bg: 'bg-mint-100', text: 'text-mint-800' },
-  { bg: 'bg-sky-100', text: 'text-sky-800' },
-  { bg: 'bg-amber-100', text: 'text-amber-800' },
-  { bg: 'bg-rose-100', text: 'text-rose-800' },
-  { bg: 'bg-violet-100', text: 'text-violet-800' },
-  { bg: 'bg-teal-100', text: 'text-teal-800' },
-  { bg: 'bg-orange-100', text: 'text-orange-800' },
-  { bg: 'bg-fuchsia-100', text: 'text-fuchsia-800' },
-];
-
-/** 시간표 전체(모든 요일)를 훑어 처음 등장한 순서대로 과목마다 색을 하나씩 배정한다.
- *  보고 있는 주가 바뀌어도 같은 과목은 항상 같은 색이 되도록, 요일 반복 패턴 전체를 본다. */
-function buildSubjectColors(timetable: Timetable) {
-  const map = new Map<string, (typeof SUBJECT_COLORS)[number]>();
-  for (const day of [1, 2, 3, 4, 5]) {
-    for (const slot of timetable[day] ?? []) {
-      const name = slot.subject.trim();
-      if (name && !map.has(name)) map.set(name, SUBJECT_COLORS[map.size % SUBJECT_COLORS.length]);
-    }
-  }
-  return map;
-}
 
 interface Cell {
   day: number;
@@ -60,8 +38,14 @@ export default function WeeklyGrid() {
   const { data, update } = useData();
   const timetable = data.timetable;
   const canceledLessons = data.canceledLessons;
+  const swapOverrides = data.swapOverrides;
+  const makeupLessons = data.makeupLessons;
   const setTimetable = (updater: (prev: Timetable) => Timetable) =>
     update((prev) => ({ timetable: updater(prev.timetable) }));
+
+  /** 반복 시간표(timetable)와 그 날짜만의 교환 예외(swapOverrides)를 합쳐, 실제로
+   *  화면에 보여줄 내용을 계산한다. */
+  const slotAt = (dateKey: string, period: number) => effectiveSlot(timetable, swapOverrides, dateKey, period);
 
   /**
    * 학교 행사 등으로 특정 날짜 하나만 휴강 처리하거나, 휴강을 다시 취소한다. 그 (과목, 반)의
@@ -89,6 +73,7 @@ export default function WeeklyGrid() {
   const [schoolSchedule, setSchoolSchedule] = useState<SchoolScheduleItem[]>([]);
   const [dragging, setDragging] = useState<Cell | null>(null);
   const [editing, setEditing] = useState<Cell | null>(null);
+  const [pendingSwap, setPendingSwap] = useState<{ a: Cell; b: Cell } | null>(null);
 
   const now = new Date();
   const todayKey = format(now, 'yyyy-MM-dd');
@@ -96,7 +81,7 @@ export default function WeeklyGrid() {
   const phase = getDayPhase(now, settings.periodTimes, settings.periodCount);
   const currentPeriod = phase.kind === 'period' ? phase.index : -1;
 
-  const subjectColors = buildSubjectColors(timetable);
+  const subjectColors = buildSubjectColors(timetable, data.subjectColors);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,9 +130,10 @@ export default function WeeklyGrid() {
     });
   }
 
-  /** 두 칸의 내용을 서로 맞바꾼다 — 빈 칸으로 옮기면 자연히 "이동"이 되고, 채워진
-   *  칸끼리는 자리를 바꿔 데이터가 사라지지 않는다. */
-  function swapSlots(a: Cell, b: Cell) {
+  /** 두 칸의 내용을 반복 시간표(timetable) 자체에서 서로 맞바꾼다 — 처음 시간표를
+   *  짤 때처럼 앞으로 모든 주에 똑같이 반영돼야 할 때 쓴다. 빈 칸으로 옮기면 자연히
+   *  "이동"이 되고, 채워진 칸끼리는 자리를 바꿔 데이터가 사라지지 않는다. */
+  function swapTemplate(a: Cell, b: Cell) {
     if (a.day === b.day && a.period === b.period) return;
     setTimetable((prev) => {
       const next = { ...prev };
@@ -164,14 +150,76 @@ export default function WeeklyGrid() {
     });
   }
 
-  const editingSlot = editing ? (timetable[editing.day] ?? [])[editing.period] ?? { subject: '', room: '' } : null;
+  /** 지금 이 주, 이 두 칸에서 실제로 보이는 내용을 서로 맞바꾸되, 반복 시간표는
+   *  건드리지 않고 그 두 (date, period)에만 예외를 남긴다 — 다른 반/다른 선생님
+   *  수업과 이 날짜만 교환하는 경우(빈 칸으로 옮기는 경우 포함)에 쓴다. 총 차시는
+   *  두 칸이 자리만 맞바꾸는 것이라 순증감이 없고, 지난 날짜로 옮겨온 경우의 진행
+   *  차시는 차시 계획표의 자동 따라잡기 효과가 swapOverrides 변경을 감지해 다시
+   *  계산해준다. */
+  function swapDateOnly(a: Cell, b: Cell) {
+    if (a.day === b.day && a.period === b.period) return;
+    const aDateKey = format(addDays(weekStart, a.day - 1), 'yyyy-MM-dd');
+    const bDateKey = format(addDays(weekStart, b.day - 1), 'yyyy-MM-dd');
+    const aSlot = slotAt(aDateKey, a.period);
+    const bSlot = slotAt(bDateKey, b.period);
+    update((prev) => ({
+      swapOverrides: [
+        ...prev.swapOverrides.filter(
+          (o) => !(o.date === aDateKey && o.period === a.period) && !(o.date === bDateKey && o.period === b.period),
+        ),
+        { date: aDateKey, period: a.period, subject: bSlot.subject, room: bSlot.room },
+        { date: bDateKey, period: b.period, subject: aSlot.subject, room: aSlot.room },
+      ],
+    }));
+  }
+
+  /** 교환한 칸 하나를 원래(반복 시간표 기준) 내용으로 되돌린다. 짝을 이루던 반대쪽
+   *  칸의 예외는 그대로 둔다 — 칸마다 독립적으로 되돌릴 수 있다. */
+  function revertSwap(dateKey: string, period: number) {
+    update((prev) => ({
+      swapOverrides: prev.swapOverrides.filter((o) => !(o.date === dateKey && o.period === period)),
+    }));
+  }
+
+  /** 보강 수업을 저장한다. subject가 비어있으면 그 칸의 보강을 삭제한다. 차시
+   *  계획표와는 전혀 연동하지 않는다 — 시간표 확인용 표시일 뿐이다. */
+  function saveMakeup(dateKey: string, period: number, subject: string, room: string) {
+    update((prev) => ({
+      makeupLessons: [
+        ...prev.makeupLessons.filter((m) => !(m.date === dateKey && m.period === period)),
+        ...(subject.trim() ? [{ date: dateKey, period, subject: subject.trim(), room: room.trim() }] : []),
+      ],
+    }));
+  }
+
+  // 모달의 과목/반 입력창(타이핑 저장)은 항상 반복 시간표 원본을 보여주고 그걸 수정한다.
+  // 휴강 판정·표시는 지금 실제로 보이는 내용(교환 반영) 기준이어야 한다.
+  const editingTemplateSlot = editing
+    ? (timetable[editing.day] ?? [])[editing.period] ?? { subject: '', room: '' }
+    : null;
+  const editingDateKey = editing ? format(addDays(weekStart, editing.day - 1), 'yyyy-MM-dd') : '';
+  const editingEffectiveSlot = editing ? slotAt(editingDateKey, editing.period) : null;
   const editingTime = editing ? settings.periodTimes[editing.period] ?? { start: '', end: '' } : null;
   const editingLabel = editing ? WEEKDAYS.find((w) => w.day === editing.day)?.label : '';
-  const editingDateKey = editing ? format(addDays(weekStart, editing.day - 1), 'yyyy-MM-dd') : '';
   const editingCanceled = editing
     ? canceledLessons.some((c) => c.date === editingDateKey && c.period === editing.period)
     : false;
   const editingAutoCanceled = editing ? autoCanceledDates.has(editingDateKey) : false;
+  const editingSwapped = editing
+    ? swapOverrides.some((o) => o.date === editingDateKey && o.period === editing.period)
+    : false;
+  const editingMakeup = editing
+    ? makeupLessons.find((m) => m.date === editingDateKey && m.period === editing.period)
+    : undefined;
+
+  /** 교환 확인창에 보여줄 "M/d(요일) N교시 · 과목 반" 라벨. 빈 칸이면 "(빈 시간)". */
+  function cellLabel(cell: Cell): string {
+    const dateKey = format(addDays(weekStart, cell.day - 1), 'yyyy-MM-dd');
+    const dayLabel = WEEKDAYS.find((w) => w.day === cell.day)?.label ?? '';
+    const slot = slotAt(dateKey, cell.period);
+    const content = slot.subject.trim() ? `${slot.subject}${slot.room ? ` ${slot.room}` : ''}` : '(빈 시간)';
+    return `${format(addDays(weekStart, cell.day - 1), 'M/d')}(${dayLabel}) ${cell.period + 1}교시 · ${content}`;
+  }
 
   return (
     <section className="min-w-0 flex-1 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
@@ -244,11 +292,13 @@ export default function WeeklyGrid() {
                   </span>
                 </td>
                 {WEEKDAYS.map(({ day }) => {
-                  const slot = (timetable[day] ?? [])[i] ?? { subject: '', room: '' };
                   const cellDateKey = format(addDays(weekStart, day - 1), 'yyyy-MM-dd');
+                  const slot = slotAt(cellDateKey, i);
                   const isManualCanceled = canceledLessons.some((c) => c.date === cellDateKey && c.period === i);
                   const isAutoCanceled = autoCanceledDates.has(cellDateKey);
                   const isCanceled = isManualCanceled || isAutoCanceled;
+                  const isSwapped = swapOverrides.some((o) => o.date === cellDateKey && o.period === i);
+                  const makeup = makeupLessons.find((m) => m.date === cellDateKey && m.period === i);
                   const isDragging = dragging?.day === day && dragging?.period === i;
                   const isNow = isThisWeek && i === currentPeriod && cellDateKey === todayKey;
                   const color = slot.subject.trim() ? subjectColors.get(slot.subject.trim()) : undefined;
@@ -257,10 +307,10 @@ export default function WeeklyGrid() {
                       key={day}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={() => {
-                        if (dragging) {
-                          swapSlots(dragging, { day, period: i });
-                          setDragging(null);
+                        if (dragging && !(dragging.day === day && dragging.period === i)) {
+                          setPendingSwap({ a: dragging, b: { day, period: i } });
                         }
+                        setDragging(null);
                       }}
                       className={`rounded-lg p-1 align-top ${isNow ? 'ring-2 ring-mint-300' : ''}`}
                     >
@@ -280,6 +330,11 @@ export default function WeeklyGrid() {
                               : 'bg-slate-50/70 hover:bg-slate-100'
                         }`}
                       >
+                        {isSwapped && (
+                          <span className="absolute left-1 top-1 rounded bg-sky-400 px-1 text-[9px] font-bold text-white">
+                            교환
+                          </span>
+                        )}
                         {isCanceled && (
                           <span className="absolute right-1 top-1 rounded bg-slate-400 px-1 text-[9px] font-bold text-white">
                             휴강
@@ -301,6 +356,12 @@ export default function WeeklyGrid() {
                             {slot.room}
                           </span>
                         )}
+                        {makeup && (
+                          <span className="w-full truncate rounded bg-violet-100 px-1 text-[10px] font-medium text-violet-700">
+                            보강 · {makeup.subject}
+                            {makeup.room ? ` ${makeup.room}` : ''}
+                          </span>
+                        )}
                       </button>
                     </td>
                   );
@@ -311,24 +372,56 @@ export default function WeeklyGrid() {
         </table>
       </div>
 
-      {editing && editingSlot && editingTime && (
+      {editing && editingTemplateSlot && editingEffectiveSlot && editingTime && (
         <TimetableCellModal
           dayLabel={editingLabel ?? ''}
           dateLabel={format(addDays(weekStart, editing.day - 1), 'M/d')}
           period={editing.period + 1}
           time={editingTime}
-          subject={editingSlot.subject}
-          room={editingSlot.room}
+          subject={editingTemplateSlot.subject}
+          room={editingTemplateSlot.room}
           canceled={editingCanceled}
           autoCanceled={editingAutoCanceled}
+          swapped={editingSwapped}
+          makeupSubject={editingMakeup?.subject ?? ''}
+          makeupRoom={editingMakeup?.room ?? ''}
           onClose={() => setEditing(null)}
           onSave={(subject, room) => {
             saveCell(editing.day, editing.period, subject, room);
             setEditing(null);
           }}
           onToggleCancel={() =>
-            toggleCanceled(editingDateKey, editing.period, editingSlot.subject.trim(), editingSlot.room.trim())
+            toggleCanceled(
+              editingDateKey,
+              editing.period,
+              editingEffectiveSlot.subject.trim(),
+              editingEffectiveSlot.room.trim(),
+            )
           }
+          onRevertSwap={() => {
+            revertSwap(editingDateKey, editing.period);
+            setEditing(null);
+          }}
+          onSaveMakeup={(subject, room) => {
+            saveMakeup(editingDateKey, editing.period, subject, room);
+            setEditing(null);
+          }}
+        />
+      )}
+
+      {pendingSwap && (
+        <SwapConfirmModal
+          aLabel={cellLabel(pendingSwap.a)}
+          bLabel={cellLabel(pendingSwap.b)}
+          onCancel={() => setPendingSwap(null)}
+          onApplyAll={() => {
+            swapTemplate(pendingSwap.a, pendingSwap.b);
+            setPendingSwap(null);
+          }}
+          onApplyOnce={() => {
+            swapDateOnly(pendingSwap.a, pendingSwap.b);
+            setPendingSwap(null);
+          }}
         />
       )}
     </section>

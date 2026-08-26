@@ -12,9 +12,14 @@ interface Props {
   room: string;
   canceled: boolean; // 이 날짜만 수동으로 휴강 처리됐는지
   autoCanceled: boolean; // 학사일정(공휴일·재량휴업일·지필평가 등)에 따라 자동으로 휴강 처리됐는지
+  swapped: boolean; // 이 칸이 지금 다른 칸과 교환되어 있는지(이 날짜만)
+  makeupSubject: string; // 이 칸에 등록된 보강 과목(없으면 빈 문자열)
+  makeupRoom: string;
   onClose: () => void;
   onSave: (subject: string, room: string) => void;
   onToggleCancel: () => void;
+  onRevertSwap: () => void;
+  onSaveMakeup: (subject: string, room: string) => void;
 }
 
 export default function TimetableCellModal({
@@ -26,12 +31,19 @@ export default function TimetableCellModal({
   room,
   canceled,
   autoCanceled,
+  swapped,
+  makeupSubject,
+  makeupRoom,
   onClose,
   onSave,
   onToggleCancel,
+  onRevertSwap,
+  onSaveMakeup,
 }: Props) {
   const [subjectInput, setSubjectInput] = useState(subject);
   const [roomInput, setRoomInput] = useState(room);
+  const [makeupSubjectInput, setMakeupSubjectInput] = useState(makeupSubject);
+  const [makeupRoomInput, setMakeupRoomInput] = useState(makeupRoom);
   useEscapeKey(onClose);
 
   function submit(e: FormEvent) {
@@ -111,6 +123,56 @@ export default function TimetableCellModal({
             {canceled ? '휴강 취소' : '이 날짜만 휴강'}
           </button>
         )}
+
+        {swapped && (
+          <button
+            type="button"
+            onClick={() => onRevertSwap()}
+            className="mt-2 w-full rounded-xl border border-sky-200 py-2 text-sm font-medium text-sky-600 transition hover:bg-sky-50"
+          >
+            교환 취소 (원래대로)
+          </button>
+        )}
+
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <label className={labelCls}>보강</label>
+          <p className="mb-2 text-xs text-slate-400">
+            원래 수업과 별도로, 이 날짜·교시에만 보강 수업이 있었다는 걸 표시해요. 차시 계획표에는 반영되지
+            않아요.
+          </p>
+          <div className="mb-2 flex gap-2">
+            <input
+              className={inputCls}
+              placeholder="보강 과목"
+              value={makeupSubjectInput}
+              onChange={(e) => setMakeupSubjectInput(e.target.value)}
+            />
+            <input
+              className={`${inputCls} w-24 shrink-0`}
+              placeholder="반"
+              value={makeupRoomInput}
+              onChange={(e) => setMakeupRoomInput(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onSaveMakeup(makeupSubjectInput.trim(), makeupRoomInput.trim())}
+              className="flex-1 rounded-xl border border-violet-300 py-2 text-sm font-medium text-violet-600 transition hover:bg-violet-50"
+            >
+              보강 저장
+            </button>
+            {makeupSubject && (
+              <button
+                type="button"
+                onClick={() => onSaveMakeup('', '')}
+                className="flex-1 rounded-xl border border-slate-200 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50"
+              >
+                보강 삭제
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
