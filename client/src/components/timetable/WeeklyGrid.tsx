@@ -358,6 +358,11 @@ export default function WeeklyGrid() {
                           setDraggingCard(null);
                           return;
                         }
+                        if (draggingCard === 'cancel') {
+                          toggleCanceled(cellDateKey, i, slot.subject.trim(), slot.room.trim());
+                          setDraggingCard(null);
+                          return;
+                        }
                         if (dragging && !(dragging.day === day && dragging.period === i)) {
                           setPendingSwap({ a: dragging, b: { day, period: i } });
                         }
