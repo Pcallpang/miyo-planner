@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
 import { useEscapeKey } from '../../hooks/useEscapeKey';
+import { SUBJECT_COLORS, classColorKey } from '../../lib/subjectColors';
 import type { PeriodTime } from '../../types';
 
 interface Props {
@@ -15,11 +16,14 @@ interface Props {
   swapped: boolean; // 이 칸이 지금 다른 칸과 교환되어 있는지(이 날짜만)
   makeupSubject: string; // 이 칸에 등록된 보강 과목(없으면 빈 문자열)
   makeupRoom: string;
+  subjectColors: Record<string, number>; // "과목::반" -> 수동 지정한 색상 인덱스
   onClose: () => void;
   onSave: (subject: string, room: string) => void;
   onToggleCancel: () => void;
   onRevertSwap: () => void;
   onSaveMakeup: (subject: string, room: string) => void;
+  onSetColor: (colorKey: string, colorIndex: number) => void;
+  onApplyColorToSubject: (subject: string, colorIndex: number) => void;
 }
 
 export default function TimetableCellModal({
@@ -34,11 +38,14 @@ export default function TimetableCellModal({
   swapped,
   makeupSubject,
   makeupRoom,
+  subjectColors,
   onClose,
   onSave,
   onToggleCancel,
   onRevertSwap,
   onSaveMakeup,
+  onSetColor,
+  onApplyColorToSubject,
 }: Props) {
   const [subjectInput, setSubjectInput] = useState(subject);
   const [roomInput, setRoomInput] = useState(room);
@@ -46,7 +53,10 @@ export default function TimetableCellModal({
   const [makeupRoomInput, setMakeupRoomInput] = useState(makeupRoom);
   // 이미 보강이 등록돼 있으면 처음부터 입력창을 펼쳐 보여준다.
   const [showMakeupForm, setShowMakeupForm] = useState(Boolean(makeupSubject));
+  const [applyAllColor, setApplyAllColor] = useState(false);
   useEscapeKey(onClose);
+
+  const currentColorIndex = subjectColors[classColorKey(subjectInput, roomInput)];
 
   const isCustomMakeup = Boolean(makeupSubject);
   // 점심은 휴강·보강과 달리 이 날짜만이 아니라 반복 시간표 자체에 저장한다 —
@@ -107,6 +117,46 @@ export default function TimetableCellModal({
               onChange={(e) => setRoomInput(e.target.value)}
             />
           </div>
+
+          {subjectInput.trim() && (
+            <div>
+              <span className={labelCls}>색상</span>
+              <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-slate-100 p-2">
+                {SUBJECT_COLORS.map((c, idx) => (
+                  <button
+                    key={c.name}
+                    type="button"
+                    onClick={() => {
+                      if (applyAllColor) onApplyColorToSubject(subjectInput.trim(), idx);
+                      else onSetColor(classColorKey(subjectInput, roomInput), idx);
+                    }}
+                    className={`h-6 w-6 rounded-full ${c.dot} ${
+                      currentColorIndex === idx ? 'ring-2 ring-offset-1 ring-slate-400' : ''
+                    }`}
+                    aria-label={c.name}
+                    title={c.name}
+                  />
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setApplyAllColor((v) => !v)}
+                  aria-pressed={applyAllColor}
+                  className={`ml-1 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium transition ${
+                    applyAllColor
+                      ? 'border-mint-300 bg-mint-50 text-mint-600'
+                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                  }`}
+                >
+                  전체 적용
+                </button>
+              </div>
+              {applyAllColor && (
+                <p className="mt-1.5 text-[10px] text-slate-400">
+                  반 상관없이 &apos;{subjectInput.trim()}&apos; 전체에 같은 색이 적용돼요
+                </p>
+              )}
+            </div>
+          )}
 
           <button
             type="submit"

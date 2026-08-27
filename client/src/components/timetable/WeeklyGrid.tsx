@@ -192,6 +192,26 @@ export default function WeeklyGrid() {
     }));
   }
 
+  /** (과목, 반) 하나만 색을 지정한다 — 같은 과목의 다른 반에는 영향을 주지 않는다. */
+  function setClassColor(colorKey: string, colorIndex: number) {
+    update((prev) => ({ subjectColors: { ...prev.subjectColors, [colorKey]: colorIndex } }));
+  }
+
+  /** 같은 과목이면 반 상관없이 전부 같은 색으로 지정한다. */
+  function applyColorToSubject(subject: string, colorIndex: number) {
+    update((prev) => {
+      const next = { ...prev.subjectColors };
+      for (const day of [1, 2, 3, 4, 5]) {
+        for (const slot of prev.timetable[day] ?? []) {
+          if (slot.subject.trim() === subject) {
+            next[classColorKey(slot.subject, slot.room)] = colorIndex;
+          }
+        }
+      }
+      return { subjectColors: next };
+    });
+  }
+
   // 모달의 과목/반 입력창(타이핑 저장)은 항상 반복 시간표 원본을 보여주고 그걸 수정한다.
   // 휴강 판정·표시는 지금 실제로 보이는 내용(교환 반영) 기준이어야 한다.
   const editingTemplateSlot = editing
@@ -387,6 +407,7 @@ export default function WeeklyGrid() {
           swapped={editingSwapped}
           makeupSubject={editingMakeup?.subject ?? ''}
           makeupRoom={editingMakeup?.room ?? ''}
+          subjectColors={data.subjectColors}
           onClose={() => setEditing(null)}
           onSave={(subject, room) => {
             saveCell(editing.day, editing.period, subject, room);
@@ -408,6 +429,8 @@ export default function WeeklyGrid() {
             saveMakeup(editingDateKey, editing.period, subject, room);
             setEditing(null);
           }}
+          onSetColor={setClassColor}
+          onApplyColorToSubject={applyColorToSubject}
         />
       )}
 
