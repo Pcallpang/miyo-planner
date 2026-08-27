@@ -336,9 +336,9 @@ export default function WeeklyGrid() {
                     </span>
                   </div>
                 </div>
-                {/* 요일별 점심 틈(day column)과 정확히 같은 높이(h-3)를 유지해
+                {/* 요일별 점심 틈(day column)과 정확히 같은 높이(h-6)를 유지해
                     점심줄이 없는 요일과 계속 맞물리게 한다. */}
-                {i < settings.periodCount - 1 && <div className="h-3" />}
+                {i < settings.periodCount - 1 && <div className="h-6" />}
               </Fragment>
             ))}
           </div>
@@ -505,10 +505,14 @@ export default function WeeklyGrid() {
                               }
                               setDragOverKey(null);
                             }}
-                            className={`h-3 rounded border transition ${
-                              isGapDragOver ? 'border-dashed border-amber-300 bg-amber-50/70' : 'border-transparent'
+                            className={`flex h-6 items-center justify-center rounded border-2 text-[9px] font-semibold transition ${
+                              isGapDragOver
+                                ? 'border-dashed border-amber-500 bg-amber-100 text-amber-700'
+                                : 'border-transparent text-transparent'
                             }`}
-                          />
+                          >
+                            {isGapDragOver && '여기에 놓기'}
+                          </div>
                         );
                       })()}
                     </Fragment>

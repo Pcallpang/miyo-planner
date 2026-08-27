@@ -116,7 +116,7 @@ export default function MatrixView() {
               }}
               onDragLeave={() => setDragOver((cur) => (cur === q.id ? null : cur))}
               onDrop={(e) => drop(e, q.id)}
-              className={`flex min-h-52 flex-col rounded-2xl bg-white p-4 shadow-sm ring-1 transition ${
+              className={`flex flex-col rounded-2xl bg-white p-4 shadow-sm ring-1 transition sm:min-h-52 ${
                 active ? 'ring-2 ring-mint-400 ring-offset-2' : style.ring
               }`}
             >
