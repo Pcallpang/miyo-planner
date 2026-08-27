@@ -10,6 +10,7 @@ import {
   NotebookPen,
   School,
   Settings,
+  Sparkles,
   Table,
 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -174,6 +175,20 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
                 <span className="w-4 shrink-0" />
                 <Settings size={17} className={`shrink-0 ${view === 'settings' ? 'text-mint-500' : 'text-slate-400'}`} />
                 환경 설정
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => onNavigate('board')}
+                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                  view === 'board'
+                    ? 'bg-mint-50 text-mint-700 ring-1 ring-mint-200'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <span className="w-4 shrink-0" />
+                <Sparkles size={17} className={`shrink-0 ${view === 'board' ? 'text-mint-500' : 'text-slate-400'}`} />
+                미요쌤에게 원해요!
               </button>
             </li>
           </ul>

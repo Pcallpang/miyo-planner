@@ -39,3 +39,15 @@ CREATE TABLE IF NOT EXISTS procurement_items (
   source_url text,
   sort_order integer NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS feature_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  text text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS feature_request_votes (
+  request_id uuid NOT NULL REFERENCES feature_requests(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (request_id, user_id)
+);

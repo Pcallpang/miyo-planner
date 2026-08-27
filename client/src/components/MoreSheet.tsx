@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Armchair, ClipboardPaste, FileSpreadsheet, LogOut, Settings, Table, X } from 'lucide-react';
+import { Armchair, ClipboardPaste, FileSpreadsheet, LogOut, Settings, Sparkles, Table, X } from 'lucide-react';
 import { api } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import type { ViewId } from '../types';
@@ -138,6 +138,13 @@ export default function MoreSheet({ onNavigate, onClose, onOpenNote }: Props) {
           >
             <Settings size={18} className="text-slate-400" />
             환경 설정
+          </button>
+          <button
+            onClick={() => navigate('board')}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100"
+          >
+            <Sparkles size={18} className="text-slate-400" />
+            미요쌤에게 원해요!
           </button>
         </div>
 

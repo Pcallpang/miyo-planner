@@ -6,7 +6,8 @@ export type ViewId =
   | 'memo'
   | 'procurement'
   | 'settings'
-  | 'overtime';
+  | 'overtime'
+  | 'board';
 
 export type TodoCategory = '업무' | '교과' | '개인';
 
@@ -283,4 +284,15 @@ export interface EventInput {
   location?: string;
   description?: string;
   calendarId: string;
+}
+
+/** "미요쌤에게 원해요!" 게시판 — 모든 사용자가 함께 보는 공유 데이터라 AppData에는
+ *  넣지 않고 전용 API(/api/board)로 따로 조회·등록한다. */
+export interface FeatureRequest {
+  id: string;
+  text: string;
+  createdAt: string;
+  votes: number;
+  voted: boolean; // 내가 투표했는지
+  isMine: boolean; // 내가 쓴 글인지(삭제 버튼 노출용 — 실제 삭제 권한은 서버가 검사)
 }

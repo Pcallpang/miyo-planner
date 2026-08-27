@@ -81,3 +81,52 @@ export async function saveAppState(userId, state) {
     [userId, state],
   );
 }
+
+/** 모든 사용자가 함께 보는 기능 요청 게시판 — 투표수 내림차순(동률은 오래된 순). */
+export async function listFeatureRequests(userId) {
+  const { rows } = await pool.query(
+    `SELECT fr.id, fr.text,
+            fr.created_at AS "createdAt",
+            COUNT(v.user_id)::int AS votes,
+            COALESCE(BOOL_OR(v.user_id = $1), false) AS voted,
+            (fr.user_id = $1) AS "isMine"
+       FROM feature_requests fr
+       LEFT JOIN feature_request_votes v ON v.request_id = fr.id
+      GROUP BY fr.id
+      ORDER BY votes DESC, fr.created_at ASC`,
+    [userId],
+  );
+  return rows;
+}
+
+export async function createFeatureRequest(userId, text) {
+  const { rows } = await pool.query(
+    `INSERT INTO feature_requests (user_id, text) VALUES ($1,$2)
+     RETURNING id, text, created_at AS "createdAt"`,
+    [userId, text],
+  );
+  return rows[0];
+}
+
+/** 작성자 본인일 때만 삭제한다. 삭제된 행 수(0이면 권한 없음/이미 삭제됨). */
+export async function deleteFeatureRequest(id, userId) {
+  const { rowCount } = await pool.query(
+    'DELETE FROM feature_requests WHERE id=$1 AND user_id=$2', [id, userId],
+  );
+  return rowCount;
+}
+
+export async function voteFeatureRequest(requestId, userId) {
+  await pool.query(
+    `INSERT INTO feature_request_votes (request_id, user_id) VALUES ($1,$2)
+     ON CONFLICT (request_id, user_id) DO NOTHING`,
+    [requestId, userId],
+  );
+}
+
+export async function unvoteFeatureRequest(requestId, userId) {
+  await pool.query(
+    'DELETE FROM feature_request_votes WHERE request_id=$1 AND user_id=$2',
+    [requestId, userId],
+  );
+}

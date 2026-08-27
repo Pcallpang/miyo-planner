@@ -2,6 +2,7 @@ import type {
   CalendarInfo,
   EventInput,
   ExtractedProductItem,
+  FeatureRequest,
   GEvent,
   Meal,
   ParsedEvent,
@@ -164,4 +165,21 @@ export const api = {
       { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) },
       '품목내역.xlsx',
     ),
+
+  listFeatureRequests: () => request<{ requests: FeatureRequest[] }>('/api/board'),
+
+  createFeatureRequest: (text: string) =>
+    request<{ request: FeatureRequest }>('/api/board', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+
+  deleteFeatureRequest: (id: string) =>
+    request<{ ok: true }>(`/api/board/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  voteFeatureRequest: (id: string) =>
+    request<{ ok: true }>(`/api/board/${encodeURIComponent(id)}/vote`, { method: 'POST' }),
+
+  unvoteFeatureRequest: (id: string) =>
+    request<{ ok: true }>(`/api/board/${encodeURIComponent(id)}/vote`, { method: 'DELETE' }),
 };

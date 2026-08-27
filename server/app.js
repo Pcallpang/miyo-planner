@@ -25,6 +25,7 @@ const { default: schoolRouter } = await import('./routes/school.js');
 const { checkNeisKey } = await import('./lib/neis.js');
 const { default: seatingRouter } = await import('./routes/seating.js');
 const { default: procurementRouter } = await import('./routes/procurement.js');
+const { default: boardRouter } = await import('./routes/board.js');
 
 checkNeisKey();
 
@@ -67,6 +68,7 @@ app.use('/api/data', requireAuth, dataRouter);
 app.use('/api/school', requireAuth, schoolRouter);
 app.use('/api/seating', requireAuth, seatingRouter);
 app.use('/api/procurement', requireAuth, procurementRouter);
+app.use('/api/board', requireAuth, boardRouter);
 
 app.use((err, req, res, next) => { console.error(err); res.status(500).json({ error: '서버 오류가 발생했습니다.' }); });
 
