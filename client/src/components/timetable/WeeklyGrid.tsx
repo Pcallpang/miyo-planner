@@ -275,43 +275,44 @@ export default function WeeklyGrid() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-2xl table-fixed border-separate border-spacing-1 text-sm">
-          <thead>
-            <tr>
-              <th className="w-10 pb-1 text-xs font-medium text-slate-400">교시</th>
-              {WEEKDAYS.map(({ day, label }) => {
-                const date = addDays(weekStart, day - 1);
-                const dateKey = format(date, 'yyyy-MM-dd');
-                const holiday = holidayByDate.get(dateKey);
-                const isToday = isThisWeek && dateKey === todayKey;
-                return (
-                  <th key={day} className="pb-1 text-xs font-medium align-top">
-                    <div className={isToday ? 'text-mint-600' : 'text-slate-500'}>
-                      {label} {format(date, 'M/d')}
-                    </div>
-                    {/* 학사일정 이름이 길어도 2줄까지만 차지하도록 높이를 고정한다 —
-                        그래야 교시 행들이 밀려 늘어나지 않는다. */}
-                    <div className="mt-0.5 line-clamp-2 h-6 text-[10px] font-normal leading-3 text-rose-500" title={holiday}>
-                      {holiday}
-                    </div>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
+        <div className="flex min-w-2xl gap-1 text-sm">
+          {/* 교시 번호 열 — 참조용 라벨. 어떤 요일에 점심줄이 끼면 그 요일과는
+              높이가 어긋나는 게 의도된 동작이다(요일마다 독립적으로 밀림). */}
+          <div className="flex w-10 flex-col gap-1">
+            <div className="h-11" />
             {Array.from({ length: settings.periodCount }, (_, i) => (
-              <tr key={i}>
-                <td className="text-center">
-                  <span
-                    className={`grid h-7 w-7 place-items-center rounded-lg text-xs font-bold ${
-                      isThisWeek && i === currentPeriod ? 'bg-mint-500 text-white' : 'bg-slate-100 text-slate-500'
-                    }`}
+              <div key={i} className="flex min-h-14 items-center justify-center p-1.5">
+                <span
+                  className={`grid h-7 w-7 place-items-center rounded-lg text-xs font-bold ${
+                    isThisWeek && i === currentPeriod ? 'bg-mint-500 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  {i + 1}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {WEEKDAYS.map(({ day, label }) => {
+            const date = addDays(weekStart, day - 1);
+            const dateKey = format(date, 'yyyy-MM-dd');
+            const holiday = holidayByDate.get(dateKey);
+            const isToday = isThisWeek && dateKey === todayKey;
+            return (
+              <div key={day} className="flex min-w-0 flex-1 flex-col gap-1">
+                <div className="h-11 pb-1 text-xs font-medium align-top">
+                  <div className={isToday ? 'text-mint-600' : 'text-slate-500'}>
+                    {label} {format(date, 'M/d')}
+                  </div>
+                  <div
+                    className="mt-0.5 line-clamp-2 h-6 text-[10px] font-normal leading-3 text-rose-500"
+                    title={holiday}
                   >
-                    {i + 1}
-                  </span>
-                </td>
-                {WEEKDAYS.map(({ day }) => {
+                    {holiday}
+                  </div>
+                </div>
+
+                {Array.from({ length: settings.periodCount }, (_, i) => {
                   const cellDateKey = format(addDays(weekStart, day - 1), 'yyyy-MM-dd');
                   const slot = slotAt(cellDateKey, i);
                   const isManualCanceled = canceledLessons.some((c) => c.date === cellDateKey && c.period === i);
@@ -325,8 +326,8 @@ export default function WeeklyGrid() {
                     ? subjectColors.get(classColorKey(slot.subject, slot.room))
                     : undefined;
                   return (
-                    <td
-                      key={day}
+                    <div
+                      key={i}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={() => {
                         if (dragging && !(dragging.day === day && dragging.period === i)) {
@@ -334,7 +335,7 @@ export default function WeeklyGrid() {
                         }
                         setDragging(null);
                       }}
-                      className={`rounded-lg p-1 align-top ${isNow ? 'ring-2 ring-mint-300' : ''}`}
+                      className={`rounded-lg p-1 ${isNow ? 'ring-2 ring-mint-300' : ''}`}
                     >
                       <button
                         type="button"
@@ -385,13 +386,13 @@ export default function WeeklyGrid() {
                           </span>
                         )}
                       </button>
-                    </td>
+                    </div>
                   );
                 })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {editing && editingTemplateSlot && editingEffectiveSlot && editingTime && (
