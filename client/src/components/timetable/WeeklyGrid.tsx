@@ -535,8 +535,8 @@ export default function WeeklyGrid() {
                             }}
                             className={`flex items-center justify-center rounded border-2 text-[9px] font-semibold transition-all ${
                               isGapDragOver
-                                ? 'h-8 border-dashed border-amber-500 bg-amber-100 text-amber-700'
-                                : 'h-0.5 border-transparent text-transparent'
+                                ? 'py-3 border-dashed border-amber-500 bg-amber-100 text-amber-700'
+                                : 'py-0 border-transparent text-transparent'
                             }`}
                           >
                             {isGapDragOver && '여기에 놓기'}
