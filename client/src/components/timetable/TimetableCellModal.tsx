@@ -53,7 +53,6 @@ export default function TimetableCellModal({
   const [makeupRoomInput, setMakeupRoomInput] = useState(makeupRoom);
   // 이미 보강이 등록돼 있으면 처음부터 입력창을 펼쳐 보여준다.
   const [showMakeupForm, setShowMakeupForm] = useState(Boolean(makeupSubject));
-  const [applyAllColor, setApplyAllColor] = useState(false);
   useEscapeKey(onClose);
 
   const currentColorIndex = subjectColors[classColorKey(subjectInput, roomInput)];
@@ -126,10 +125,7 @@ export default function TimetableCellModal({
                   <button
                     key={c.name}
                     type="button"
-                    onClick={() => {
-                      if (applyAllColor) onApplyColorToSubject(subjectInput.trim(), idx);
-                      else onSetColor(classColorKey(subjectInput, roomInput), idx);
-                    }}
+                    onClick={() => onSetColor(classColorKey(subjectInput, roomInput), idx)}
                     className={`h-6 w-6 rounded-full ${c.dot} ${
                       currentColorIndex === idx ? 'ring-2 ring-offset-1 ring-slate-400' : ''
                     }`}
@@ -139,22 +135,17 @@ export default function TimetableCellModal({
                 ))}
                 <button
                   type="button"
-                  onClick={() => setApplyAllColor((v) => !v)}
-                  aria-pressed={applyAllColor}
-                  className={`ml-1 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium transition ${
-                    applyAllColor
-                      ? 'border-mint-300 bg-mint-50 text-mint-600'
-                      : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
-                  }`}
+                  disabled={currentColorIndex === undefined}
+                  onClick={() => currentColorIndex !== undefined && onApplyColorToSubject(subjectInput.trim(), currentColorIndex)}
+                  title="색을 먼저 고른 뒤 누르면 같은 과목의 다른 반에도 적용돼요"
+                  className="ml-1 shrink-0 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   전체 적용
                 </button>
               </div>
-              {applyAllColor && (
-                <p className="mt-1.5 text-[10px] text-slate-400">
-                  반 상관없이 &apos;{subjectInput.trim()}&apos; 전체에 같은 색이 적용돼요
-                </p>
-              )}
+              <p className="mt-1.5 text-[10px] text-slate-400">
+                색을 먼저 고른 뒤 &quot;전체 적용&quot;을 누르면 반 상관없이 같은 과목 전체에 적용돼요.
+              </p>
             </div>
           )}
 
