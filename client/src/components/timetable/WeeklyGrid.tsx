@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { addDays, format, startOfWeek } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -10,6 +10,7 @@ import { effectiveSlot } from '../../lib/subjectProgress';
 import { buildSubjectColors, classColorKey } from '../../lib/subjectColors';
 import TimetableCellModal from './TimetableCellModal';
 import SwapConfirmModal from './SwapConfirmModal';
+import DragCardTray from './DragCardTray';
 import type { SchoolScheduleItem, Timetable } from '../../types';
 
 const WEEKDAYS = [
@@ -40,6 +41,7 @@ export default function WeeklyGrid() {
   const canceledLessons = data.canceledLessons;
   const swapOverrides = data.swapOverrides;
   const makeupLessons = data.makeupLessons;
+  const lunchAfterPeriod = data.lunchAfterPeriod;
   const setTimetable = (updater: (prev: Timetable) => Timetable) =>
     update((prev) => ({ timetable: updater(prev.timetable) }));
 
@@ -74,6 +76,8 @@ export default function WeeklyGrid() {
   const [dragging, setDragging] = useState<Cell | null>(null);
   const [editing, setEditing] = useState<Cell | null>(null);
   const [pendingSwap, setPendingSwap] = useState<{ a: Cell; b: Cell } | null>(null);
+  const [draggingCard, setDraggingCard] = useState<'lunch' | 'makeup' | 'cancel' | null>(null);
+  const [draggingLunchFromDay, setDraggingLunchFromDay] = useState<number | null>(null);
 
   const now = new Date();
   const todayKey = format(now, 'yyyy-MM-dd');
@@ -190,6 +194,20 @@ export default function WeeklyGrid() {
         ...(subject.trim() ? [{ date: dateKey, period, subject: subject.trim(), room: room.trim() }] : []),
       ],
     }));
+  }
+
+  /** 요일별 점심시간 표시줄 위치를 정하거나 옮긴다(화면 표시 전용, 요일당 1개). */
+  function setLunchAfterPeriod(day: number, period: number) {
+    update((prev) => ({ lunchAfterPeriod: { ...prev.lunchAfterPeriod, [day]: period } }));
+  }
+
+  /** 그 요일의 점심시간 표시줄을 없앤다. */
+  function removeLunchAfterPeriod(day: number) {
+    update((prev) => {
+      const next = { ...prev.lunchAfterPeriod };
+      delete next[day];
+      return { lunchAfterPeriod: next };
+    });
   }
 
   /** (과목, 반) 하나만 색을 지정한다 — 같은 과목의 다른 반에는 영향을 주지 않는다. */
@@ -326,8 +344,8 @@ export default function WeeklyGrid() {
                     ? subjectColors.get(classColorKey(slot.subject, slot.room))
                     : undefined;
                   return (
+                    <Fragment key={i}>
                     <div
-                      key={i}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={() => {
                         if (dragging && !(dragging.day === day && dragging.period === i)) {
@@ -387,6 +405,40 @@ export default function WeeklyGrid() {
                         )}
                       </button>
                     </div>
+                    {i < settings.periodCount - 1 &&
+                      (lunchAfterPeriod[day] === i ? (
+                        <div
+                          draggable
+                          onDragStart={() => {
+                            setDraggingCard('lunch');
+                            setDraggingLunchFromDay(day);
+                          }}
+                          onDragEnd={() => {
+                            setDraggingCard(null);
+                            setDraggingLunchFromDay(null);
+                          }}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => {
+                            setLunchAfterPeriod(day, i);
+                            setDraggingCard(null);
+                            setDraggingLunchFromDay(null);
+                          }}
+                          className="cursor-grab rounded bg-amber-100 py-1 text-center text-[10px] font-semibold text-amber-700 active:cursor-grabbing"
+                        >
+                          점심시간
+                        </div>
+                      ) : draggingCard === 'lunch' ? (
+                        <div
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => {
+                            setLunchAfterPeriod(day, i);
+                            setDraggingCard(null);
+                            setDraggingLunchFromDay(null);
+                          }}
+                          className="h-3 rounded border border-dashed border-amber-300 bg-amber-50/70"
+                        />
+                      ) : null)}
+                    </Fragment>
                   );
                 })}
               </div>
@@ -394,6 +446,22 @@ export default function WeeklyGrid() {
           })}
         </div>
       </div>
+
+      <DragCardTray
+        onCardDragStart={setDraggingCard}
+        onCardDragEnd={() => {
+          setDraggingCard(null);
+          setDraggingLunchFromDay(null);
+        }}
+        onTrayDrop={() => {
+          if (draggingCard === 'lunch' && draggingLunchFromDay != null) {
+            removeLunchAfterPeriod(draggingLunchFromDay);
+          }
+          setDraggingCard(null);
+          setDraggingLunchFromDay(null);
+        }}
+        lunchDropActive={draggingLunchFromDay != null}
+      />
 
       {editing && editingTemplateSlot && editingEffectiveSlot && editingTime && (
         <TimetableCellModal
