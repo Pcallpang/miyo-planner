@@ -3,8 +3,7 @@ import { Trash2 } from 'lucide-react';
 interface Props {
   onCardDragStart: (kind: 'lunch' | 'makeup' | 'cancel') => void;
   onCardDragEnd: () => void;
-  onTrashDragEnter: () => void;
-  onTrashDragLeave: () => void;
+  onTrashDragOver: () => void;
   onTrashDrop: () => void;
   trashActive: boolean;
 }
@@ -27,8 +26,7 @@ const CARD_LABELS: Record<'lunch' | 'makeup' | 'cancel', string> = {
 export default function DragCardTray({
   onCardDragStart,
   onCardDragEnd,
-  onTrashDragEnter,
-  onTrashDragLeave,
+  onTrashDragOver,
   onTrashDrop,
   trashActive,
 }: Props) {
@@ -46,9 +44,10 @@ export default function DragCardTray({
         </div>
       ))}
       <div
-        onDragOver={(e) => e.preventDefault()}
-        onDragEnter={onTrashDragEnter}
-        onDragLeave={onTrashDragLeave}
+        onDragOver={(e) => {
+          e.preventDefault();
+          onTrashDragOver();
+        }}
         onDrop={onTrashDrop}
         title="점심시간·보강·휴강이나 배정된 수업 칸을 여기로 드래그하면 삭제돼요"
         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition ${

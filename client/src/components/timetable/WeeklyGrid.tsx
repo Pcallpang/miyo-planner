@@ -381,9 +381,10 @@ export default function WeeklyGrid() {
                   return (
                     <Fragment key={i}>
                     <div
-                      onDragEnter={() => setDragOverKey(cellKey)}
-                      onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
-                      onDragOver={(e) => e.preventDefault()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        if (dragOverKey !== cellKey) setDragOverKey(cellKey);
+                      }}
                       onDrop={(e) => {
                         setDragOverKey(null);
                         if (draggingCard === 'makeup') {
@@ -526,8 +527,9 @@ export default function WeeklyGrid() {
           setDraggingLunchFromDay(null);
           setDragOverKey(null);
         }}
-        onTrashDragEnter={() => setDragOverKey('trash')}
-        onTrashDragLeave={() => setDragOverKey((k) => (k === 'trash' ? null : k))}
+        onTrashDragOver={() => {
+          if (dragOverKey !== 'trash') setDragOverKey('trash');
+        }}
         onTrashDrop={() => {
           if (draggingCard === 'lunch' && draggingLunchFromDay != null) {
             removeLunchAfterPeriod(draggingLunchFromDay);
@@ -541,6 +543,10 @@ export default function WeeklyGrid() {
         }}
         trashActive={dragOverKey === 'trash'}
       />
+      <p className="mt-1.5 text-[10px] text-slate-400">
+        카드를 드래그해서 놓으면 적용돼요! 점심시간은 교시 사이 틈에, 보강·휴강은 원하는 칸 위에 놓아보세요.
+        지우고 싶으면 휴지통으로 드래그하면 돼요.
+      </p>
 
       {makeupDrop && (
         <MakeupDropForm
