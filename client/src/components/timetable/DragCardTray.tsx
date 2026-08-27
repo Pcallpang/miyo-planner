@@ -1,8 +1,12 @@
+import { Trash2 } from 'lucide-react';
+
 interface Props {
   onCardDragStart: (kind: 'lunch' | 'makeup' | 'cancel') => void;
   onCardDragEnd: () => void;
-  onTrayDrop: () => void;
-  lunchDropActive: boolean;
+  onTrashDragEnter: () => void;
+  onTrashDragLeave: () => void;
+  onTrashDrop: () => void;
+  trashActive: boolean;
 }
 
 const CARD_STYLES: Record<'lunch' | 'makeup' | 'cancel', string> = {
@@ -18,17 +22,18 @@ const CARD_LABELS: Record<'lunch' | 'makeup' | 'cancel', string> = {
 };
 
 /** 시간표 아래 카드 트레이. 점심시간 카드는 교시 사이 틈에, 보강·휴강 카드는
- *  칸 위에 드래그해서 놓는다. 이미 끼운 점심시간 줄을 다시 이 트레이로 드래그하면
- *  없앨 수 있다(그때는 lunchDropActive가 true가 되어 트레이가 옅게 강조된다). */
-export default function DragCardTray({ onCardDragStart, onCardDragEnd, onTrayDrop, lunchDropActive }: Props) {
+ *  칸 위에 드래그해서 놓는다. 이미 들어간 점심시간 줄·보강·휴강, 또는 배정된
+ *  수업 칸을 옆 휴지통으로 드래그하면 지워진다. */
+export default function DragCardTray({
+  onCardDragStart,
+  onCardDragEnd,
+  onTrashDragEnter,
+  onTrashDragLeave,
+  onTrashDrop,
+  trashActive,
+}: Props) {
   return (
-    <div
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={onTrayDrop}
-      className={`mt-3 flex gap-2 rounded-xl border-t border-slate-100 pt-3 transition ${
-        lunchDropActive ? 'bg-rose-50/60' : ''
-      }`}
-    >
+    <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3">
       {(['lunch', 'makeup', 'cancel'] as const).map((kind) => (
         <div
           key={kind}
@@ -40,6 +45,18 @@ export default function DragCardTray({ onCardDragStart, onCardDragEnd, onTrayDro
           {CARD_LABELS[kind]}
         </div>
       ))}
+      <div
+        onDragOver={(e) => e.preventDefault()}
+        onDragEnter={onTrashDragEnter}
+        onDragLeave={onTrashDragLeave}
+        onDrop={onTrashDrop}
+        title="점심시간·보강·휴강이나 배정된 수업 칸을 여기로 드래그하면 삭제돼요"
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border transition ${
+          trashActive ? 'border-rose-400 bg-rose-100 text-rose-600' : 'border-slate-200 bg-white text-slate-400'
+        }`}
+      >
+        <Trash2 size={16} />
+      </div>
     </div>
   );
 }

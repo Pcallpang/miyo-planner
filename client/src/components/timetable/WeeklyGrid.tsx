@@ -79,6 +79,10 @@ export default function WeeklyGrid() {
   const [pendingSwap, setPendingSwap] = useState<{ a: Cell; b: Cell } | null>(null);
   const [draggingCard, setDraggingCard] = useState<'lunch' | 'makeup' | 'cancel' | null>(null);
   const [draggingLunchFromDay, setDraggingLunchFromDay] = useState<number | null>(null);
+  // 지금 드래그가 걸쳐 있는 딱 하나의 드롭 목표만 표시하기 위한 키
+  // ("lunch:요일:교시" | "cell:요일:교시" | "trash"). 여러 목표가 한꺼번에
+  // 반응하지 않도록 이 키와 정확히 일치하는 곳만 강조한다.
+  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
   const [makeupDrop, setMakeupDrop] = useState<{
     dateKey: string;
     period: number;
@@ -219,6 +223,26 @@ export default function WeeklyGrid() {
     });
   }
 
+  /** 칸을 휴지통으로 드래그했을 때 지울 대상을 하나만 고른다 — 이 날짜만의 휴강이
+   *  있으면 그것부터, 없고 보강이 있으면 보강을, 둘 다 없으면 반복 시간표에 배정된
+   *  과목·반 자체를 지운다. 휴강·보강처럼 이 날짜만의 예외를 무심코 반복 시간표
+   *  삭제로 덮어버리지 않기 위한 우선순위다. */
+  function trashDropCell(day: number, period: number) {
+    const dateKey = format(addDays(weekStart, day - 1), 'yyyy-MM-dd');
+    const isManualCanceled = canceledLessons.some((c) => c.date === dateKey && c.period === period);
+    if (isManualCanceled) {
+      const slot = slotAt(dateKey, period);
+      toggleCanceled(dateKey, period, slot.subject.trim(), slot.room.trim());
+      return;
+    }
+    const hasMakeup = makeupLessons.some((m) => m.date === dateKey && m.period === period);
+    if (hasMakeup) {
+      saveMakeup(dateKey, period, '', '');
+      return;
+    }
+    saveCell(day, period, '', '');
+  }
+
   /** (과목, 반) 하나만 색을 지정한다 — 같은 과목의 다른 반에는 영향을 주지 않는다. */
   function setClassColor(colorKey: string, colorIndex: number) {
     update((prev) => ({ subjectColors: { ...prev.subjectColors, [colorKey]: colorIndex } }));
@@ -351,11 +375,17 @@ export default function WeeklyGrid() {
                   const color = slot.subject.trim()
                     ? subjectColors.get(classColorKey(slot.subject, slot.room))
                     : undefined;
+                  const cellKey = `cell:${day}:${i}`;
+                  const isCellDragOver =
+                    dragOverKey === cellKey && (draggingCard === 'makeup' || draggingCard === 'cancel');
                   return (
                     <Fragment key={i}>
                     <div
+                      onDragEnter={() => setDragOverKey(cellKey)}
+                      onDragLeave={() => setDragOverKey((k) => (k === cellKey ? null : k))}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => {
+                        setDragOverKey(null);
                         if (draggingCard === 'makeup') {
                           const rect = e.currentTarget.getBoundingClientRect();
                           setMakeupDrop({
@@ -379,14 +409,23 @@ export default function WeeklyGrid() {
                         }
                         setDragging(null);
                       }}
-                      className={`rounded-lg p-1 ${isNow ? 'ring-2 ring-mint-300' : ''}`}
+                      className={`rounded-lg p-1 transition ${isNow ? 'ring-2 ring-mint-300' : ''} ${
+                        isCellDragOver
+                          ? draggingCard === 'makeup'
+                            ? 'bg-violet-100 ring-2 ring-violet-300'
+                            : 'bg-rose-100 ring-2 ring-rose-300'
+                          : ''
+                      }`}
                     >
                       <button
                         type="button"
                         draggable
                         onClick={() => setEditing({ day, period: i })}
                         onDragStart={() => setDragging({ day, period: i })}
-                        onDragEnd={() => setDragging(null)}
+                        onDragEnd={() => {
+                          setDragging(null);
+                          setDragOverKey(null);
+                        }}
                         className={`relative flex min-h-14 w-full cursor-grab flex-col items-center justify-center gap-0.5 rounded-lg p-1.5 text-center transition active:cursor-grabbing ${
                           isDragging ? 'opacity-40' : ''
                         } ${
@@ -432,46 +471,45 @@ export default function WeeklyGrid() {
                       </button>
                     </div>
                     {i < settings.periodCount - 1 &&
-                      (lunchAfterPeriod[day] === i ? (
-                        <div
-                          draggable
-                          title="클릭하거나 카드 쪽으로 드래그하면 없어져요"
-                          onClick={() => removeLunchAfterPeriod(day)}
-                          onDragStart={() => {
-                            setDraggingCard('lunch');
-                            setDraggingLunchFromDay(day);
-                          }}
-                          onDragEnd={() => {
-                            setDraggingCard(null);
-                            setDraggingLunchFromDay(null);
-                          }}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={() => {
-                            setLunchAfterPeriod(day, i);
-                            setDraggingCard(null);
-                            setDraggingLunchFromDay(null);
-                          }}
-                          className="cursor-grab rounded bg-amber-100 py-1 text-center text-[10px] font-semibold text-amber-700 hover:bg-amber-200 active:cursor-grabbing"
-                        >
-                          점심시간
-                        </div>
-                      ) : (
-                        <div
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={() => {
-                            if (draggingCard === 'lunch') {
-                              setLunchAfterPeriod(day, i);
+                      (() => {
+                        const gapKey = `lunch:${day}:${i}`;
+                        const isGapDragOver = dragOverKey === gapKey && draggingCard === 'lunch';
+                        return lunchAfterPeriod[day] === i ? (
+                          <div
+                            draggable
+                            title="다른 틈으로 옮기거나 휴지통으로 드래그하면 없어져요"
+                            onDragStart={() => {
+                              setDraggingCard('lunch');
+                              setDraggingLunchFromDay(day);
+                            }}
+                            onDragEnd={() => {
                               setDraggingCard(null);
                               setDraggingLunchFromDay(null);
-                            }
-                          }}
-                          className={`h-3 rounded border transition ${
-                            draggingCard === 'lunch'
-                              ? 'border-dashed border-amber-300 bg-amber-50/70'
-                              : 'border-transparent'
-                          }`}
-                        />
-                      ))}
+                              setDragOverKey(null);
+                            }}
+                            className="cursor-grab rounded bg-amber-100 py-1 text-center text-[10px] font-semibold text-amber-700 hover:bg-amber-200 active:cursor-grabbing"
+                          >
+                            점심시간
+                          </div>
+                        ) : (
+                          <div
+                            onDragEnter={() => setDragOverKey(gapKey)}
+                            onDragLeave={() => setDragOverKey((k) => (k === gapKey ? null : k))}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={() => {
+                              if (draggingCard === 'lunch') {
+                                setLunchAfterPeriod(day, i);
+                                setDraggingCard(null);
+                                setDraggingLunchFromDay(null);
+                              }
+                              setDragOverKey(null);
+                            }}
+                            className={`h-3 rounded border transition ${
+                              isGapDragOver ? 'border-dashed border-amber-300 bg-amber-50/70' : 'border-transparent'
+                            }`}
+                          />
+                        );
+                      })()}
                     </Fragment>
                   );
                 })}
@@ -486,15 +524,22 @@ export default function WeeklyGrid() {
         onCardDragEnd={() => {
           setDraggingCard(null);
           setDraggingLunchFromDay(null);
+          setDragOverKey(null);
         }}
-        onTrayDrop={() => {
+        onTrashDragEnter={() => setDragOverKey('trash')}
+        onTrashDragLeave={() => setDragOverKey((k) => (k === 'trash' ? null : k))}
+        onTrashDrop={() => {
           if (draggingCard === 'lunch' && draggingLunchFromDay != null) {
             removeLunchAfterPeriod(draggingLunchFromDay);
+          } else if (dragging) {
+            trashDropCell(dragging.day, dragging.period);
           }
+          setDragging(null);
           setDraggingCard(null);
           setDraggingLunchFromDay(null);
+          setDragOverKey(null);
         }}
-        lunchDropActive={draggingLunchFromDay != null}
+        trashActive={dragOverKey === 'trash'}
       />
 
       {makeupDrop && (
@@ -508,14 +553,6 @@ export default function WeeklyGrid() {
             saveMakeup(makeupDrop.dateKey, makeupDrop.period, subject, room);
             setMakeupDrop(null);
           }}
-          onDelete={
-            makeupDrop.subject
-              ? () => {
-                  saveMakeup(makeupDrop.dateKey, makeupDrop.period, '', '');
-                  setMakeupDrop(null);
-                }
-              : undefined
-          }
         />
       )}
 
