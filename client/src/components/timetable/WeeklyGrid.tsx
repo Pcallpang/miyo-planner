@@ -321,12 +321,12 @@ export default function WeeklyGrid() {
         <div className="flex min-w-2xl gap-1 text-sm">
           {/* 교시 번호 열 — 참조용 라벨. 어떤 요일에 점심줄이 끼면 그 요일과는
               높이가 어긋나는 게 의도된 동작이다(요일마다 독립적으로 밀림). */}
-          <div className="flex w-10 flex-col gap-1">
+          <div className="flex w-10 flex-col gap-0.5">
             <div className="h-11" />
             {Array.from({ length: settings.periodCount }, (_, i) => (
               <Fragment key={i}>
                 <div className="rounded-lg p-1">
-                  <div className="flex min-h-14 items-center justify-center p-1.5">
+                  <div className="flex h-14 items-center justify-center overflow-hidden p-1.5">
                     <span
                       className={`grid h-7 w-7 place-items-center rounded-lg text-xs font-bold ${
                         isThisWeek && i === currentPeriod ? 'bg-mint-500 text-white' : 'bg-slate-100 text-slate-500'
@@ -336,10 +336,10 @@ export default function WeeklyGrid() {
                     </span>
                   </div>
                 </div>
-                {/* 요일별 점심 틈(day column)의 평소 높이(h-1)와 맞춘다. 점심 카드를
+                {/* 요일별 점심 틈(day column)의 평소 높이(h-0.5)와 맞춘다. 점심 카드를
                     드래그해 특정 요일의 틈 위에 있을 때는 그 요일 칸만 커지므로,
                     이 참조용 열은 계속 작은 높이 그대로 둔다. */}
-                {i < settings.periodCount - 1 && <div className="h-1" />}
+                {i < settings.periodCount - 1 && <div className="h-0.5" />}
               </Fragment>
             ))}
           </div>
@@ -350,7 +350,7 @@ export default function WeeklyGrid() {
             const holiday = holidayByDate.get(dateKey);
             const isToday = isThisWeek && dateKey === todayKey;
             return (
-              <div key={day} className="flex min-w-0 flex-1 flex-col gap-1">
+              <div key={day} className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <div className="h-11 pb-1 text-xs font-medium align-top">
                   <div className={isToday ? 'text-mint-600' : 'text-slate-500'}>
                     {label} {format(date, 'M/d')}
@@ -428,7 +428,7 @@ export default function WeeklyGrid() {
                           setDragging(null);
                           setDragOverKey(null);
                         }}
-                        className={`relative flex min-h-14 w-full cursor-grab flex-col items-center justify-center gap-0.5 rounded-lg p-1.5 text-center transition active:cursor-grabbing ${
+                        className={`relative flex h-14 w-full cursor-grab flex-col items-center justify-center gap-0.5 overflow-hidden rounded-lg p-1.5 text-center transition active:cursor-grabbing ${
                           isDragging ? 'opacity-40' : ''
                         } ${
                           isCanceled
@@ -509,7 +509,7 @@ export default function WeeklyGrid() {
                             className={`flex items-center justify-center rounded border-2 text-[9px] font-semibold transition-all ${
                               isGapDragOver
                                 ? 'h-8 border-dashed border-amber-500 bg-amber-100 text-amber-700'
-                                : 'h-1 border-transparent text-transparent'
+                                : 'h-0.5 border-transparent text-transparent'
                             }`}
                           >
                             {isGapDragOver && '여기에 놓기'}
