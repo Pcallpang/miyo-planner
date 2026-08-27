@@ -23,6 +23,7 @@ export default function LiveStatusCard() {
 
   let title = '';
   let detail = '';
+  let nextDetail = '';
   switch (phase.kind) {
     case 'weekend':
       title = '주말';
@@ -38,6 +39,12 @@ export default function LiveStatusCard() {
       detail = slot?.subject
         ? `${slot.subject}${slot.room ? ` · ${slot.room}` : ''} (${settings.periodTimes[phase.index]?.start}~${settings.periodTimes[phase.index]?.end})`
         : `${settings.periodTimes[phase.index]?.start}~${settings.periodTimes[phase.index]?.end}`;
+      const nextIndex = phase.index + 1;
+      const nextSlot = todaySlots[nextIndex];
+      const nextTime = settings.periodTimes[nextIndex];
+      if (nextTime) {
+        nextDetail = `다음 ${nextIndex + 1}교시 ${nextSlot?.subject ? `${nextSlot.subject}${nextSlot.room ? ` · ${nextSlot.room}` : ''}` : ''} (${nextTime.start}~)`;
+      }
       break;
     }
     case 'break': {
@@ -62,6 +69,7 @@ export default function LiveStatusCard() {
         <div className="min-w-0 flex-1">
           <p className="text-xl font-bold text-mint-700">{title}</p>
           <p className="mt-1 text-sm text-slate-500">{detail}</p>
+          {nextDetail && <p className="mt-0.5 text-xs text-slate-400">{nextDetail}</p>}
         </div>
         <img
           src={inClass ? '/ppak-miyo.png' : '/mudduk-miyo.png'}
