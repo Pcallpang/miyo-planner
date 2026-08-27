@@ -11,6 +11,7 @@ import { buildSubjectColors, classColorKey } from '../../lib/subjectColors';
 import TimetableCellModal from './TimetableCellModal';
 import SwapConfirmModal from './SwapConfirmModal';
 import DragCardTray from './DragCardTray';
+import MakeupDropForm from './MakeupDropForm';
 import type { SchoolScheduleItem, Timetable } from '../../types';
 
 const WEEKDAYS = [
@@ -78,6 +79,9 @@ export default function WeeklyGrid() {
   const [pendingSwap, setPendingSwap] = useState<{ a: Cell; b: Cell } | null>(null);
   const [draggingCard, setDraggingCard] = useState<'lunch' | 'makeup' | 'cancel' | null>(null);
   const [draggingLunchFromDay, setDraggingLunchFromDay] = useState<number | null>(null);
+  const [makeupDrop, setMakeupDrop] = useState<{ dateKey: string; period: number; top: number; left: number } | null>(
+    null,
+  );
 
   const now = new Date();
   const todayKey = format(now, 'yyyy-MM-dd');
@@ -347,7 +351,13 @@ export default function WeeklyGrid() {
                     <Fragment key={i}>
                     <div
                       onDragOver={(e) => e.preventDefault()}
-                      onDrop={() => {
+                      onDrop={(e) => {
+                        if (draggingCard === 'makeup') {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setMakeupDrop({ dateKey: cellDateKey, period: i, top: rect.bottom + 4, left: rect.left });
+                          setDraggingCard(null);
+                          return;
+                        }
                         if (dragging && !(dragging.day === day && dragging.period === i)) {
                           setPendingSwap({ a: dragging, b: { day, period: i } });
                         }
@@ -462,6 +472,18 @@ export default function WeeklyGrid() {
         }}
         lunchDropActive={draggingLunchFromDay != null}
       />
+
+      {makeupDrop && (
+        <MakeupDropForm
+          top={makeupDrop.top}
+          left={makeupDrop.left}
+          onCancel={() => setMakeupDrop(null)}
+          onSave={(subject, room) => {
+            saveMakeup(makeupDrop.dateKey, makeupDrop.period, subject, room);
+            setMakeupDrop(null);
+          }}
+        />
+      )}
 
       {editing && editingTemplateSlot && editingEffectiveSlot && editingTime && (
         <TimetableCellModal
