@@ -79,9 +79,14 @@ export default function WeeklyGrid() {
   const [pendingSwap, setPendingSwap] = useState<{ a: Cell; b: Cell } | null>(null);
   const [draggingCard, setDraggingCard] = useState<'lunch' | 'makeup' | 'cancel' | null>(null);
   const [draggingLunchFromDay, setDraggingLunchFromDay] = useState<number | null>(null);
-  const [makeupDrop, setMakeupDrop] = useState<{ dateKey: string; period: number; top: number; left: number } | null>(
-    null,
-  );
+  const [makeupDrop, setMakeupDrop] = useState<{
+    dateKey: string;
+    period: number;
+    top: number;
+    left: number;
+    subject: string;
+    room: string;
+  } | null>(null);
 
   const now = new Date();
   const todayKey = format(now, 'yyyy-MM-dd');
@@ -240,19 +245,11 @@ export default function WeeklyGrid() {
     ? (timetable[editing.day] ?? [])[editing.period] ?? { subject: '', room: '' }
     : null;
   const editingDateKey = editing ? format(addDays(weekStart, editing.day - 1), 'yyyy-MM-dd') : '';
-  const editingEffectiveSlot = editing ? slotAt(editingDateKey, editing.period) : null;
   const editingTime = editing ? settings.periodTimes[editing.period] ?? { start: '', end: '' } : null;
   const editingLabel = editing ? WEEKDAYS.find((w) => w.day === editing.day)?.label : '';
-  const editingCanceled = editing
-    ? canceledLessons.some((c) => c.date === editingDateKey && c.period === editing.period)
-    : false;
-  const editingAutoCanceled = editing ? autoCanceledDates.has(editingDateKey) : false;
   const editingSwapped = editing
     ? swapOverrides.some((o) => o.date === editingDateKey && o.period === editing.period)
     : false;
-  const editingMakeup = editing
-    ? makeupLessons.find((m) => m.date === editingDateKey && m.period === editing.period)
-    : undefined;
 
   /** 교환 확인창에 보여줄 "M/d(요일) N교시 · 과목 반" 라벨. 빈 칸이면 "(빈 시간)". */
   function cellLabel(cell: Cell): string {
@@ -303,15 +300,22 @@ export default function WeeklyGrid() {
           <div className="flex w-10 flex-col gap-1">
             <div className="h-11" />
             {Array.from({ length: settings.periodCount }, (_, i) => (
-              <div key={i} className="flex min-h-14 items-center justify-center p-1.5">
-                <span
-                  className={`grid h-7 w-7 place-items-center rounded-lg text-xs font-bold ${
-                    isThisWeek && i === currentPeriod ? 'bg-mint-500 text-white' : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  {i + 1}
-                </span>
-              </div>
+              <Fragment key={i}>
+                <div className="rounded-lg p-1">
+                  <div className="flex min-h-14 items-center justify-center p-1.5">
+                    <span
+                      className={`grid h-7 w-7 place-items-center rounded-lg text-xs font-bold ${
+                        isThisWeek && i === currentPeriod ? 'bg-mint-500 text-white' : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      {i + 1}
+                    </span>
+                  </div>
+                </div>
+                {/* 요일별 점심 틈(day column)과 정확히 같은 높이(h-3)를 유지해
+                    점심줄이 없는 요일과 계속 맞물리게 한다. */}
+                {i < settings.periodCount - 1 && <div className="h-3" />}
+              </Fragment>
             ))}
           </div>
 
@@ -354,7 +358,14 @@ export default function WeeklyGrid() {
                       onDrop={(e) => {
                         if (draggingCard === 'makeup') {
                           const rect = e.currentTarget.getBoundingClientRect();
-                          setMakeupDrop({ dateKey: cellDateKey, period: i, top: rect.bottom + 4, left: rect.left });
+                          setMakeupDrop({
+                            dateKey: cellDateKey,
+                            period: i,
+                            top: rect.bottom + 4,
+                            left: rect.left,
+                            subject: makeup?.subject ?? '',
+                            room: makeup?.room ?? '',
+                          });
                           setDraggingCard(null);
                           return;
                         }
@@ -424,6 +435,8 @@ export default function WeeklyGrid() {
                       (lunchAfterPeriod[day] === i ? (
                         <div
                           draggable
+                          title="클릭하거나 카드 쪽으로 드래그하면 없어져요"
+                          onClick={() => removeLunchAfterPeriod(day)}
                           onDragStart={() => {
                             setDraggingCard('lunch');
                             setDraggingLunchFromDay(day);
@@ -438,21 +451,27 @@ export default function WeeklyGrid() {
                             setDraggingCard(null);
                             setDraggingLunchFromDay(null);
                           }}
-                          className="cursor-grab rounded bg-amber-100 py-1 text-center text-[10px] font-semibold text-amber-700 active:cursor-grabbing"
+                          className="cursor-grab rounded bg-amber-100 py-1 text-center text-[10px] font-semibold text-amber-700 hover:bg-amber-200 active:cursor-grabbing"
                         >
                           점심시간
                         </div>
-                      ) : draggingCard === 'lunch' ? (
+                      ) : (
                         <div
                           onDragOver={(e) => e.preventDefault()}
                           onDrop={() => {
-                            setLunchAfterPeriod(day, i);
-                            setDraggingCard(null);
-                            setDraggingLunchFromDay(null);
+                            if (draggingCard === 'lunch') {
+                              setLunchAfterPeriod(day, i);
+                              setDraggingCard(null);
+                              setDraggingLunchFromDay(null);
+                            }
                           }}
-                          className="h-3 rounded border border-dashed border-amber-300 bg-amber-50/70"
+                          className={`h-3 rounded border transition ${
+                            draggingCard === 'lunch'
+                              ? 'border-dashed border-amber-300 bg-amber-50/70'
+                              : 'border-transparent'
+                          }`}
                         />
-                      ) : null)}
+                      ))}
                     </Fragment>
                   );
                 })}
@@ -482,15 +501,25 @@ export default function WeeklyGrid() {
         <MakeupDropForm
           top={makeupDrop.top}
           left={makeupDrop.left}
+          initialSubject={makeupDrop.subject}
+          initialRoom={makeupDrop.room}
           onCancel={() => setMakeupDrop(null)}
           onSave={(subject, room) => {
             saveMakeup(makeupDrop.dateKey, makeupDrop.period, subject, room);
             setMakeupDrop(null);
           }}
+          onDelete={
+            makeupDrop.subject
+              ? () => {
+                  saveMakeup(makeupDrop.dateKey, makeupDrop.period, '', '');
+                  setMakeupDrop(null);
+                }
+              : undefined
+          }
         />
       )}
 
-      {editing && editingTemplateSlot && editingEffectiveSlot && editingTime && (
+      {editing && editingTemplateSlot && editingTime && (
         <TimetableCellModal
           dayLabel={editingLabel ?? ''}
           dateLabel={format(addDays(weekStart, editing.day - 1), 'M/d')}
@@ -498,31 +527,15 @@ export default function WeeklyGrid() {
           time={editingTime}
           subject={editingTemplateSlot.subject}
           room={editingTemplateSlot.room}
-          canceled={editingCanceled}
-          autoCanceled={editingAutoCanceled}
           swapped={editingSwapped}
-          makeupSubject={editingMakeup?.subject ?? ''}
-          makeupRoom={editingMakeup?.room ?? ''}
           subjectColors={data.subjectColors}
           onClose={() => setEditing(null)}
           onSave={(subject, room) => {
             saveCell(editing.day, editing.period, subject, room);
             setEditing(null);
           }}
-          onToggleCancel={() =>
-            toggleCanceled(
-              editingDateKey,
-              editing.period,
-              editingEffectiveSlot.subject.trim(),
-              editingEffectiveSlot.room.trim(),
-            )
-          }
           onRevertSwap={() => {
             revertSwap(editingDateKey, editing.period);
-            setEditing(null);
-          }}
-          onSaveMakeup={(subject, room) => {
-            saveMakeup(editingDateKey, editing.period, subject, room);
             setEditing(null);
           }}
           onSetColor={setClassColor}
