@@ -43,7 +43,7 @@ export default function LiveStatusCard() {
       const nextSlot = todaySlots[nextIndex];
       const nextTime = settings.periodTimes[nextIndex];
       if (nextTime) {
-        nextDetail = `다음 ${nextIndex + 1}교시 ${nextSlot?.subject ? `${nextSlot.subject}${nextSlot.room ? ` · ${nextSlot.room}` : ''}` : ''} (${nextTime.start}~)`;
+        nextDetail = `다음 ${nextIndex + 1}교시 ${nextSlot?.subject ? `${nextSlot.subject}${nextSlot.room ? ` · ${nextSlot.room}` : ''}` : '공강'} (${nextTime.start}~)`;
       }
       break;
     }
