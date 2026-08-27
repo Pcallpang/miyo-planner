@@ -43,6 +43,24 @@ export default function WeeklyGrid() {
   const swapOverrides = data.swapOverrides;
   const makeupLessons = data.makeupLessons;
   const lunchAfterPeriod = data.lunchAfterPeriod;
+  /** 교시 번호 열은 특정 요일 하나를 따라갈 수 없으니, 요일들이 가장 많이 공유하는
+   *  점심 위치를 대표값으로 삼아 그 자리에 점심시간만큼 자리를 비워 둔다 — 보통은
+   *  모든 요일이 같은 자리에 점심을 두므로 이렇게 하면 대부분 실제로도 맞는다. */
+  const commonLunchPeriod = (() => {
+    const counts = new Map<number, number>();
+    for (const value of Object.values(lunchAfterPeriod)) {
+      counts.set(value, (counts.get(value) ?? 0) + 1);
+    }
+    let best: number | undefined;
+    let bestCount = 0;
+    for (const [value, count] of counts) {
+      if (count > bestCount) {
+        best = value;
+        bestCount = count;
+      }
+    }
+    return best;
+  })();
   const setTimetable = (updater: (prev: Timetable) => Timetable) =>
     update((prev) => ({ timetable: updater(prev.timetable) }));
 
@@ -319,8 +337,9 @@ export default function WeeklyGrid() {
 
       <div className="overflow-x-auto">
         <div className="flex min-w-2xl gap-1 text-sm">
-          {/* 교시 번호 열 — 참조용 라벨. 어떤 요일에 점심줄이 끼면 그 요일과는
-              높이가 어긋나는 게 의도된 동작이다(요일마다 독립적으로 밀림). */}
+          {/* 교시 번호 열 — 참조용 라벨. 요일들이 공유하는 점심 위치(commonLunchPeriod)에는
+              같은 높이의 빈 자리를 넣어 맞추지만, 그 위치가 요일마다 다르면 전부와 동시에
+              맞을 수는 없다(그 경우는 요일마다 독립적으로 밀리는 게 의도된 동작). */}
           <div className="flex w-10 flex-col gap-0.5">
             <div className="h-11" />
             {Array.from({ length: settings.periodCount }, (_, i) => (
@@ -336,10 +355,18 @@ export default function WeeklyGrid() {
                     </span>
                   </div>
                 </div>
-                {/* 요일별 점심 틈(day column)의 평소 높이(h-0.5)와 맞춘다. 점심 카드를
-                    드래그해 특정 요일의 틈 위에 있을 때는 그 요일 칸만 커지므로,
-                    이 참조용 열은 계속 작은 높이 그대로 둔다. */}
-                {i < settings.periodCount - 1 && <div className="h-0.5" />}
+                {/* 요일별 점심 틈(day column)의 평소 높이(h-0.5)와 맞춘다. 대부분의
+                    요일이 공유하는 점심 위치(commonLunchPeriod)에서는 실제 점심시간
+                    막대와 같은 높이의 빈 자리를 넣어, 그 요일들과 계속 나란히
+                    맞도록 한다(점심 위치가 요일마다 다르면 전부와 맞을 수는 없다). */}
+                {i < settings.periodCount - 1 &&
+                  (commonLunchPeriod === i ? (
+                    <div className="invisible rounded py-1 text-center text-[10px] font-semibold" aria-hidden="true">
+                      점심시간
+                    </div>
+                  ) : (
+                    <div className="h-0.5" />
+                  ))}
               </Fragment>
             ))}
           </div>
@@ -351,7 +378,7 @@ export default function WeeklyGrid() {
             const isToday = isThisWeek && dateKey === todayKey;
             return (
               <div key={day} className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <div className="h-11 pb-1 text-xs font-medium align-top">
+                <div className="h-11 pb-1 text-center text-xs font-medium align-top">
                   <div className={isToday ? 'text-mint-600' : 'text-slate-500'}>
                     {label} {format(date, 'M/d')}
                   </div>
