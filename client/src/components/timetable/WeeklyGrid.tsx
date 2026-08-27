@@ -336,9 +336,12 @@ export default function WeeklyGrid() {
                     </span>
                   </div>
                 </div>
-                {/* 요일별 점심 틈(day column)과 정확히 같은 높이(h-6)를 유지해
-                    점심줄이 없는 요일과 계속 맞물리게 한다. */}
-                {i < settings.periodCount - 1 && <div className="h-6" />}
+                {/* 요일별 점심 틈(day column)과 정확히 같은 높이를 유지해 점심줄이
+                    없는 요일과 계속 맞물리게 한다 — 점심 카드를 드래그하는 동안만
+                    함께 커진다. */}
+                {i < settings.periodCount - 1 && (
+                  <div className={`transition-all ${draggingCard === 'lunch' ? 'h-8' : 'h-1.5'}`} />
+                )}
               </Fragment>
             ))}
           </div>
@@ -505,7 +508,9 @@ export default function WeeklyGrid() {
                               }
                               setDragOverKey(null);
                             }}
-                            className={`flex h-6 items-center justify-center rounded border-2 text-[9px] font-semibold transition ${
+                            className={`flex items-center justify-center rounded border-2 text-[9px] font-semibold transition-all ${
+                              draggingCard === 'lunch' ? 'h-8' : 'h-1.5'
+                            } ${
                               isGapDragOver
                                 ? 'border-dashed border-amber-500 bg-amber-100 text-amber-700'
                                 : 'border-transparent text-transparent'
