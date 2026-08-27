@@ -50,7 +50,7 @@ export default function MatrixView() {
   const [editing, setEditing] = useState<Todo | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState<QuadrantId | null>(null);
-  const [openMemoId, setOpenMemoId] = useState<string | null>(null);
+  const [openDetailId, setOpenDetailId] = useState<string | null>(null);
   const [moveMenuId, setMoveMenuId] = useState<string | null>(null);
 
   const urgentDays = settings.urgentDays;
@@ -133,7 +133,7 @@ export default function MatrixView() {
                 )}
                 {items.map((todo) => {
                   const hasMemo = Boolean(todo.memo?.trim());
-                  const memoOpen = hasMemo && openMemoId === todo.id;
+                  const detailOpen = openDetailId === todo.id;
                   return (
                     <li
                       key={todo.id}
@@ -161,10 +161,10 @@ export default function MatrixView() {
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${CATEGORY_DOT[todo.category]}`} />
                         <button
                           type="button"
-                          onClick={() => hasMemo && setOpenMemoId(memoOpen ? null : todo.id)}
-                          className={`min-w-0 flex-1 truncate text-left text-sm ${
+                          onClick={() => setOpenDetailId(detailOpen ? null : todo.id)}
+                          className={`min-w-0 flex-1 truncate text-left text-sm cursor-pointer ${
                             todo.done ? 'text-slate-300 line-through' : 'text-slate-700'
-                          } ${hasMemo ? 'cursor-pointer' : 'cursor-grab'}`}
+                          }`}
                         >
                           {todo.text}
                           {hasMemo && <StickyNote size={11} className="ml-1 inline text-mint-400" />}
@@ -176,7 +176,7 @@ export default function MatrixView() {
                             onClick={() => unpin(todo)}
                             title="긴급도가 수동 고정됨 · 눌러서 자동으로 되돌리기"
                             aria-label="긴급도 수동 고정 해제"
-                            className="shrink-0 rounded p-0.5 text-mint-500 transition hover:text-rose-400"
+                            className="hidden shrink-0 rounded p-0.5 text-mint-500 transition hover:text-rose-400 sm:block"
                           >
                             <Pin size={12} />
                           </button>
@@ -186,14 +186,14 @@ export default function MatrixView() {
                             href={todo.link}
                             target="_blank"
                             rel="noreferrer"
-                            className="shrink-0 text-slate-300 transition hover:text-mint-500"
+                            className="hidden shrink-0 text-slate-300 transition hover:text-mint-500 sm:inline-flex"
                             aria-label="관련 링크 열기"
                           >
                             <LinkIcon size={12} />
                           </a>
                         )}
                         {todo.dueDate && (
-                          <span className="flex shrink-0 items-center gap-0.5 text-[11px] text-slate-400">
+                          <span className="hidden shrink-0 items-center gap-0.5 text-[11px] text-slate-400 sm:flex">
                             <CalendarClock size={10} />
                             {todo.dueDate.slice(5).replace('-', '/')}
                           </span>
@@ -260,10 +260,34 @@ export default function MatrixView() {
                           <Trash2 size={13} />
                         </button>
                       </div>
-                      {memoOpen && (
-                        <p className="mx-2.5 mb-2 rounded-lg bg-slate-50 px-3 py-2 text-xs whitespace-pre-wrap text-slate-500">
-                          {todo.memo}
-                        </p>
+                      {detailOpen && (
+                        <div className="mx-2.5 mb-2 space-y-1.5 rounded-lg bg-slate-50 px-3 py-2 text-xs">
+                          <p className="whitespace-pre-wrap font-medium text-slate-700">{todo.text}</p>
+                          <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <span className={`h-1.5 w-1.5 rounded-full ${CATEGORY_DOT[todo.category]}`} />
+                              {todo.category}
+                            </span>
+                            {todo.dueDate && (
+                              <span className="flex items-center gap-0.5">
+                                <CalendarClock size={11} />
+                                {todo.dueDate}
+                              </span>
+                            )}
+                            {todo.link && (
+                              <a
+                                href={todo.link}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-0.5 text-mint-600 hover:underline"
+                              >
+                                <LinkIcon size={11} />
+                                링크 열기
+                              </a>
+                            )}
+                          </div>
+                          {hasMemo && <p className="whitespace-pre-wrap text-slate-500">{todo.memo}</p>}
+                        </div>
                       )}
                     </li>
                   );
