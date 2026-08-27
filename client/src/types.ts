@@ -204,6 +204,11 @@ export interface MakeupLesson {
   room: string;
 }
 
+/** 요일(1=월~5=금)별로 점심시간 표시줄을 몇 교시 뒤에 끼워 넣을지. 값이 없는
+ *  요일은 점심줄이 없다. 순수 화면 표시용 — 교시 번호·시간표 데이터·진도 계산에는
+ *  전혀 영향을 주지 않는다. */
+export type LunchAfterPeriod = Record<number, number>; // day -> 0-based period index
+
 export interface AppData {
   todos: Todo[];
   meetings: Meeting[];
@@ -218,6 +223,8 @@ export interface AppData {
   canceledLessons: CanceledLesson[];
   swapOverrides: SwapOverride[];
   makeupLessons: MakeupLesson[];
+  /** 요일별 점심시간 표시줄 위치(화면 표시 전용). 없는 요일은 점심줄 없음. */
+  lunchAfterPeriod: LunchAfterPeriod;
   /** 과목 이름 -> 차시별 한 줄 메모(index 0 = 1차시). 반이 달라도 같은 과목이면 공유한다. */
   subjectLessonNotes: Record<string, string[]>;
   /** "과목::반" -> 수동으로 고른 색상(SUBJECT_COLORS 팔레트 인덱스). 지정 안 하면

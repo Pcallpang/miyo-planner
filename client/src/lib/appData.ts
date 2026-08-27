@@ -15,6 +15,7 @@ export function defaultAppData(): AppData {
     canceledLessons: [],
     swapOverrides: [],
     makeupLessons: [],
+    lunchAfterPeriod: {},
     subjectLessonNotes: {},
     subjectColors: {},
     ddays: [],

@@ -28,6 +28,7 @@ export function defaultAppState() {
     canceledLessons: [],
     swapOverrides: [],
     makeupLessons: [],
+    lunchAfterPeriod: {},
     subjectLessonNotes: {},
     subjectColors: {},
     ddays: [],
@@ -36,8 +37,8 @@ export function defaultAppState() {
 
 const KEYS = [
   'todos', 'meetings', 'memos', 'timetable', 'settings', 'holidays', 'overtimeLogs', 'overtimePunches',
-  'subjectProgress', 'canceledLessons', 'swapOverrides', 'makeupLessons', 'subjectLessonNotes', 'subjectColors',
-  'ddays',
+  'subjectProgress', 'canceledLessons', 'swapOverrides', 'makeupLessons', 'lunchAfterPeriod',
+  'subjectLessonNotes', 'subjectColors', 'ddays',
 ];
 
 export function mergeAppState(existing, patch) {
