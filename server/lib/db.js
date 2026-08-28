@@ -19,6 +19,8 @@ export async function initDb() {
   await pool.query(schema);
   // 사용자별 Gemini API 키 저장용 컬럼(암호화). 기존 테이블에도 안전하게 추가.
   await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS gemini_key_enc text');
+  // 기능 요청 완료 표시(관리자 전용). 기존 테이블에도 안전하게 추가.
+  await pool.query('ALTER TABLE feature_requests ADD COLUMN IF NOT EXISTS completed boolean NOT NULL DEFAULT false');
 }
 
 export async function upsertUser({ googleSub, email, name }) {
@@ -87,6 +89,7 @@ export async function listFeatureRequests(userId) {
   const { rows } = await pool.query(
     `SELECT fr.id, fr.text,
             fr.created_at AS "createdAt",
+            fr.completed,
             COUNT(v.user_id)::int AS votes,
             COALESCE(BOOL_OR(v.user_id = $1), false) AS voted,
             (fr.user_id = $1) AS "isMine"
@@ -102,7 +105,7 @@ export async function listFeatureRequests(userId) {
 export async function createFeatureRequest(userId, text) {
   const { rows } = await pool.query(
     `INSERT INTO feature_requests (user_id, text) VALUES ($1,$2)
-     RETURNING id, text, created_at AS "createdAt"`,
+     RETURNING id, text, created_at AS "createdAt", completed`,
     [userId, text],
   );
   return rows[0];
@@ -112,6 +115,20 @@ export async function createFeatureRequest(userId, text) {
 export async function deleteFeatureRequest(id, userId) {
   const { rowCount } = await pool.query(
     'DELETE FROM feature_requests WHERE id=$1 AND user_id=$2', [id, userId],
+  );
+  return rowCount;
+}
+
+/** 관리자 전용 — 작성자와 무관하게 삭제한다. */
+export async function deleteFeatureRequestAsAdmin(id) {
+  const { rowCount } = await pool.query('DELETE FROM feature_requests WHERE id=$1', [id]);
+  return rowCount;
+}
+
+/** 관리자 전용 — 완료 표시를 켜고/끈다. */
+export async function setFeatureRequestCompleted(id, completed) {
+  const { rowCount } = await pool.query(
+    'UPDATE feature_requests SET completed=$2 WHERE id=$1', [id, completed],
   );
   return rowCount;
 }

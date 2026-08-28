@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS feature_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   text text NOT NULL,
+  completed boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS feature_request_votes (

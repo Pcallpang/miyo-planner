@@ -295,4 +295,5 @@ export interface FeatureRequest {
   votes: number;
   voted: boolean; // 내가 투표했는지
   isMine: boolean; // 내가 쓴 글인지(삭제 버튼 노출용 — 실제 삭제 권한은 서버가 검사)
+  completed: boolean; // 미요쌤(관리자)이 완료 처리했는지
 }

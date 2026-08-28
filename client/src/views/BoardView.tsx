@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Heart, Sparkles, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Heart, Sparkles, Trash2 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import EmptyMiyo from '../components/EmptyMiyo';
@@ -19,6 +19,8 @@ function sortRequests(list: FeatureRequest[]): FeatureRequest[] {
 export default function BoardView() {
   const { showToast } = useApp();
   const [requests, setRequests] = useState<FeatureRequest[]>([]);
+  /** 남의 글도 삭제/완료 처리할 수 있는 관리자(=미요쌤)인지 — 서버가 이메일로 판정한다. */
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState('');
   const [posting, setPosting] = useState(false);
@@ -30,8 +32,9 @@ export default function BoardView() {
   async function load() {
     setLoading(true);
     try {
-      const { requests: rows } = await api.listFeatureRequests();
+      const { requests: rows, isAdmin: admin } = await api.listFeatureRequests();
       setRequests(sortRequests(rows));
+      setIsAdmin(admin);
     } catch (e) {
       showToast('error', e instanceof ApiError ? e.message : '목록을 불러오지 못했습니다.');
     } finally {
@@ -45,12 +48,25 @@ export default function BoardView() {
     setPosting(true);
     try {
       const { request } = await api.createFeatureRequest(text);
-      setRequests((prev) => sortRequests([...prev, { ...request, votes: 0, voted: false, isMine: true }]));
+      setRequests((prev) =>
+        sortRequests([...prev, { ...request, votes: 0, voted: false, isMine: true, completed: false }]),
+      );
       setDraft('');
     } catch (e) {
       showToast('error', e instanceof ApiError ? e.message : '등록하지 못했습니다.');
     } finally {
       setPosting(false);
+    }
+  }
+
+  async function toggleCompleted(r: FeatureRequest) {
+    const next = !r.completed;
+    setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, completed: next } : x)));
+    try {
+      await api.setFeatureRequestCompleted(r.id, next);
+    } catch (e) {
+      showToast('error', e instanceof ApiError ? e.message : '완료 처리에 실패했습니다.');
+      setRequests((prev) => prev.map((x) => (x.id === r.id ? { ...x, completed: !next } : x)));
     }
   }
 
@@ -143,13 +159,38 @@ export default function BoardView() {
               </button>
 
               <div className="min-w-0 flex-1">
-                <p className="whitespace-pre-wrap text-sm text-slate-700">{r.text}</p>
+                <div className="flex items-center gap-1.5">
+                  {r.completed && (
+                    <span className="shrink-0 rounded-full bg-mint-50 px-1.5 py-0.5 text-[10px] font-semibold text-mint-600">
+                      완료
+                    </span>
+                  )}
+                  <p
+                    className={`whitespace-pre-wrap text-sm ${r.completed ? 'text-slate-400' : 'text-slate-700'}`}
+                  >
+                    {r.text}
+                  </p>
+                </div>
                 <span className="mt-1 block text-[11px] text-slate-400">
                   {format(parseISO(r.createdAt), 'yyyy/MM/dd HH:mm')}
                 </span>
               </div>
 
-              {r.isMine && (
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => void toggleCompleted(r)}
+                  aria-label={r.completed ? '완료 해제' : '업데이트 완료 표시'}
+                  title={r.completed ? '완료 해제' : '업데이트 완료로 표시'}
+                  className={`shrink-0 rounded p-1 transition ${
+                    r.completed ? 'text-mint-500 hover:text-mint-600' : 'text-slate-300 hover:text-mint-500'
+                  }`}
+                >
+                  {r.completed ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                </button>
+              )}
+
+              {(r.isMine || isAdmin) && (
                 <button
                   type="button"
                   onClick={() => void remove(r.id)}

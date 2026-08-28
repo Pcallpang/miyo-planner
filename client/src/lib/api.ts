@@ -166,7 +166,7 @@ export const api = {
       '품목내역.xlsx',
     ),
 
-  listFeatureRequests: () => request<{ requests: FeatureRequest[] }>('/api/board'),
+  listFeatureRequests: () => request<{ requests: FeatureRequest[]; isAdmin: boolean }>('/api/board'),
 
   createFeatureRequest: (text: string) =>
     request<{ request: FeatureRequest }>('/api/board', {
@@ -176,6 +176,13 @@ export const api = {
 
   deleteFeatureRequest: (id: string) =>
     request<{ ok: true }>(`/api/board/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  /** 완료 표시 토글 — 관리자 전용(서버가 다시 검사한다). */
+  setFeatureRequestCompleted: (id: string, completed: boolean) =>
+    request<{ ok: true }>(`/api/board/${encodeURIComponent(id)}/complete`, {
+      method: 'PATCH',
+      body: JSON.stringify({ completed }),
+    }),
 
   voteFeatureRequest: (id: string) =>
     request<{ ok: true }>(`/api/board/${encodeURIComponent(id)}/vote`, { method: 'POST' }),
