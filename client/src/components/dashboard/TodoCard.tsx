@@ -16,6 +16,7 @@ import {
 import DateField from '../DateField';
 import EmptyMiyo from '../EmptyMiyo';
 import TodayEvents from './TodayEvents';
+import { sortTodosByDueDate } from '../../lib/todoSort';
 import type { Todo, TodoCategory } from '../../types';
 
 const CATEGORIES: TodoCategory[] = ['업무', '교과', '개인'];
@@ -42,7 +43,7 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
   const [goal, setGoal] = useState('');
   const [deadline, setDeadline] = useState('');
 
-  const visible = todos.filter((t) => t.category === tab);
+  const visible = sortTodosByDueDate(todos.filter((t) => t.category === tab));
   const countOf = (c: TodoCategory) => todos.filter((t) => t.category === c && !t.done).length;
 
   function applyTemplate(e: FormEvent) {

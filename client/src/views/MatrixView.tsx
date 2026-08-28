@@ -24,6 +24,7 @@ import {
 } from '../lib/eisenhower';
 import TodoModal from '../components/TodoModal';
 import EmptyMiyo from '../components/EmptyMiyo';
+import { sortTodosByDueDate } from '../lib/todoSort';
 import type { Todo, TodoCategory } from '../types';
 
 const CATEGORY_DOT: Record<TodoCategory, string> = {
@@ -104,7 +105,7 @@ export default function MatrixView() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {QUADRANTS.map((q) => {
-          const items = visible.filter((t) => quadrantOfTodo(t, urgentDays) === q.id);
+          const items = sortTodosByDueDate(visible.filter((t) => quadrantOfTodo(t, urgentDays) === q.id));
           const style = QUADRANT_STYLE[q.id];
           const active = dragOver === q.id;
           return (
