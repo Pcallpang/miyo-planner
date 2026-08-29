@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Clock, LogOut, Settings as SettingsIcon, Unplug } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
@@ -7,6 +7,7 @@ import { defaultAppData } from '../lib/appData';
 import { clearAppData, defaultSettings } from '../lib/storage';
 import SchoolPicker from '../components/SchoolPicker';
 import PeriodTimesModal from '../components/PeriodTimesModal';
+import { getWidgetSize } from '../lib/widgetPrefs';
 
 export default function SettingsView() {
   const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
@@ -15,6 +16,34 @@ export default function SettingsView() {
   const [geminiKeyInput, setGeminiKeyInput] = useState('');
   const [savingKey, setSavingKey] = useState(false);
   const [editingPeriodTimes, setEditingPeriodTimes] = useState(false);
+  const widgetRef = useRef<Window | null>(null);
+  const [widgetOpen, setWidgetOpen] = useState(false);
+
+  // 사용자가 위젯 창을 직접 닫아도(버튼이 아니라 창의 X로) 버튼 라벨이 따라가도록
+  // 1초마다 창이 열려 있는지 확인한다.
+  useEffect(() => {
+    const id = setInterval(() => {
+      setWidgetOpen(Boolean(widgetRef.current && !widgetRef.current.closed));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  function toggleWidget() {
+    if (widgetRef.current && !widgetRef.current.closed) {
+      widgetRef.current.close();
+      setWidgetOpen(false);
+      return;
+    }
+    const size = getWidgetSize();
+    const win = window.open(
+      '/?widget=1',
+      'miyo-widget',
+      `width=${size.width},height=${size.height},resizable=yes,popup=yes`,
+    );
+    widgetRef.current = win;
+    setWidgetOpen(Boolean(win));
+    win?.focus();
+  }
 
   async function appLogout() {
     await api.logout();
@@ -298,6 +327,30 @@ export default function SettingsView() {
               주의해 주세요.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+        <h3 className="mb-2 text-base font-bold text-slate-800">바탕화면 위젯</h3>
+        <div className={rowCls}>
+          <div>
+            <p className={labelCls}>오늘의 시간표 위젯</p>
+            <p className={descCls}>
+              오늘의 시간표만 담은 작은 창을 띄워 화면 한쪽에 계속 열어둘 수 있어요. 창
+              가장자리를 드래그하면 크기가 바뀌고, 위젯 안 톱니바퀴 아이콘으로 배경 진하기를
+              조절할 수 있어요. 이 브라우저를 닫으면 위젯도 같이 닫혀요.
+            </p>
+          </div>
+          <button
+            onClick={toggleWidget}
+            className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+              widgetOpen
+                ? 'border border-rose-200 text-rose-500 hover:bg-rose-50'
+                : 'bg-mint-500 text-white hover:bg-mint-600'
+            }`}
+          >
+            {widgetOpen ? '위젯 닫기' : '위젯 열기'}
+          </button>
         </div>
       </section>
 
