@@ -22,6 +22,11 @@ export default function App() {
 
   useEffect(() => {
     void window.miyo.getAuthState().then((s) => setLoggedIn(s.loggedIn));
+    // 트레이 메뉴에서 로그인/로그아웃했거나 세션이 만료된 경우에도 화면이 따라가게 한다.
+    return window.miyo.onAuthChanged((state) => {
+      setLoggedIn(state.loggedIn);
+      if (!state.loggedIn) setResult(null);
+    });
   }, []);
 
   useEffect(() => {

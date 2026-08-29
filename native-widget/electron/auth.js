@@ -4,13 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { generateCodeVerifier, codeChallengeFromVerifier } = require('./pkce');
-
-function serverUrl() {
-  return process.env.MIYO_SERVER_URL || 'http://localhost:3001';
-}
-function desktopClientId() {
-  return process.env.MIYO_GOOGLE_DESKTOP_CLIENT_ID || '';
-}
+const { serverUrl, desktopClientId } = require('./config');
 
 function tokenFilePath() {
   return path.join(app.getPath('userData'), 'session.token');
@@ -33,16 +27,26 @@ function clearToken() {
   try { fs.unlinkSync(tokenFilePath()); } catch { /* 이미 없으면 무시 */ }
 }
 
-function firstLoginMarkerPath() {
-  return path.join(app.getPath('userData'), 'has-logged-in-before');
+function autoStartChoicePath() {
+  return path.join(app.getPath('userData'), 'autostart-choice.json');
 }
 
-function hasEverLoggedIn() {
-  return fs.existsSync(firstLoginMarkerPath());
+/** 사용자가 "윈도우 시작 시 자동 실행"을 명시적으로 고른 값을 돌려준다.
+ *  한 번도 고른 적이 없으면 null(= 아직 선택 기록 없음). */
+function getAutoStartChoice() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(autoStartChoicePath(), 'utf-8'));
+    return typeof parsed?.enabled === 'boolean' ? parsed.enabled : null;
+  } catch {
+    return null;
+  }
 }
 
-function markEverLoggedIn() {
-  fs.writeFileSync(firstLoginMarkerPath(), '');
+/** 사용자의 자동 실행 선택을 파일에 기록한다. */
+function setAutoStartChoice(enabled) {
+  try {
+    fs.writeFileSync(autoStartChoicePath(), JSON.stringify({ enabled: Boolean(enabled) }));
+  } catch { /* 기록 실패는 치명적이지 않으므로 무시 */ }
 }
 
 /** 루프백 서버를 열어 구글 로그인 리디렉션을 받고, 성공하면 세션 토큰을 저장한다. */
@@ -61,18 +65,23 @@ function login() {
       const returnedState = url.searchParams.get('state');
       const err = url.searchParams.get('error');
 
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end('<html><body style="font-family:sans-serif;padding:40px"><h2>로그인 완료</h2><p>이 창은 닫아도 됩니다.</p></body></html>');
+      const replyPage = (heading, body) => {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(`<html><body style="font-family:sans-serif;padding:40px"><h2>${heading}</h2><p>${body}</p></body></html>`);
+      };
 
-      if (settled) return;
+      if (settled) { replyPage('이미 처리된 요청입니다', '이 창은 닫아도 됩니다.'); return; }
       settled = true;
       clearTimeout(timeout);
       server.close();
 
+      // 성공/실패를 먼저 판별한 뒤에 그에 맞는 안내 페이지를 보여준다.
       if (err || !code || returnedState !== state) {
+        replyPage('로그인하지 못했어요', '로그인이 취소되었거나 실패했습니다. 이 창을 닫고 위젯에서 다시 시도해 주세요.');
         reject(new Error('로그인이 취소되었거나 실패했습니다.'));
         return;
       }
+      replyPage('로그인 완료', '이 창은 닫아도 됩니다.');
       try {
         const redirectUri = `http://127.0.0.1:${port}/callback`;
         const resp = await fetch(`${serverUrl()}/api/auth/native-login`, {
@@ -122,4 +131,4 @@ function login() {
   });
 }
 
-module.exports = { login, saveToken, loadToken, clearToken, hasEverLoggedIn, markEverLoggedIn };
+module.exports = { login, saveToken, loadToken, clearToken, getAutoStartChoice, setAutoStartChoice };

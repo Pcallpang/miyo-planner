@@ -17,7 +17,7 @@ server/data/
 !client/public/icon-192.png
 !client/public/icon-512.png
 !client/public/apple-touch-icon.png
-!native-widget/electron/assets/tray-icon.png
+!native-widget/electron/assets/*.png
 .vercel
 .env*
 !.env.example

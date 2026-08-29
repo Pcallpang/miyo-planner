@@ -22,6 +22,35 @@
 
 ## 개발자용: 빌드 방법
 
+### 빌드 전에 반드시 할 일 — 접속 정보 넣기 (배포용 빌드일 때)
+
+설치 파일에는 `.env` 파일이 들어가지 않습니다. 그래서 **서버 주소와 구글 로그인
+클라이언트 ID는 `native-widget/package.json`의 `miyoConfig`에 적어 둔 값이 그대로
+설치 파일에 구워집니다.** 지금은 임시 placeholder 값이 들어 있으니, 실제 배포용으로
+빌드하기 전에 사람이 직접 아래 두 값을 진짜 값으로 바꿔야 합니다.
+
+```json
+"miyoConfig": {
+  "serverUrl": "https://YOUR-PLANNER-DOMAIN.example.com",
+  "desktopClientId": "YOUR-GOOGLE-DESKTOP-CLIENT-ID"
+}
+```
+
+- `serverUrl` — 실제로 배포된 플래너 서버 주소 (예: `https://planner.example.com`).
+- `desktopClientId` — 구글 클라우드 콘솔에서 발급한 **"데스크톱 앱" 타입** OAuth
+  클라이언트 ID. 발급 절차는 서버 쪽 `.env.example`의 안내를 따르세요. 이 값은
+  PKCE를 쓰는 공개 클라이언트 ID라 비밀값이 아니며, 저장소에 적어 두어도 됩니다
+  (클라이언트 **시크릿**은 서버에만 두고 여기에 절대 넣지 마세요).
+
+이 값들은 설치 파일 안에 고정되므로, **설치한 뒤에는 바꿀 수 없고 다시 빌드해서
+새 설치 파일을 배포해야 합니다.**
+
+> 개발 중에는 `native-widget/.env`에 `MIYO_SERVER_URL` /
+> `MIYO_GOOGLE_DESKTOP_CLIENT_ID`를 넣으면 그 값이 우선 적용됩니다. `.env`는
+> 저장소에도 설치 파일에도 들어가지 않습니다.
+
+### 빌드 실행
+
 ```bash
 cd native-widget
 npm install

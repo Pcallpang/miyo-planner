@@ -14,6 +14,8 @@ export interface AppDataResult {
   ok: boolean;
   offline: boolean;
   data: WidgetData | null;
+  /** 세션이 만료돼(401) 다시 로그인해야 하는 경우 true. */
+  needsLogin?: boolean;
   error?: string;
 }
 
@@ -25,6 +27,7 @@ declare global {
       logout: () => Promise<{ ok: boolean }>;
       getAppData: () => Promise<AppDataResult>;
       onAppDataUpdated: (callback: (result: AppDataResult) => void) => () => void;
+      onAuthChanged: (callback: (state: AuthState) => void) => () => void;
     };
   }
 }

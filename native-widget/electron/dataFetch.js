@@ -1,10 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { app } = require('electron');
-
-function serverUrl() {
-  return process.env.MIYO_SERVER_URL || 'http://localhost:3001';
-}
+const { serverUrl } = require('./config');
+const { toWidgetData } = require('./widgetData');
 
 function cacheFilePath() {
   return path.join(app.getPath('userData'), 'last-data.json');
@@ -28,10 +26,15 @@ async function fetchAppData(token) {
     const res = await fetch(`${serverUrl()}/api/data`, {
       headers: { Cookie: `session=${token}` },
     });
+    // 세션 만료(30일)는 네트워크 장애와 다르다 — 다시 로그인해야 한다고 알린다.
+    if (res.status === 401) {
+      return { ok: false, offline: false, needsLogin: true, data: null, error: '다시 로그인해 주세요.' };
+    }
     if (!res.ok) throw new Error(`서버 응답 오류: ${res.status}`);
     const body = await res.json();
-    saveCache(body.state);
-    return { ok: true, offline: false, data: body.state };
+    const data = toWidgetData(body.state);
+    saveCache(data);
+    return { ok: true, offline: false, data };
   } catch (e) {
     const cached = loadCache();
     return { ok: Boolean(cached), offline: true, data: cached, error: e.message };
