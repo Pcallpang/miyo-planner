@@ -1,10 +1,145 @@
+import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
+import { ko } from 'date-fns/locale';
+import { getDayPhase } from './lib/schedule';
+import { effectiveSlot } from './lib/scheduleSlot';
+import { buildSubjectColors, classColorKey } from './lib/subjectColors';
+import type { AppDataResult } from './miyo';
+
+const dragStyle = { WebkitAppRegion: 'drag' } as React.CSSProperties;
+const noDragStyle = { WebkitAppRegion: 'no-drag' } as React.CSSProperties;
+
 export default function App() {
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  const [loginError, setLoginError] = useState('');
+  const [result, setResult] = useState<AppDataResult | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    void window.miyo.getAuthState().then((s) => setLoggedIn(s.loggedIn));
+  }, []);
+
+  useEffect(() => {
+    if (!loggedIn) return;
+    void window.miyo.getAppData().then(setResult);
+    return window.miyo.onAppDataUpdated(setResult);
+  }, [loggedIn]);
+
+  async function handleLogin() {
+    setLoginError('');
+    const res = await window.miyo.login();
+    if (res.ok) setLoggedIn(true);
+    else setLoginError(res.error || '로그인에 실패했어요.');
+  }
+
+  if (loggedIn === null) {
+    return (
+      <div style={dragStyle} className="flex h-screen items-center justify-center text-xs text-white/70">
+        불러오는 중...
+      </div>
+    );
+  }
+
+  if (!loggedIn) {
+    return (
+      <div style={dragStyle} className="flex h-screen flex-col items-center justify-center gap-3 rounded-2xl bg-black/30 p-4 text-center">
+        <p className="text-sm font-semibold text-white drop-shadow">로그인이 필요해요</p>
+        <button
+          type="button"
+          style={noDragStyle}
+          onClick={handleLogin}
+          className="rounded-xl bg-mint-500 px-4 py-2 text-xs font-semibold text-white hover:bg-mint-600"
+        >
+          구글로 로그인
+        </button>
+        {loginError && <p className="text-[11px] text-rose-200">{loginError}</p>}
+      </div>
+    );
+  }
+
+  const data = result?.data;
+  if (!data) {
+    return (
+      <div style={dragStyle} className="flex h-screen items-center justify-center text-xs text-white/70 drop-shadow">
+        데이터를 불러오는 중...
+      </div>
+    );
+  }
+
+  const { settings, timetable, swapOverrides, canceledLessons, makeupLessons, subjectColors } = data;
+  const phase = getDayPhase(now, settings.periodTimes, settings.periodCount);
+  const todayKey = format(now, 'yyyy-MM-dd');
+  const colors = buildSubjectColors(timetable, subjectColors);
+
+  let shortMessage = '';
+  if (phase.kind === 'weekend') shortMessage = '주말이에요. 편안한 하루 보내세요.';
+  else if (phase.kind === 'before') shortMessage = `아직 일과 전이에요. ${settings.periodTimes[0]?.start ?? ''}에 시작해요.`;
+  else if (phase.kind === 'after') shortMessage = '오늘 일과가 끝났어요. 수고하셨어요!';
+
   return (
-    <div
-      style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
-      className="flex h-screen items-center justify-center rounded-2xl border border-white/40 bg-black/10 text-sm font-semibold text-white"
-    >
-      미요 위젯 (준비 중)
+    <div className="flex h-screen flex-col p-1 text-white">
+      <div style={dragStyle} className="mb-1 flex shrink-0 items-center justify-between px-2 py-1">
+        <p className="text-sm font-bold drop-shadow">{format(now, 'M월 d일 (EEE)', { locale: ko })}</p>
+        {result?.offline && <span className="text-[10px] text-amber-300">● 오프라인</span>}
+      </div>
+
+      {shortMessage ? (
+        <p className="flex flex-1 items-center justify-center text-center text-sm text-white/90 drop-shadow">
+          {shortMessage}
+        </p>
+      ) : (
+        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-1">
+          {Array.from({ length: settings.periodCount }, (_, i) => {
+            const slot = effectiveSlot(timetable, swapOverrides, todayKey, i);
+            const isCanceled = canceledLessons.some((c) => c.date === todayKey && c.period === i);
+            const makeup = makeupLessons.find((m) => m.date === todayKey && m.period === i);
+            const isCurrent = phase.kind === 'period' && phase.index === i;
+            const time = settings.periodTimes[i];
+            const color = slot.subject.trim() ? colors.get(classColorKey(slot.subject, slot.room)) : undefined;
+            return (
+              <li
+                key={i}
+                className={`flex items-center gap-2 rounded-xl px-2 py-1.5 ${isCurrent ? 'bg-white/25 ring-1 ring-white/40' : ''}`}
+              >
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
+                    isCurrent ? 'bg-mint-500 text-white' : 'bg-white/20 text-white/80'
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`truncate text-sm font-medium drop-shadow ${
+                      isCanceled ? 'text-white/50 line-through' : color ? color.text : 'text-white'
+                    }`}
+                  >
+                    {slot.subject || '미배정'}
+                    {slot.room ? ` · ${slot.room}` : ''}
+                  </p>
+                  {makeup && (
+                    <p className="truncate text-[11px] font-medium text-violet-200">
+                      보강 · {makeup.subject}
+                      {makeup.room ? ` ${makeup.room}` : ''}
+                    </p>
+                  )}
+                </div>
+                <span className="shrink-0 text-[11px] text-white/70">
+                  {time?.start}~{time?.end}
+                </span>
+                {isCanceled && (
+                  <span className="shrink-0 rounded bg-white/30 px-1 text-[9px] font-bold text-white">휴강</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }
