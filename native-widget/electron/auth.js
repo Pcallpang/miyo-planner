@@ -33,6 +33,18 @@ function clearToken() {
   try { fs.unlinkSync(tokenFilePath()); } catch { /* 이미 없으면 무시 */ }
 }
 
+function firstLoginMarkerPath() {
+  return path.join(app.getPath('userData'), 'has-logged-in-before');
+}
+
+function hasEverLoggedIn() {
+  return fs.existsSync(firstLoginMarkerPath());
+}
+
+function markEverLoggedIn() {
+  fs.writeFileSync(firstLoginMarkerPath(), '');
+}
+
 /** 루프백 서버를 열어 구글 로그인 리디렉션을 받고, 성공하면 세션 토큰을 저장한다. */
 function login() {
   return new Promise((resolve, reject) => {
@@ -110,4 +122,4 @@ function login() {
   });
 }
 
-module.exports = { login, saveToken, loadToken, clearToken };
+module.exports = { login, saveToken, loadToken, clearToken, hasEverLoggedIn, markEverLoggedIn };

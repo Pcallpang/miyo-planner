@@ -63,9 +63,10 @@ function startPolling() {
 ipcMain.handle('miyo:getAppData', () => refreshAppData());
 
 async function handleLogin() {
-  const isFirstLogin = !auth.loadToken();
+  const isFirstLogin = !auth.hasEverLoggedIn();
   try {
     const result = await auth.login();
+    auth.markEverLoggedIn();
     if (isFirstLogin) app.setLoginItemSettings({ openAtLogin: true });
     startPolling();
     await refreshAppData();
