@@ -88,9 +88,12 @@ URI가 `http://127.0.0.1:*` 루프백이어야 하는데, 이건 데스크톱 �
 4. Electron 메인 프로세스가 받은 `code`를 기존 서버의 신규 엔드포인트
    `POST /api/auth/native-login`으로 전달한다.
 5. 서버는 `code`를 데스크톱 클라이언트로 구글과 교환해 `id_token`을 얻고, 기존
-   `upsertUser`/`saveTokensForUser`(재사용)로 사용자를 저장한 뒤, 기존
-   `makeSessionToken(userId)`로 세션 토큰을 만들어 **쿠키가 아니라 JSON 응답 바디로**
-   돌려준다(`{ token, user }`).
+   `upsertUser`로 사용자 신원만 저장한 뒤, 기존 `makeSessionToken(userId)`로 세션
+   토큰을 만들어 **쿠키가 아니라 JSON 응답 바디로** 돌려준다(`{ token, user }`).
+   **이 라우트는 구글 토큰을 저장하지 않는다(신원 확인 전용).** 위젯 로그인은
+   `openid email profile` 범위만 요청하므로, 여기서 `saveTokensForUser`를 호출하면
+   웹앱이 쓰는 캘린더 범위 리프레시 토큰을 캘린더 없는 토큰으로 덮어써 웹앱의
+   구글 캘린더 연동이 끊긴다. 절대 다시 넣지 말 것.
 6. Electron은 이 토큰을 `safeStorage.encryptString()`(윈도우 자격 증명 저장소 기반,
    추가 네이티브 모듈 불필요)으로 암호화해 로컬 파일에 저장한다.
 7. 이후 서버 API 호출 시 매번 `Cookie: session=<복호화한 토큰>` 헤더를 직접 실어
@@ -100,7 +103,8 @@ URI가 `http://127.0.0.1:*` 루프백이어야 하는데, 이건 데스크톱 �
 
 **서버 변경 범위:** `server/routes/auth.js`에 `POST /api/auth/native-login` 라우트
 하나 추가. 기존 `createOAuthClient`/`profileFromIdToken`/`upsertUser`/
-`saveTokensForUser`/`makeSessionToken`을 그대로 재사용하되, 데스크톱 클라이언트
+`makeSessionToken`을 그대로 재사용하되(단 `saveTokensForUser`는 호출하지 않는다 —
+위 5번 참고), 데스크톱 클라이언트
 자격증명으로 토큰 교환하는 부분만 다르다(`google.js`에 데스크톱용 OAuth2Client
 생성 함수 하나 추가).
 

@@ -49,13 +49,18 @@ router.post('/native-login', async (req, res) => {
   if (typeof code !== 'string' || typeof redirectUri !== 'string' || typeof codeVerifier !== 'string') {
     return res.status(400).json({ error: '잘못된 요청입니다.' });
   }
+  // 데스크톱 OAuth는 루프백 주소만 허용된다. 임의 리디렉션 주소를 구글로 넘기지 않는다.
+  if (!/^http:\/\/127\.0\.0\.1:\d{1,5}\/callback$/.test(redirectUri)) {
+    return res.status(400).json({ error: '잘못된 요청입니다.' });
+  }
   try {
     const client = createDesktopOAuthClient(redirectUri);
     const { tokens } = await client.getToken({ code, codeVerifier });
     const { sub, email, name } = profileFromIdToken(tokens.id_token);
     if (!sub) throw new Error('id_token 없음');
+    // 신원 확인 전용: 위젯 로그인은 캘린더 범위가 없는 토큰이므로 저장하지 않는다.
+    // (저장하면 웹앱의 캘린더 연동 토큰을 덮어써서 캘린더 기능이 끊긴다.)
     const user = await upsertUser({ googleSub: sub, email, name });
-    await saveTokensForUser(user.id, tokens);
     res.json({ token: makeSessionToken(user.id), user: { email, name } });
   } catch (e) {
     console.error('[auth] 데스크톱 로그인 실패:', e.message);
