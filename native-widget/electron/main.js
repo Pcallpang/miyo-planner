@@ -1,6 +1,9 @@
-const { app, BrowserWindow } = require('electron');
+require('dotenv').config({ path: require('node:path').join(__dirname, '../.env') });
+
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
 const { loadWindowBounds, saveWindowBounds } = require('./windowBounds');
+const auth = require('./auth');
 
 const isDev = !app.isPackaged;
 const DEV_SERVER_URL = 'http://localhost:5174';
@@ -32,6 +35,22 @@ function createWindow() {
   mainWindow.on('move', persistBounds);
   mainWindow.on('close', persistBounds);
 }
+
+async function handleLogin() {
+  try {
+    const result = await auth.login();
+    return { ok: true, user: result.user };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+ipcMain.handle('miyo:getAuthState', () => ({ loggedIn: Boolean(auth.loadToken()) }));
+ipcMain.handle('miyo:login', handleLogin);
+ipcMain.handle('miyo:logout', () => {
+  auth.clearToken();
+  return { ok: true };
+});
 
 app.whenReady().then(createWindow);
 
