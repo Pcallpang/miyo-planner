@@ -6,7 +6,8 @@
   "description": "교사용 개인 일정·To-Do 관리 웹앱 (구글 캘린더 + Gemini 연동)",
   "workspaces": [
     "client",
-    "server"
+    "server",
+    "native-widget"
   ],
   "engines": {
     "node": "22.x"
@@ -16,12 +17,13 @@
     "build": "npm run build -w client",
     "start": "npm run start -w server",
     "db:migrate": "node server/db/migrate.js",
-    "test": "node --test server/lib/*.test.js && npm run test -w client"
+    "test": "node --test server/lib/*.test.js && npm run test -w client && npm run test -w native-widget"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"
   },
   "allowScripts": {
-    "esbuild@0.25.12": true
+    "esbuild@0.25.12": true,
+    "electron@33.4.11": true
   }
 }

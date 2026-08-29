@@ -1,0 +1,21 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Pretendard Variable', Pretendard, 'Noto Sans KR', system-ui, sans-serif;
+  --color-mint-50: #f0fbf8;
+  --color-mint-100: #d9f5ee;
+  --color-mint-200: #b3ebdd;
+  --color-mint-300: #7edcc5;
+  --color-mint-400: #45c5a8;
+  --color-mint-500: #23ab8e;
+  --color-mint-600: #178a74;
+  --color-mint-700: #146e5e;
+  --color-mint-800: #14584d;
+  --color-mint-900: #134940;
+}
+
+html, body, #root {
+  height: 100%;
+  background: transparent;
+  font-family: var(--font-sans);
+}

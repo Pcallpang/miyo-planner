@@ -1,0 +1,33 @@
+{
+  "name": "miyo-native-widget",
+  "private": true,
+  "version": "1.0.0",
+  "main": "electron/main.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev:renderer": "vite",
+    "dev": "concurrently -k -n renderer,electron -c green,blue \"npm run dev:renderer\" \"wait-on http://localhost:5174 && electron .\"",
+    "build:renderer": "tsc --noEmit && vite build",
+    "build": "npm run build:renderer && electron-builder",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.7",
+    "@types/react": "^19.1.5",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.7",
+    "wait-on": "^8.0.1"
+  }
+}
