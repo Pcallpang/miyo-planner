@@ -1,22 +1,20 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { Settings as SettingsIcon } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { getDayPhase } from '../lib/schedule';
 import { effectiveSlot } from '../lib/subjectProgress';
 import { buildSubjectColors, classColorKey } from '../lib/subjectColors';
-import { getWidgetOpacity, setWidgetOpacity, setWidgetSize } from '../lib/widgetPrefs';
+import { setWidgetSize } from '../lib/widgetPrefs';
 
 /** "?widget=1"로 열린 팝업 창에서 보여주는 오늘의 시간표 미니 위젯. Sidebar/Header
- *  없이 이것만 렌더된다(App.tsx 참고). */
+ *  없이 이것만 렌더된다(App.tsx 참고). 카드는 글래스모피즘(반투명 + 블러)으로
+ *  고정 스타일이라 별도 배경 진하기 설정은 없다. */
 export default function WidgetView() {
   const { settings } = useApp();
   const { data, refetch } = useData();
   const [now, setNow] = useState(() => new Date());
-  const [opacity, setOpacity] = useState(() => getWidgetOpacity());
-  const [showSettings, setShowSettings] = useState(false);
 
   // 시계 갱신(1분마다) — 지금 진행 중인 교시 강조에 쓴다.
   useEffect(() => {
@@ -46,11 +44,6 @@ export default function WidgetView() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  function handleOpacityChange(value: number) {
-    setOpacity(value);
-    setWidgetOpacity(value);
-  }
-
   const phase = getDayPhase(now, settings.periodTimes, settings.periodCount);
   const todayKey = format(now, 'yyyy-MM-dd');
   const subjectColors = buildSubjectColors(data.timetable, data.subjectColors);
@@ -62,37 +55,11 @@ export default function WidgetView() {
   else if (phase.kind === 'after') shortMessage = '오늘 일과가 끝났어요. 수고하셨어요!';
 
   return (
-    <div className="flex h-screen flex-col bg-mint-50 p-3">
-      <div
-        className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl p-4 shadow-sm ring-1 ring-slate-100"
-        style={{ background: `rgba(255,255,255,${opacity / 100})` }}
-      >
-        <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
-          <p className="text-sm font-bold text-slate-700">{format(now, 'M월 d일 (EEE)', { locale: ko })}</p>
-          <button
-            type="button"
-            onClick={() => setShowSettings((v) => !v)}
-            aria-label="위젯 설정"
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-          >
-            <SettingsIcon size={16} />
-          </button>
-        </div>
-
-        {showSettings && (
-          <div className="mb-2 flex shrink-0 items-center gap-2 rounded-xl bg-slate-50 px-3 py-2">
-            <span className="shrink-0 text-[11px] text-slate-500">배경 진하기</span>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={opacity}
-              onChange={(e) => handleOpacityChange(Number(e.target.value))}
-              className="flex-1"
-            />
-            <span className="w-8 shrink-0 text-right text-[11px] text-slate-400">{opacity}%</span>
-          </div>
-        )}
+    <div className="flex h-screen flex-col bg-gradient-to-br from-mint-200 via-sky-100 to-violet-100 p-3">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-white/60 bg-white/35 p-4 shadow-xl backdrop-blur-xl">
+        <p className="mb-2 shrink-0 text-sm font-bold text-slate-700">
+          {format(now, 'M월 d일 (EEE)', { locale: ko })}
+        </p>
 
         {shortMessage ? (
           <p className="flex flex-1 items-center justify-center text-center text-sm text-slate-500">
@@ -113,7 +80,7 @@ export default function WidgetView() {
                 <li
                   key={i}
                   className={`flex items-center gap-2 rounded-xl px-2.5 py-1.5 ${
-                    isCurrent ? 'bg-mint-100 ring-1 ring-mint-300' : ''
+                    isCurrent ? 'bg-white/50 ring-1 ring-mint-300/70' : ''
                   }`}
                 >
                   <span

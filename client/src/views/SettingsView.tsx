@@ -35,10 +35,13 @@ export default function SettingsView() {
       return;
     }
     const size = getWidgetSize();
+    // popup=yes만으로는 일부 브라우저에서 주소창·탭 막대가 그대로 보여 위젯이
+    // 그냥 웹사이트 창처럼 보인다 — toolbar/location/menubar/status를 명시적으로
+    // 꺼서 최대한 앱 창처럼 뜨게 한다.
     const win = window.open(
       '/?widget=1',
       'miyo-widget',
-      `width=${size.width},height=${size.height},resizable=yes,popup=yes`,
+      `width=${size.width},height=${size.height},resizable=yes,popup=yes,toolbar=no,location=no,menubar=no,status=no,scrollbars=no`,
     );
     widgetRef.current = win;
     setWidgetOpen(Boolean(win));
