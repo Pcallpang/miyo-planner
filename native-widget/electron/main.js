@@ -63,9 +63,10 @@ function startPolling() {
 ipcMain.handle('miyo:getAppData', () => refreshAppData());
 
 async function handleLogin() {
+  const isFirstLogin = !auth.loadToken();
   try {
     const result = await auth.login();
-    app.setLoginItemSettings({ openAtLogin: true });
+    if (isFirstLogin) app.setLoginItemSettings({ openAtLogin: true });
     startPolling();
     await refreshAppData();
     if (tray) updateTrayMenu();
@@ -122,7 +123,6 @@ app.whenReady().then(async () => {
   createWindow();
   createTray();
   if (auth.loadToken()) {
-    app.setLoginItemSettings({ openAtLogin: true });
     startPolling();
     await refreshAppData();
   }
