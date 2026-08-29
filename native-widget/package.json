@@ -6,8 +6,8 @@
   "type": "commonjs",
   "//miyoConfig": "설치 파일에 그대로 구워지는 값입니다. 실제 배포용 빌드 전에 아래 두 값을 진짜 서버 주소와 진짜 구글 데스크톱 OAuth 클라이언트 ID로 바꾸세요(README '개발자용: 빌드 방법' 참고). 데스크톱 클라이언트 ID는 PKCE를 쓰므로 비밀값이 아닙니다.",
   "miyoConfig": {
-    "serverUrl": "https://YOUR-PLANNER-DOMAIN.example.com",
-    "desktopClientId": "YOUR-GOOGLE-DESKTOP-CLIENT-ID"
+    "serverUrl": "https://miyo-planner.vercel.app",
+    "desktopClientId": "280309938828-1tbv8eqqh1gmfbba51qfg4sig6qchcda.apps.googleusercontent.com"
   },
   "scripts": {
     "dev:renderer": "vite",
