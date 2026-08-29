@@ -77,6 +77,13 @@ function login() {
       }
     });
 
+    server.on('error', (e) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      reject(e);
+    });
+
     let port;
     const timeout = setTimeout(() => {
       if (settled) return;
