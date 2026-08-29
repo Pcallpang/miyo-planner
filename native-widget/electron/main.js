@@ -1,6 +1,6 @@
 require('dotenv').config({ path: require('node:path').join(__dirname, '../.env') });
 
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
 const path = require('node:path');
 const { loadWindowBounds, saveWindowBounds } = require('./windowBounds');
 const auth = require('./auth');
@@ -36,7 +36,13 @@ function createWindow() {
   const persistBounds = () => saveWindowBounds(mainWindow.getBounds());
   mainWindow.on('resize', persistBounds);
   mainWindow.on('move', persistBounds);
-  mainWindow.on('close', persistBounds);
+  mainWindow.on('close', (e) => {
+    persistBounds();
+    if (!app.isQuitting) {
+      e.preventDefault();
+      mainWindow.hide();
+    }
+  });
 }
 
 let pollTimer = null;
@@ -59,8 +65,10 @@ ipcMain.handle('miyo:getAppData', () => refreshAppData());
 async function handleLogin() {
   try {
     const result = await auth.login();
+    app.setLoginItemSettings({ openAtLogin: true });
     startPolling();
     await refreshAppData();
+    if (tray) updateTrayMenu();
     return { ok: true, user: result.user };
   } catch (e) {
     return { ok: false, error: e.message };
@@ -74,15 +82,48 @@ ipcMain.handle('miyo:logout', () => {
   return { ok: true };
 });
 
+let tray = null;
+
+function updateTrayMenu() {
+  const loggedIn = Boolean(auth.loadToken());
+  const openAtLogin = app.getLoginItemSettings().openAtLogin;
+  tray.setContextMenu(Menu.buildFromTemplate([
+    {
+      label: mainWindow?.isVisible() ? '위젯 숨기기' : '위젯 보이기',
+      click: () => mainWindow && (mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show()),
+    },
+    { type: 'separator' },
+    loggedIn
+      ? { label: '로그아웃', click: () => { auth.clearToken(); updateTrayMenu(); } }
+      : { label: '로그인', click: () => void handleLogin().then(updateTrayMenu) },
+    {
+      label: '윈도우 시작 시 자동 실행',
+      type: 'checkbox',
+      checked: openAtLogin,
+      click: (item) => app.setLoginItemSettings({ openAtLogin: item.checked }),
+    },
+    { type: 'separator' },
+    { label: '종료', click: () => { app.isQuitting = true; app.quit(); } },
+  ]));
+}
+
+function createTray() {
+  const icon = nativeImage.createFromPath(path.join(__dirname, 'assets/tray-icon.png'));
+  tray = new Tray(icon);
+  tray.setToolTip('미요 오늘의 시간표');
+  tray.on('click', () => {
+    if (!mainWindow) return;
+    mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
+  });
+  updateTrayMenu();
+}
+
 app.whenReady().then(async () => {
   createWindow();
+  createTray();
   if (auth.loadToken()) {
+    app.setLoginItemSettings({ openAtLogin: true });
     startPolling();
     await refreshAppData();
   }
-});
-
-app.on('window-all-closed', () => {
-  // 트레이 상주 프로그램이라 창을 닫아도 앱을 종료하지 않는다(Task 7에서 트레이 추가).
-  if (process.platform !== 'darwin' && !app.isPackaged) app.quit();
 });
