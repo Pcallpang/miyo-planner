@@ -40,7 +40,7 @@ export default function WidgetView() {
   // 창을 닫는 순간의 크기를 기억해 뒀다가, 다음에 열 때 그 크기로 연다.
   useEffect(() => {
     function handleBeforeUnload() {
-      setWidgetSize({ width: window.outerWidth, height: window.outerHeight });
+      setWidgetSize({ width: window.innerWidth, height: window.innerHeight });
     }
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);

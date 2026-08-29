@@ -68,18 +68,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const loadFromServer = useCallback(async () => {
+  const loadFromServer = useCallback(async (allowMigration: boolean) => {
     setLoading(true);
     try {
       const { state } = await api.getData();
-      // 첫 로그인 이관: 서버가 기본값(빈 todos 등)이고 로컬에 데이터가 있으면 올림
+      // 첫 로그인 이관: 서버가 기본값(빈 todos 등)이고 로컬에 데이터가 있으면 올림.
+      // allowMigration이 false면(위젯 refetch 등) 이 이관·업로드 분기를 절대 타지 않는다 —
+      // 읽기 전용으로 서버 상태만 반영한다.
       const local = collectLocalStorage();
       const serverEmpty =
         state.todos.length === 0 &&
         state.memos.length === 0 &&
         Object.keys(state.timetable).length === 0 &&
         state.meetings.length === 0;
-      if (local && serverEmpty) {
+      if (allowMigration && local && serverEmpty) {
         const migrated = {
           ...state,
           ...local,
@@ -109,7 +111,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    void loadFromServer();
+    void loadFromServer(true);
   }, [loadFromServer]);
 
   const update = useCallback(
@@ -124,7 +126,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [scheduleFlush],
   );
 
-  const refetch = useCallback(() => loadFromServer(), [loadFromServer]);
+  // refetch()는 읽기 전용이어야 한다(위젯 팝업이 주기적으로 호출) — 이관·업로드는 절대 하지 않는다.
+  const refetch = useCallback(() => loadFromServer(false), [loadFromServer]);
 
   const value = useMemo<DataValue>(
     () => ({ data, loading, update, refetch }),
