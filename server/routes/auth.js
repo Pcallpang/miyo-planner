@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   isGoogleConfigured, createOAuthClient, SCOPES, profileFromIdToken, saveTokensForUser,
+  isDesktopGoogleConfigured, createDesktopOAuthClient,
 } from '../lib/google.js';
 import { upsertUser, deleteUserTokens } from '../lib/db.js';
 import { makeSessionToken, sessionUserId } from '../lib/auth.js';
@@ -37,6 +38,28 @@ router.get('/google/callback', async (req, res) => {
   } catch (e) {
     console.error('[auth] 로그인 실패:', e.message);
     res.redirect(`${clientUrl()}/?auth=error`);
+  }
+});
+
+router.post('/native-login', async (req, res) => {
+  if (!isDesktopGoogleConfigured()) {
+    return res.status(503).json({ error: '데스크톱 로그인이 설정되지 않았습니다.' });
+  }
+  const { code, redirectUri, codeVerifier } = req.body || {};
+  if (typeof code !== 'string' || typeof redirectUri !== 'string' || typeof codeVerifier !== 'string') {
+    return res.status(400).json({ error: '잘못된 요청입니다.' });
+  }
+  try {
+    const client = createDesktopOAuthClient(redirectUri);
+    const { tokens } = await client.getToken({ code, codeVerifier });
+    const { sub, email, name } = profileFromIdToken(tokens.id_token);
+    if (!sub) throw new Error('id_token 없음');
+    const user = await upsertUser({ googleSub: sub, email, name });
+    await saveTokensForUser(user.id, tokens);
+    res.json({ token: makeSessionToken(user.id), user: { email, name } });
+  } catch (e) {
+    console.error('[auth] 데스크톱 로그인 실패:', e.message);
+    res.status(400).json({ error: '로그인에 실패했습니다.' });
   }
 });
 

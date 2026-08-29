@@ -71,3 +71,18 @@ export async function getAuthedClient(userId) {
 export async function getCalendarApi(userId) {
   return google.calendar({ version: 'v3', auth: await getAuthedClient(userId) });
 }
+
+/** 데스크톱(네이티브) 앱용 구글 OAuth 클라이언트가 설정됐는지 */
+export function isDesktopGoogleConfigured() {
+  return Boolean(process.env.GOOGLE_DESKTOP_CLIENT_ID && process.env.GOOGLE_DESKTOP_CLIENT_SECRET);
+}
+
+/**
+ * 데스크톱 앱 전용 OAuth 클라이언트. 웹앱과 다른 구글 클라이언트(리디렉션이
+ * http://127.0.0.1:* 루프백인 "데스크톱 앱" 타입)를 쓰고, redirectUri는 매 로그인마다
+ * Electron이 여는 임시 포트가 달라 호출 시점에 전달받는다.
+ */
+export function createDesktopOAuthClient(redirectUri) {
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_DESKTOP_CLIENT_ID, process.env.GOOGLE_DESKTOP_CLIENT_SECRET, redirectUri);
+}
