@@ -4,6 +4,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('node:path');
 const { loadWindowBounds, saveWindowBounds } = require('./windowBounds');
 const auth = require('./auth');
+const { fetchAppData } = require('./dataFetch');
 
 const isDev = !app.isPackaged;
 const DEV_SERVER_URL = 'http://localhost:5174';
@@ -30,15 +31,36 @@ function createWindow() {
   if (isDev) mainWindow.loadURL(DEV_SERVER_URL);
   else mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
 
+  mainWindow.on('focus', () => { if (auth.loadToken()) void refreshAppData(); });
+
   const persistBounds = () => saveWindowBounds(mainWindow.getBounds());
   mainWindow.on('resize', persistBounds);
   mainWindow.on('move', persistBounds);
   mainWindow.on('close', persistBounds);
 }
 
+let pollTimer = null;
+
+async function refreshAppData() {
+  const token = auth.loadToken();
+  if (!token) return { ok: false, offline: true, data: null, error: '로그인이 필요합니다.' };
+  const result = await fetchAppData(token);
+  if (mainWindow) mainWindow.webContents.send('miyo:appDataUpdated', result);
+  return result;
+}
+
+function startPolling() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(refreshAppData, 5 * 60 * 1000);
+}
+
+ipcMain.handle('miyo:getAppData', () => refreshAppData());
+
 async function handleLogin() {
   try {
     const result = await auth.login();
+    startPolling();
+    await refreshAppData();
     return { ok: true, user: result.user };
   } catch (e) {
     return { ok: false, error: e.message };
@@ -52,7 +74,13 @@ ipcMain.handle('miyo:logout', () => {
   return { ok: true };
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  createWindow();
+  if (auth.loadToken()) {
+    startPolling();
+    await refreshAppData();
+  }
+});
 
 app.on('window-all-closed', () => {
   // 트레이 상주 프로그램이라 창을 닫아도 앱을 종료하지 않는다(Task 7에서 트레이 추가).
