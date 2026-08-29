@@ -1,0 +1,15 @@
+appId: com.miyo.native-widget
+productName: 미요 오늘의 시간표
+directories:
+  output: release
+files:
+  - dist/**
+  - electron/**
+  - package.json
+  - '!electron/*.test.js'
+win:
+  target: nsis
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
