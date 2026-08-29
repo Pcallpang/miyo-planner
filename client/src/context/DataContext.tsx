@@ -17,6 +17,7 @@ interface DataValue {
   data: AppData;
   loading: boolean;
   update: (patch: Partial<AppData> | ((prev: AppData) => Partial<AppData>)) => void;
+  refetch: () => Promise<void>;
 }
 const Ctx = createContext<DataValue | null>(null);
 
@@ -67,53 +68,49 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const { state } = await api.getData();
-        // 첫 로그인 이관: 서버가 기본값(빈 todos 등)이고 로컬에 데이터가 있으면 올림
-        const local = collectLocalStorage();
-        const serverEmpty =
-          state.todos.length === 0 &&
-          state.memos.length === 0 &&
-          Object.keys(state.timetable).length === 0 &&
-          state.meetings.length === 0;
-        if (local && serverEmpty) {
-          const migrated = {
-            ...state,
-            ...local,
-            settings: normalizeSettings({ ...state.settings, ...(local.settings ?? {}) }),
-            overtimeLogs: state.overtimeLogs ?? [],
-            overtimePunches: state.overtimePunches ?? [],
-          };
-          if (!cancelled) {
-            setData(migrated);
-            await api.putData({ ...local, settings: migrated.settings });
-          }
-        } else if (!cancelled) {
-          setData({
-            ...state,
-            settings: normalizeSettings(state.settings),
-            overtimeLogs: state.overtimeLogs ?? [],
-            overtimePunches: state.overtimePunches ?? [],
-          });
-        }
-      } catch (e) {
-        // 미인증(401)이면 기본값으로 두고 조용히 넘어간다. 로그인 후 재마운트되어 다시 로드된다.
-        if (e instanceof ApiError && e.status === 401) {
-          if (!cancelled) setData(defaultAppData());
-        }
-        // 그 외 오류도 기본값 유지(토스트 없음).
-      } finally {
-        if (!cancelled) setLoading(false);
+  const loadFromServer = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { state } = await api.getData();
+      // 첫 로그인 이관: 서버가 기본값(빈 todos 등)이고 로컬에 데이터가 있으면 올림
+      const local = collectLocalStorage();
+      const serverEmpty =
+        state.todos.length === 0 &&
+        state.memos.length === 0 &&
+        Object.keys(state.timetable).length === 0 &&
+        state.meetings.length === 0;
+      if (local && serverEmpty) {
+        const migrated = {
+          ...state,
+          ...local,
+          settings: normalizeSettings({ ...state.settings, ...(local.settings ?? {}) }),
+          overtimeLogs: state.overtimeLogs ?? [],
+          overtimePunches: state.overtimePunches ?? [],
+        };
+        setData(migrated);
+        await api.putData({ ...local, settings: migrated.settings });
+      } else {
+        setData({
+          ...state,
+          settings: normalizeSettings(state.settings),
+          overtimeLogs: state.overtimeLogs ?? [],
+          overtimePunches: state.overtimePunches ?? [],
+        });
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    } catch (e) {
+      // 미인증(401)이면 기본값으로 두고 조용히 넘어간다. 로그인 후 재마운트되어 다시 로드된다.
+      if (e instanceof ApiError && e.status === 401) {
+        setData(defaultAppData());
+      }
+      // 그 외 오류도 기본값 유지(토스트 없음).
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadFromServer();
+  }, [loadFromServer]);
 
   const update = useCallback(
     (patch: Partial<AppData> | ((prev: AppData) => Partial<AppData>)) => {
@@ -127,7 +124,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [scheduleFlush],
   );
 
-  const value = useMemo<DataValue>(() => ({ data, loading, update }), [data, loading, update]);
+  const refetch = useCallback(() => loadFromServer(), [loadFromServer]);
+
+  const value = useMemo<DataValue>(
+    () => ({ data, loading, update, refetch }),
+    [data, loading, update, refetch],
+  );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
