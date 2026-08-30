@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Clock, LogOut, Settings as SettingsIcon, Unplug } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
@@ -7,7 +7,11 @@ import { defaultAppData } from '../lib/appData';
 import { clearAppData, defaultSettings } from '../lib/storage';
 import SchoolPicker from '../components/SchoolPicker';
 import PeriodTimesModal from '../components/PeriodTimesModal';
-import { getWidgetSize } from '../lib/widgetPrefs';
+
+/** 바탕화면 위젯(네이티브 프로그램) 설치 파일 다운로드 링크. 새 버전을 배포하면
+ *  GitHub Releases에 새 태그로 올리고 이 값을 갱신한다. */
+const NATIVE_WIDGET_DOWNLOAD_URL =
+  'https://github.com/Pcallpang/miyo-planner/releases/download/native-widget-v1.0.0/Setup.1.0.0.exe';
 
 export default function SettingsView() {
   const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
@@ -16,37 +20,6 @@ export default function SettingsView() {
   const [geminiKeyInput, setGeminiKeyInput] = useState('');
   const [savingKey, setSavingKey] = useState(false);
   const [editingPeriodTimes, setEditingPeriodTimes] = useState(false);
-  const widgetRef = useRef<Window | null>(null);
-  const [widgetOpen, setWidgetOpen] = useState(false);
-
-  // 사용자가 위젯 창을 직접 닫아도(버튼이 아니라 창의 X로) 버튼 라벨이 따라가도록
-  // 1초마다 창이 열려 있는지 확인한다.
-  useEffect(() => {
-    const id = setInterval(() => {
-      setWidgetOpen(Boolean(widgetRef.current && !widgetRef.current.closed));
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  function toggleWidget() {
-    if (widgetRef.current && !widgetRef.current.closed) {
-      widgetRef.current.close();
-      setWidgetOpen(false);
-      return;
-    }
-    const size = getWidgetSize();
-    // popup=yes만으로는 일부 브라우저에서 주소창·탭 막대가 그대로 보여 위젯이
-    // 그냥 웹사이트 창처럼 보인다 — toolbar/location/menubar/status를 명시적으로
-    // 꺼서 최대한 앱 창처럼 뜨게 한다.
-    const win = window.open(
-      '/?widget=1',
-      'miyo-widget',
-      `width=${size.width},height=${size.height},resizable=yes,popup=yes,toolbar=no,location=no,menubar=no,status=no,scrollbars=no`,
-    );
-    widgetRef.current = win;
-    setWidgetOpen(Boolean(win));
-    win?.focus();
-  }
 
   async function appLogout() {
     await api.logout();
@@ -337,23 +310,21 @@ export default function SettingsView() {
         <h3 className="mb-2 text-base font-bold text-slate-800">바탕화면 위젯</h3>
         <div className={rowCls}>
           <div>
-            <p className={labelCls}>오늘의 시간표 위젯</p>
+            <p className={labelCls}>오늘의 시간표 위젯 (설치형 프로그램)</p>
             <p className={descCls}>
-              오늘의 시간표만 담은 작은 창을 띄워 화면 한쪽에 계속 열어둘 수 있어요. 창
-              가장자리를 드래그하면 크기가 바뀌고, 위젯 안 톱니바퀴 아이콘으로 배경 진하기를
-              조절할 수 있어요. 이 브라우저를 닫으면 위젯도 같이 닫혀요.
+              오늘의 시간표를 바탕화면에 계속 띄워주는 별도 Windows 프로그램이에요. 브라우저를
+              닫아도 계속 켜져 있고, 창 안 톱니바퀴 아이콘으로 배경 진하기를 조절할 수 있어요.
+              다운로드한 설치 파일을 실행하면 &ldquo;Windows에서 PC를 보호했습니다&rdquo;라는
+              경고가 뜰 수 있는데, &ldquo;추가 정보 → 실행&rdquo;을 누르면 넘어가요(직접 만든
+              프로그램이라 문제없어요 — 유료 인증서가 없어서 뜨는 안내일 뿐이에요).
             </p>
           </div>
-          <button
-            onClick={toggleWidget}
-            className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition ${
-              widgetOpen
-                ? 'border border-rose-200 text-rose-500 hover:bg-rose-50'
-                : 'bg-mint-500 text-white hover:bg-mint-600'
-            }`}
+          <a
+            href={NATIVE_WIDGET_DOWNLOAD_URL}
+            className="shrink-0 rounded-xl bg-mint-500 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-mint-600"
           >
-            {widgetOpen ? '위젯 닫기' : '위젯 열기'}
-          </button>
+            설치 파일 다운로드
+          </a>
         </div>
       </section>
 
