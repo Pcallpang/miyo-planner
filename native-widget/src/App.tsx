@@ -44,25 +44,35 @@ export default function App() {
 
   if (loggedIn === null) {
     return (
-      <div style={dragStyle} className="flex h-screen items-center justify-center text-xs text-white/70">
-        불러오는 중...
+      <div className="flex h-screen flex-col p-1">
+        <div
+          style={dragStyle}
+          className="flex h-full items-center justify-center rounded-2xl bg-black/35 text-xs text-white/70"
+        >
+          불러오는 중...
+        </div>
       </div>
     );
   }
 
   if (!loggedIn) {
     return (
-      <div style={dragStyle} className="flex h-screen flex-col items-center justify-center gap-3 rounded-2xl bg-black/30 p-4 text-center">
-        <p className="text-sm font-semibold text-white drop-shadow">로그인이 필요해요</p>
-        <button
-          type="button"
-          style={noDragStyle}
-          onClick={handleLogin}
-          className="rounded-xl bg-mint-500 px-4 py-2 text-xs font-semibold text-white hover:bg-mint-600"
+      <div className="flex h-screen flex-col p-1">
+        <div
+          style={dragStyle}
+          className="flex h-full flex-col items-center justify-center gap-3 rounded-2xl bg-black/35 p-4 text-center"
         >
-          구글로 로그인
-        </button>
-        {loginError && <p className="text-[11px] text-rose-200">{loginError}</p>}
+          <p className="text-sm font-semibold text-white drop-shadow">로그인이 필요해요</p>
+          <button
+            type="button"
+            style={noDragStyle}
+            onClick={handleLogin}
+            className="rounded-xl bg-mint-500 px-4 py-2 text-xs font-semibold text-white hover:bg-mint-600"
+          >
+            구글로 로그인
+          </button>
+          {loginError && <p className="text-[11px] text-rose-200">{loginError}</p>}
+        </div>
       </div>
     );
   }
@@ -70,8 +80,13 @@ export default function App() {
   const data = result?.data;
   if (!data) {
     return (
-      <div style={dragStyle} className="flex h-screen items-center justify-center text-xs text-white/70 drop-shadow">
-        데이터를 불러오는 중...
+      <div className="flex h-screen flex-col p-1">
+        <div
+          style={dragStyle}
+          className="flex h-full items-center justify-center rounded-2xl bg-black/35 text-xs text-white/70 drop-shadow"
+        >
+          데이터를 불러오는 중...
+        </div>
       </div>
     );
   }
@@ -88,63 +103,65 @@ export default function App() {
 
   return (
     <div className="flex h-screen flex-col p-1 text-white">
-      <div style={dragStyle} className="mb-1 flex shrink-0 items-center justify-between px-2 py-1">
-        <p className="text-sm font-bold drop-shadow">{format(now, 'M월 d일 (EEE)', { locale: ko })}</p>
-        {result?.offline && <span className="text-[10px] text-amber-300">● 오프라인</span>}
-      </div>
+      <div className="flex h-full min-h-0 flex-col rounded-2xl bg-black/35 p-2">
+        <div style={dragStyle} className="mb-1 flex shrink-0 items-center justify-between px-2 py-1">
+          <p className="text-sm font-bold drop-shadow">{format(now, 'M월 d일 (EEE)', { locale: ko })}</p>
+          {result?.offline && <span className="text-[10px] text-amber-300">● 오프라인</span>}
+        </div>
 
-      {shortMessage ? (
-        <p className="flex flex-1 items-center justify-center text-center text-sm text-white/90 drop-shadow">
-          {shortMessage}
-        </p>
-      ) : (
-        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-1">
-          {Array.from({ length: settings.periodCount }, (_, i) => {
-            const slot = effectiveSlot(timetable, swapOverrides, todayKey, i);
-            const isCanceled = canceledLessons.some((c) => c.date === todayKey && c.period === i);
-            const makeup = makeupLessons.find((m) => m.date === todayKey && m.period === i);
-            const isCurrent = phase.kind === 'period' && phase.index === i;
-            const time = settings.periodTimes[i];
-            const color = slot.subject.trim() ? colors.get(classColorKey(slot.subject, slot.room)) : undefined;
-            return (
-              <li
-                key={i}
-                className={`flex items-center gap-2 rounded-xl px-2 py-1.5 ${isCurrent ? 'bg-white/25 ring-1 ring-white/40' : ''}`}
-              >
-                <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
-                    isCurrent ? 'bg-mint-500 text-white' : 'bg-white/20 text-white/80'
-                  }`}
+        {shortMessage ? (
+          <p className="flex flex-1 items-center justify-center text-center text-sm text-white/90 drop-shadow">
+            {shortMessage}
+          </p>
+        ) : (
+          <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-1">
+            {Array.from({ length: settings.periodCount }, (_, i) => {
+              const slot = effectiveSlot(timetable, swapOverrides, todayKey, i);
+              const isCanceled = canceledLessons.some((c) => c.date === todayKey && c.period === i);
+              const makeup = makeupLessons.find((m) => m.date === todayKey && m.period === i);
+              const isCurrent = phase.kind === 'period' && phase.index === i;
+              const time = settings.periodTimes[i];
+              const color = slot.subject.trim() ? colors.get(classColorKey(slot.subject, slot.room)) : undefined;
+              return (
+                <li
+                  key={i}
+                  className={`flex items-center gap-2 rounded-xl px-2 py-1.5 ${isCurrent ? 'bg-white/25 ring-1 ring-white/40' : ''}`}
                 >
-                  {i + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={`truncate text-sm font-medium drop-shadow ${
-                      isCanceled ? 'text-white/50 line-through' : color ? color.text : 'text-white'
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
+                      isCurrent ? 'bg-mint-500 text-white' : 'bg-white/20 text-white/80'
                     }`}
                   >
-                    {slot.subject || '미배정'}
-                    {slot.room ? ` · ${slot.room}` : ''}
-                  </p>
-                  {makeup && (
-                    <p className="truncate text-[11px] font-medium text-violet-200">
-                      보강 · {makeup.subject}
-                      {makeup.room ? ` ${makeup.room}` : ''}
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className={`truncate text-sm font-medium drop-shadow ${
+                        isCanceled ? 'text-white/50 line-through' : color ? color.text : 'text-white'
+                      }`}
+                    >
+                      {slot.subject || '미배정'}
+                      {slot.room ? ` · ${slot.room}` : ''}
                     </p>
+                    {makeup && (
+                      <p className="truncate text-[11px] font-medium text-violet-200">
+                        보강 · {makeup.subject}
+                        {makeup.room ? ` ${makeup.room}` : ''}
+                      </p>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-[11px] text-white/70">
+                    {time?.start}~{time?.end}
+                  </span>
+                  {isCanceled && (
+                    <span className="shrink-0 rounded bg-white/30 px-1 text-[9px] font-bold text-white">휴강</span>
                   )}
-                </div>
-                <span className="shrink-0 text-[11px] text-white/70">
-                  {time?.start}~{time?.end}
-                </span>
-                {isCanceled && (
-                  <span className="shrink-0 rounded bg-white/30 px-1 text-[9px] font-bold text-white">휴강</span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
