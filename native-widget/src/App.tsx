@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { getDayPhase } from './lib/schedule';
+import { getDayPhase, getPhaseMessage, getNextPeriodIndex } from './lib/schedule';
 import { effectiveSlot } from './lib/scheduleSlot';
 import { buildSubjectColors, classColorKey } from './lib/subjectColors';
-import { getOpacity, setOpacity } from './lib/widgetPrefs';
+import { getOpacity, setOpacity, getMinimized, setMinimized } from './lib/widgetPrefs';
 import type { AppDataResult } from './miyo';
 
 const dragStyle = { WebkitAppRegion: 'drag' } as React.CSSProperties;
@@ -14,14 +14,27 @@ const noDragStyle = { WebkitAppRegion: 'no-drag' } as React.CSSProperties;
 function WidgetControls({
   opacity,
   onOpacityChange,
+  minimized,
+  onToggleMinimize,
 }: {
   opacity: number;
   onOpacityChange: (value: number) => void;
+  minimized: boolean;
+  onToggleMinimize: () => void;
 }) {
   const [showSlider, setShowSlider] = useState(false);
 
   return (
     <div style={noDragStyle} className="relative flex shrink-0 items-center gap-1">
+      <button
+        type="button"
+        onClick={onToggleMinimize}
+        title={minimized ? '전체 시간표 보기' : '최소화'}
+        aria-label={minimized ? '전체 시간표 보기' : '최소화'}
+        className="flex h-5 w-5 items-center justify-center rounded text-xs text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] hover:bg-white/15 hover:text-white"
+      >
+        {minimized ? '⤢' : '－'}
+      </button>
       <button
         type="button"
         onClick={() => setShowSlider((v) => !v)}
@@ -65,10 +78,14 @@ function WidgetControls({
 function Shell({
   opacity,
   onOpacityChange,
+  minimized,
+  onToggleMinimize,
   children,
 }: {
   opacity: number;
   onOpacityChange: (value: number) => void;
+  minimized: boolean;
+  onToggleMinimize: () => void;
   children: React.ReactNode;
 }) {
   return (
@@ -78,7 +95,12 @@ function Shell({
         className="flex h-full min-h-0 flex-col rounded-2xl p-2"
       >
         <div style={dragStyle} className="flex shrink-0 justify-end">
-          <WidgetControls opacity={opacity} onOpacityChange={onOpacityChange} />
+          <WidgetControls
+            opacity={opacity}
+            onOpacityChange={onOpacityChange}
+            minimized={minimized}
+            onToggleMinimize={onToggleMinimize}
+          />
         </div>
         {children}
       </div>
@@ -92,10 +114,17 @@ export default function App() {
   const [result, setResult] = useState<AppDataResult | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [opacity, setOpacityState] = useState(() => getOpacity());
+  const [minimized, setMinimizedState] = useState(() => getMinimized());
 
   function handleOpacityChange(value: number) {
     setOpacityState(value);
     setOpacity(value);
+  }
+
+  function handleToggleMinimize() {
+    const next = !minimized;
+    setMinimizedState(next);
+    setMinimized(next);
   }
 
   const cardStyle: React.CSSProperties = { backgroundColor: `rgba(0,0,0,${opacity / 100})` };
@@ -129,7 +158,12 @@ export default function App() {
 
   if (loggedIn === null) {
     return (
-      <Shell opacity={opacity} onOpacityChange={handleOpacityChange}>
+      <Shell
+        opacity={opacity}
+        onOpacityChange={handleOpacityChange}
+        minimized={minimized}
+        onToggleMinimize={handleToggleMinimize}
+      >
         <div style={dragStyle} className="flex flex-1 items-center justify-center text-xs text-white/70 drop-shadow">
           불러오는 중...
         </div>
@@ -139,7 +173,12 @@ export default function App() {
 
   if (!loggedIn) {
     return (
-      <Shell opacity={opacity} onOpacityChange={handleOpacityChange}>
+      <Shell
+        opacity={opacity}
+        onOpacityChange={handleOpacityChange}
+        minimized={minimized}
+        onToggleMinimize={handleToggleMinimize}
+      >
         <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
           <p className="text-sm font-semibold text-white drop-shadow">로그인이 필요해요</p>
           <button
@@ -159,7 +198,12 @@ export default function App() {
   const data = result?.data;
   if (!data) {
     return (
-      <Shell opacity={opacity} onOpacityChange={handleOpacityChange}>
+      <Shell
+        opacity={opacity}
+        onOpacityChange={handleOpacityChange}
+        minimized={minimized}
+        onToggleMinimize={handleToggleMinimize}
+      >
         <div style={dragStyle} className="flex flex-1 items-center justify-center text-xs text-white/70 drop-shadow">
           데이터를 불러오는 중...
         </div>
@@ -172,10 +216,16 @@ export default function App() {
   const todayKey = format(now, 'yyyy-MM-dd');
   const colors = buildSubjectColors(timetable, subjectColors);
 
-  let shortMessage = '';
-  if (phase.kind === 'weekend') shortMessage = '주말이에요. 편안한 하루 보내세요.';
-  else if (phase.kind === 'before') shortMessage = `아직 일과 전이에요. ${settings.periodTimes[0]?.start ?? ''}에 시작해요.`;
-  else if (phase.kind === 'after') shortMessage = '오늘 일과가 끝났어요. 수고하셨어요!';
+  // 주말은 시간표 데이터 자체가 없어 최소화 여부와 무관하게 항상 메시지만 보여준다.
+  const isWeekend = phase.kind === 'weekend';
+  const showDashboard = !isWeekend && !minimized;
+
+  const currentSlot =
+    phase.kind === 'period' ? effectiveSlot(timetable, swapOverrides, todayKey, phase.index) : undefined;
+  const compactMessage = showDashboard ? '' : getPhaseMessage(phase, settings.periodTimes, currentSlot);
+  const nextIndex = showDashboard ? null : getNextPeriodIndex(phase, settings.periodCount);
+  const nextSlot = nextIndex !== null ? effectiveSlot(timetable, swapOverrides, todayKey, nextIndex) : null;
+  const nextTime = nextIndex !== null ? settings.periodTimes[nextIndex] : null;
 
   return (
     <div className="flex h-screen flex-col p-1 text-white">
@@ -184,15 +234,16 @@ export default function App() {
           <p className="text-sm font-bold drop-shadow">{format(now, 'M월 d일 (EEE)', { locale: ko })}</p>
           <div className="flex items-center gap-2">
             {result?.offline && <span className="text-[10px] text-amber-300">● 오프라인</span>}
-            <WidgetControls opacity={opacity} onOpacityChange={handleOpacityChange} />
+            <WidgetControls
+              opacity={opacity}
+              onOpacityChange={handleOpacityChange}
+              minimized={minimized}
+              onToggleMinimize={handleToggleMinimize}
+            />
           </div>
         </div>
 
-        {shortMessage ? (
-          <p className="flex flex-1 items-center justify-center text-center text-sm text-white/90 drop-shadow">
-            {shortMessage}
-          </p>
-        ) : (
+        {showDashboard ? (
           <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-1">
             {Array.from({ length: settings.periodCount }, (_, i) => {
               const slot = effectiveSlot(timetable, swapOverrides, todayKey, i);
@@ -239,6 +290,17 @@ export default function App() {
               );
             })}
           </ul>
+        ) : (
+          <div className="flex flex-1 flex-col items-center justify-center gap-1 p-4 text-center">
+            <p className="text-sm text-white/90 drop-shadow">{compactMessage}</p>
+            {nextIndex !== null && nextSlot && (
+              <p className="text-xs text-white/70 drop-shadow">
+                다음 · {nextIndex + 1}교시 {nextSlot.subject || '미배정'}
+                {nextSlot.room ? ` ${nextSlot.room}` : ''}
+                {nextTime ? ` (${nextTime.start}~${nextTime.end})` : ''}
+              </p>
+            )}
+          </div>
         )}
       </div>
     </div>
