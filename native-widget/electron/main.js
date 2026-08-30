@@ -91,6 +91,10 @@ function startPolling() {
 }
 
 ipcMain.handle('miyo:getAppData', () => refreshAppData());
+ipcMain.handle('miyo:hideWidget', () => {
+  if (isWindowAlive()) mainWindow.hide();
+  if (tray) updateTrayMenu();
+});
 
 async function handleLogin() {
   try {

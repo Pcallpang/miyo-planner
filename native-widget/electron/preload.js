@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('miyo', {
   login: () => ipcRenderer.invoke('miyo:login'),
   logout: () => ipcRenderer.invoke('miyo:logout'),
   getAppData: () => ipcRenderer.invoke('miyo:getAppData'),
+  hideWidget: () => ipcRenderer.invoke('miyo:hideWidget'),
   onAppDataUpdated: (callback) => {
     const listener = (_event, result) => callback(result);
     ipcRenderer.on('miyo:appDataUpdated', listener);

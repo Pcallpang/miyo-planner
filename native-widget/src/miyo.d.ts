@@ -26,6 +26,7 @@ declare global {
       login: () => Promise<LoginResult>;
       logout: () => Promise<{ ok: boolean }>;
       getAppData: () => Promise<AppDataResult>;
+      hideWidget: () => Promise<void>;
       onAppDataUpdated: (callback: (result: AppDataResult) => void) => () => void;
       onAuthChanged: (callback: (state: AuthState) => void) => () => void;
     };
