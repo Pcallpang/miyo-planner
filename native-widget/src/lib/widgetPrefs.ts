@@ -3,7 +3,10 @@
 
 const OPACITY_KEY = 'miyo.widget.opacity';
 const DEFAULT_OPACITY = 35;
-const MIN_OPACITY = 0;
+/** 0까지 내리면 카드가 완전히 투명해져 끄기·설정 버튼까지 안 보이게 되고, 그 값이
+ *  저장돼 다시 켜도 그대로라 되돌릴 방법이 사실상 없어진다. 그래서 하한을 둔다.
+ *  (예전에 0으로 저장해 둔 값이 있어도 아래 clamp가 읽을 때 끌어올려 준다.) */
+const MIN_OPACITY = 15;
 const MAX_OPACITY = 90;
 
 function clamp(value: number): number {

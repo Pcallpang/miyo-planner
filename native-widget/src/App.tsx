@@ -27,7 +27,7 @@ function WidgetControls({
         onClick={() => setShowSlider((v) => !v)}
         title="배경 진하기 조절"
         aria-label="배경 진하기 조절"
-        className="flex h-5 w-5 items-center justify-center rounded text-xs text-white/60 hover:bg-white/15 hover:text-white"
+        className="flex h-5 w-5 items-center justify-center rounded text-xs text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] hover:bg-white/15 hover:text-white"
       >
         ⚙
       </button>
@@ -36,7 +36,7 @@ function WidgetControls({
         onClick={() => void window.miyo.hideWidget()}
         title="위젯 끄기"
         aria-label="위젯 끄기"
-        className="flex h-5 w-5 items-center justify-center rounded text-xs text-white/60 hover:bg-white/15 hover:text-white"
+        className="flex h-5 w-5 items-center justify-center rounded text-xs text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] hover:bg-white/15 hover:text-white"
       >
         ✕
       </button>
@@ -46,7 +46,7 @@ function WidgetControls({
           <span className="text-[10px] text-white/70">투명</span>
           <input
             type="range"
-            min={0}
+            min={15}
             max={90}
             value={opacity}
             onChange={(e) => onOpacityChange(Number(e.target.value))}
@@ -55,6 +55,33 @@ function WidgetControls({
           <span className="text-[10px] text-white/70">진하게</span>
         </div>
       )}
+    </div>
+  );
+}
+
+/** 로딩·안내 화면 공통 껍데기. 데이터가 안 불러와지는 상황에서도 위젯을 끄거나
+ *  배경 진하기를 조절할 수 있도록 ⚙·✕ 버튼을 항상 함께 둔다.
+ *  (App 안이 아니라 밖에 두어야 다시 그릴 때 내용이 초기화되지 않는다.) */
+function Shell({
+  opacity,
+  onOpacityChange,
+  children,
+}: {
+  opacity: number;
+  onOpacityChange: (value: number) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex h-screen flex-col p-1">
+      <div
+        style={{ backgroundColor: `rgba(0,0,0,${opacity / 100})` }}
+        className="flex h-full min-h-0 flex-col rounded-2xl p-2"
+      >
+        <div style={dragStyle} className="flex shrink-0 justify-end">
+          <WidgetControls opacity={opacity} onOpacityChange={onOpacityChange} />
+        </div>
+        {children}
+      </div>
     </div>
   );
 }
@@ -102,52 +129,41 @@ export default function App() {
 
   if (loggedIn === null) {
     return (
-      <div className="flex h-screen flex-col p-1">
-        <div
-          style={{ ...dragStyle, ...cardStyle }}
-          className="flex h-full items-center justify-center rounded-2xl text-xs text-white/70"
-        >
+      <Shell opacity={opacity} onOpacityChange={handleOpacityChange}>
+        <div style={dragStyle} className="flex flex-1 items-center justify-center text-xs text-white/70 drop-shadow">
           불러오는 중...
         </div>
-      </div>
+      </Shell>
     );
   }
 
   if (!loggedIn) {
     return (
-      <div className="flex h-screen flex-col p-1">
-        <div style={cardStyle} className="flex h-full flex-col rounded-2xl p-2">
-          <div style={dragStyle} className="flex shrink-0 justify-end">
-            <WidgetControls opacity={opacity} onOpacityChange={handleOpacityChange} />
-          </div>
-          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
-            <p className="text-sm font-semibold text-white drop-shadow">로그인이 필요해요</p>
-            <button
-              type="button"
-              style={noDragStyle}
-              onClick={handleLogin}
-              className="rounded-xl bg-mint-500 px-4 py-2 text-xs font-semibold text-white hover:bg-mint-600"
-            >
-              구글로 로그인
-            </button>
-            {loginError && <p className="text-[11px] text-rose-200">{loginError}</p>}
-          </div>
+      <Shell opacity={opacity} onOpacityChange={handleOpacityChange}>
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-4 text-center">
+          <p className="text-sm font-semibold text-white drop-shadow">로그인이 필요해요</p>
+          <button
+            type="button"
+            style={noDragStyle}
+            onClick={handleLogin}
+            className="rounded-xl bg-mint-500 px-4 py-2 text-xs font-semibold text-white hover:bg-mint-600"
+          >
+            구글로 로그인
+          </button>
+          {loginError && <p className="text-[11px] text-rose-200">{loginError}</p>}
         </div>
-      </div>
+      </Shell>
     );
   }
 
   const data = result?.data;
   if (!data) {
     return (
-      <div className="flex h-screen flex-col p-1">
-        <div
-          style={{ ...dragStyle, ...cardStyle }}
-          className="flex h-full items-center justify-center rounded-2xl text-xs text-white/70 drop-shadow"
-        >
+      <Shell opacity={opacity} onOpacityChange={handleOpacityChange}>
+        <div style={dragStyle} className="flex flex-1 items-center justify-center text-xs text-white/70 drop-shadow">
           데이터를 불러오는 중...
         </div>
-      </div>
+      </Shell>
     );
   }
 

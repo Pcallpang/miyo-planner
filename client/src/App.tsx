@@ -21,7 +21,6 @@ import ProcurementView from './views/ProcurementView';
 import SchoolView from './views/SchoolView';
 import SettingsView from './views/SettingsView';
 import TimetableView from './views/TimetableView';
-import WidgetView from './views/WidgetView';
 import type { ViewId } from './types';
 
 const TOAST_STYLES = {
@@ -38,27 +37,11 @@ export default function App() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [seenWhatsNew, setSeenWhatsNew] = useLocalStorage('haru.whatsnew.seen', '');
-  // "?widget=1"로 열린 창인지 — 주소가 도중에 바뀌지 않으므로 마운트 시 한 번만 본다.
-  const [isWidget] = useState(
-    () => new URLSearchParams(window.location.search).get('widget') === '1',
-  );
   const { status, toasts, events, settings } = useApp();
   const { data } = useData();
 
   useReminders(events, settings.reminderMinutes);
   useTodoReminders(data.todos, settings.reminderMinutes > 0);
-
-  // 위젯 창은 사이드바·헤더 없이 오늘의 시간표만 보여준다.
-  if (isWidget) {
-    if (status && !status.authenticated) {
-      return (
-        <div className="flex min-h-screen items-center justify-center bg-mint-50 p-6 text-center">
-          <p className="text-sm text-slate-500">메인 창에서 먼저 로그인해 주세요.</p>
-        </div>
-      );
-    }
-    return <WidgetView />;
-  }
 
   // 로그인 게이트: 구글 로그인 전이면 로그인 화면만 표시
   if (status && !status.authenticated) {

@@ -34,11 +34,16 @@ describe('getOpacity / setOpacity', () => {
     expect(getOpacity()).toBe(60);
   });
 
-  test('범위(0~90)를 벗어나면 잘라낸다', () => {
+  test('범위(15~90)를 벗어나면 잘라낸다', () => {
     setOpacity(150);
     expect(getOpacity()).toBe(90);
     setOpacity(-20);
-    expect(getOpacity()).toBe(0);
+    expect(getOpacity()).toBe(15);
+  });
+
+  test('예전에 0으로 저장해 둔 값도 읽을 때 하한(15)으로 끌어올린다', () => {
+    localStorage.setItem('miyo.widget.opacity', '0');
+    expect(getOpacity()).toBe(15);
   });
 
   test('저장된 값이 숫자가 아니면 기본값으로 되돌아간다', () => {
