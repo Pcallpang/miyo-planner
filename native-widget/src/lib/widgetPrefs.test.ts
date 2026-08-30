@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'vitest';
-import { getOpacity, setOpacity } from './widgetPrefs';
+import { getMinimized, getOpacity, setMinimized, setOpacity } from './widgetPrefs';
 
 /** 이 프로젝트는 jsdom을 안 쓰므로, localStorage를 흉내 내는 메모리 저장소를 직접 만든다. */
 function createMemoryStorage(): Storage {
@@ -49,5 +49,22 @@ describe('getOpacity / setOpacity', () => {
   test('저장된 값이 숫자가 아니면 기본값으로 되돌아간다', () => {
     localStorage.setItem('miyo.widget.opacity', 'not-a-number');
     expect(getOpacity()).toBe(35);
+  });
+});
+
+describe('getMinimized / setMinimized', () => {
+  test('저장된 값이 없으면 기본값(false, 펼침)을 반환한다', () => {
+    expect(getMinimized()).toBe(false);
+  });
+
+  test('true로 저장하면 true를 돌려준다', () => {
+    setMinimized(true);
+    expect(getMinimized()).toBe(true);
+  });
+
+  test('false로 저장하면 false를 돌려준다', () => {
+    setMinimized(true);
+    setMinimized(false);
+    expect(getMinimized()).toBe(false);
   });
 });

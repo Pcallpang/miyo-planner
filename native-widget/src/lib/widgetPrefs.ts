@@ -24,3 +24,14 @@ export function getOpacity(): number {
 export function setOpacity(value: number): void {
   localStorage.setItem(OPACITY_KEY, String(clamp(value)));
 }
+
+/** 위젯을 "전체 시간표"로 볼지 "한 줄 요약(최소화)"으로 볼지. 껐다 켜도 유지되도록 저장한다. */
+const MINIMIZED_KEY = 'miyo.widget.minimized';
+
+export function getMinimized(): boolean {
+  return localStorage.getItem(MINIMIZED_KEY) === 'true';
+}
+
+export function setMinimized(value: boolean): void {
+  localStorage.setItem(MINIMIZED_KEY, String(value));
+}
