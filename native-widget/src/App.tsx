@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { getDayPhase, getPhaseMessage, getNextPeriodIndex } from './lib/schedule';
+import { getDayPhase, getPhaseMessage, getNextPeriodIndex, addWeekday } from './lib/schedule';
 import { effectiveSlot } from './lib/scheduleSlot';
 import { buildSubjectColors, classColorKey } from './lib/subjectColors';
 import { getOpacity, setOpacity, getMinimized, setMinimized } from './lib/widgetPrefs';
@@ -16,25 +16,29 @@ function WidgetControls({
   onOpacityChange,
   minimized,
   onToggleMinimize,
+  showMinimizeToggle = true,
 }: {
   opacity: number;
   onOpacityChange: (value: number) => void;
   minimized: boolean;
   onToggleMinimize: () => void;
+  showMinimizeToggle?: boolean;
 }) {
   const [showSlider, setShowSlider] = useState(false);
 
   return (
     <div style={noDragStyle} className="relative flex shrink-0 items-center gap-1">
-      <button
-        type="button"
-        onClick={onToggleMinimize}
-        title={minimized ? '전체 시간표 보기' : '최소화'}
-        aria-label={minimized ? '전체 시간표 보기' : '최소화'}
-        className="flex h-5 w-5 items-center justify-center rounded text-xs text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] hover:bg-white/15 hover:text-white"
-      >
-        {minimized ? '⤢' : '－'}
-      </button>
+      {showMinimizeToggle && (
+        <button
+          type="button"
+          onClick={onToggleMinimize}
+          title={minimized ? '전체 시간표 보기' : '최소화'}
+          aria-label={minimized ? '전체 시간표 보기' : '최소화'}
+          className="flex h-5 w-5 items-center justify-center rounded text-xs text-white/80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] hover:bg-white/15 hover:text-white"
+        >
+          {minimized ? '⤢' : '－'}
+        </button>
+      )}
       <button
         type="button"
         onClick={() => setShowSlider((v) => !v)}
@@ -115,6 +119,7 @@ export default function App() {
   const [now, setNow] = useState(() => new Date());
   const [opacity, setOpacityState] = useState(() => getOpacity());
   const [minimized, setMinimizedState] = useState(() => getMinimized());
+  const [viewDate, setViewDate] = useState(() => new Date());
 
   function handleOpacityChange(value: number) {
     setOpacityState(value);
@@ -126,6 +131,18 @@ export default function App() {
     setMinimizedState(next);
     setMinimized(next);
     void window.miyo.setMinimized(next);
+  }
+
+  function handlePrevDay() {
+    setViewDate((d) => addWeekday(d, -1));
+  }
+
+  function handleNextDay() {
+    setViewDate((d) => addWeekday(d, 1));
+  }
+
+  function handleGoToday() {
+    setViewDate(new Date());
   }
 
   // 창(Electron BrowserWindow) 자체의 높이는 localStorage가 아니라 메인 프로세스가
@@ -222,25 +239,60 @@ export default function App() {
 
   const { settings, timetable, swapOverrides, canceledLessons, makeupLessons, subjectColors } = data;
   const phase = getDayPhase(now, settings.periodTimes, settings.periodCount);
-  const todayKey = format(now, 'yyyy-MM-dd');
+  const viewDateKey = format(viewDate, 'yyyy-MM-dd');
+  const isToday = viewDateKey === format(now, 'yyyy-MM-dd');
   const colors = buildSubjectColors(timetable, subjectColors);
 
   // 주말은 시간표 데이터 자체가 없어 최소화 여부와 무관하게 항상 메시지만 보여준다.
-  const isWeekend = phase.kind === 'weekend';
-  const showDashboard = !isWeekend && !minimized;
+  // 최소화는 "지금 이 순간" 기준 요약이라 다른 날짜를 보는 중에는 의미가 없으므로,
+  // 오늘이 아닐 때는 저장된 선호와 무관하게 항상 전체 시간표로 본다.
+  const isWeekendView = viewDate.getDay() === 0 || viewDate.getDay() === 6;
+  const effectiveMinimized = isToday && minimized;
+  const showDashboard = !isWeekendView && !effectiveMinimized;
 
   const currentSlot =
-    phase.kind === 'period' ? effectiveSlot(timetable, swapOverrides, todayKey, phase.index) : undefined;
+    phase.kind === 'period' ? effectiveSlot(timetable, swapOverrides, viewDateKey, phase.index) : undefined;
   const compactMessage = showDashboard ? '' : getPhaseMessage(phase, settings.periodTimes, currentSlot);
   const nextIndex = showDashboard ? null : getNextPeriodIndex(phase, settings.periodCount);
-  const nextSlot = nextIndex !== null ? effectiveSlot(timetable, swapOverrides, todayKey, nextIndex) : null;
+  const nextSlot = nextIndex !== null ? effectiveSlot(timetable, swapOverrides, viewDateKey, nextIndex) : null;
   const nextTime = nextIndex !== null ? settings.periodTimes[nextIndex] : null;
 
   return (
     <div className="flex h-screen flex-col p-1 text-white">
       <div style={cardStyle} className="flex h-full min-h-0 flex-col rounded-2xl p-2">
         <div style={dragStyle} className="mb-1 flex shrink-0 items-center justify-between px-2 py-1">
-          <p className="text-sm font-bold drop-shadow">{format(now, 'M월 d일 (EEE)', { locale: ko })}</p>
+          <div style={noDragStyle} className="flex items-center gap-0.5">
+            <button
+              type="button"
+              onClick={handlePrevDay}
+              title="이전 평일"
+              aria-label="이전 평일"
+              className="flex h-5 w-5 items-center justify-center rounded text-xs text-white/80 hover:bg-white/15 hover:text-white"
+            >
+              ‹
+            </button>
+            <div className="flex flex-col items-center">
+              <p className="text-sm font-bold drop-shadow">{format(viewDate, 'M월 d일 (EEE)', { locale: ko })}</p>
+              {!isToday && (
+                <button
+                  type="button"
+                  onClick={handleGoToday}
+                  className="text-[10px] font-medium text-mint-300 underline hover:text-mint-200"
+                >
+                  오늘로
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={handleNextDay}
+              title="다음 평일"
+              aria-label="다음 평일"
+              className="flex h-5 w-5 items-center justify-center rounded text-xs text-white/80 hover:bg-white/15 hover:text-white"
+            >
+              ›
+            </button>
+          </div>
           <div className="flex items-center gap-2">
             {result?.offline && <span className="text-[10px] text-amber-300">● 오프라인</span>}
             <WidgetControls
@@ -248,6 +300,7 @@ export default function App() {
               onOpacityChange={handleOpacityChange}
               minimized={minimized}
               onToggleMinimize={handleToggleMinimize}
+              showMinimizeToggle={isToday}
             />
           </div>
         </div>
@@ -255,10 +308,10 @@ export default function App() {
         {showDashboard ? (
           <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-1 py-0.5">
             {Array.from({ length: settings.periodCount }, (_, i) => {
-              const slot = effectiveSlot(timetable, swapOverrides, todayKey, i);
-              const isCanceled = canceledLessons.some((c) => c.date === todayKey && c.period === i);
-              const makeup = makeupLessons.find((m) => m.date === todayKey && m.period === i);
-              const isCurrent = phase.kind === 'period' && phase.index === i;
+              const slot = effectiveSlot(timetable, swapOverrides, viewDateKey, i);
+              const isCanceled = canceledLessons.some((c) => c.date === viewDateKey && c.period === i);
+              const makeup = makeupLessons.find((m) => m.date === viewDateKey && m.period === i);
+              const isCurrent = isToday && phase.kind === 'period' && phase.index === i;
               const color = slot.subject.trim() ? colors.get(classColorKey(slot.subject, slot.room)) : undefined;
               return (
                 <li key={i} className="flex items-center gap-2">

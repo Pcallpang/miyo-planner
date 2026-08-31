@@ -66,3 +66,15 @@ export function getNextPeriodIndex(phase: DayPhase, periodCount: number): number
       return null;
   }
 }
+
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+/** 하루씩 옮기되 주말(시간표가 없는 날)은 건너뛴다. direction 1이면 다음 평일,
+ *  -1이면 이전 평일. */
+export function addWeekday(date: Date, direction: 1 | -1): Date {
+  let next = new Date(date.getTime() + direction * ONE_DAY_MS);
+  while (next.getDay() === 0 || next.getDay() === 6) {
+    next = new Date(next.getTime() + direction * ONE_DAY_MS);
+  }
+  return next;
+}

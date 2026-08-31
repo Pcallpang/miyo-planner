@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { getDayPhase, getPhaseMessage, getNextPeriodIndex } from './schedule';
+import { getDayPhase, getPhaseMessage, getNextPeriodIndex, addWeekday } from './schedule';
 import type { PeriodTime } from '../types';
 
 const times: PeriodTime[] = [
@@ -85,5 +85,27 @@ describe('getNextPeriodIndex', () => {
   test('일과 후/주말은 다음 교시가 없다', () => {
     expect(getNextPeriodIndex({ kind: 'after' }, 2)).toBeNull();
     expect(getNextPeriodIndex({ kind: 'weekend' }, 2)).toBeNull();
+  });
+});
+
+describe('addWeekday', () => {
+  test('평일 안에서는 하루씩 이동한다', () => {
+    const result = addWeekday(new Date('2026-07-22T10:00'), 1); // 수 -> 목
+    expect(result.toDateString()).toBe(new Date('2026-07-23T10:00').toDateString());
+  });
+
+  test('금요일 다음은 주말을 건너뛰어 월요일', () => {
+    const result = addWeekday(new Date('2026-07-24T10:00'), 1); // 금 -> 월(27일)
+    expect(result.toDateString()).toBe(new Date('2026-07-27T10:00').toDateString());
+  });
+
+  test('월요일 이전은 주말을 건너뛰어 금요일', () => {
+    const result = addWeekday(new Date('2026-07-27T10:00'), -1); // 월 -> 금(24일)
+    expect(result.toDateString()).toBe(new Date('2026-07-24T10:00').toDateString());
+  });
+
+  test('토요일에서 다음으로 가면 월요일', () => {
+    const result = addWeekday(new Date('2026-07-25T10:00'), 1); // 토 -> 월(27일)
+    expect(result.toDateString()).toBe(new Date('2026-07-27T10:00').toDateString());
   });
 });
