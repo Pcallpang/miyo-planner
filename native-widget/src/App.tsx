@@ -125,7 +125,16 @@ export default function App() {
     const next = !minimized;
     setMinimizedState(next);
     setMinimized(next);
+    void window.miyo.setMinimized(next);
   }
+
+  // 창(Electron BrowserWindow) 자체의 높이는 localStorage가 아니라 메인 프로세스가
+  // 기억하므로, 시작 시 렌더러가 복원한 최소화 상태를 메인 프로세스에도 한 번 알려줘야
+  // 창 크기가 마지막으로 껐을 때와 같은 모드로 맞춰진다.
+  useEffect(() => {
+    void window.miyo.setMinimized(minimized);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cardStyle: React.CSSProperties = { backgroundColor: `rgba(0,0,0,${opacity / 100})` };
 
@@ -244,7 +253,7 @@ export default function App() {
         </div>
 
         {showDashboard ? (
-          <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-1">
+          <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-1 py-0.5">
             {Array.from({ length: settings.periodCount }, (_, i) => {
               const slot = effectiveSlot(timetable, swapOverrides, todayKey, i);
               const isCanceled = canceledLessons.some((c) => c.date === todayKey && c.period === i);
@@ -261,8 +270,8 @@ export default function App() {
                     {i + 1}
                   </span>
                   <div
-                    className={`relative flex h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-lg px-1 text-center ${
-                      isCurrent ? 'ring-2 ring-mint-300' : ''
+                    className={`relative flex h-14 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-lg px-1 text-center ${
+                      isCurrent ? 'ring-2 ring-inset ring-mint-300' : ''
                     } ${isCanceled ? 'bg-white/10 opacity-60' : color ? color.bg : 'bg-white/10'}`}
                   >
                     {isCanceled && (

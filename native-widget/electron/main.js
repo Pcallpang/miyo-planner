@@ -11,6 +11,10 @@ const DEV_SERVER_URL = 'http://localhost:5174';
 
 let mainWindow = null;
 let boundsSaveTimer = null;
+/** 렌더러가 최소화 토글 버튼을 누를 때마다 miyo:setMinimized로 알려주는 현재 모드.
+ *  창 리사이즈 이벤트가 펼침/최소화 중 어느 쪽 높이를 갱신해야 할지 이 값으로 가른다. */
+let isMinimized = false;
+let lastBounds = null;
 
 function isWindowAlive() {
   return Boolean(mainWindow) && !mainWindow.isDestroyed();
@@ -19,7 +23,17 @@ function isWindowAlive() {
 function persistBoundsDebounced() {
   clearTimeout(boundsSaveTimer);
   boundsSaveTimer = setTimeout(() => {
-    if (isWindowAlive()) saveWindowBounds(mainWindow.getBounds());
+    if (!isWindowAlive()) return;
+    const current = mainWindow.getBounds();
+    lastBounds = {
+      ...lastBounds,
+      x: current.x,
+      y: current.y,
+      width: current.width,
+      wasMinimized: isMinimized,
+      ...(isMinimized ? { minimizedHeight: current.height } : { height: current.height }),
+    };
+    saveWindowBounds(lastBounds);
   }, 300);
 }
 
@@ -32,8 +46,13 @@ function broadcastAuthChanged() {
 
 function createWindow() {
   const bounds = loadWindowBounds();
+  lastBounds = bounds;
+  isMinimized = Boolean(bounds.wasMinimized);
   mainWindow = new BrowserWindow({
-    ...bounds,
+    x: bounds.x,
+    y: bounds.y,
+    width: bounds.width,
+    height: isMinimized ? bounds.minimizedHeight : bounds.height,
     frame: false,
     transparent: true,
     backgroundColor: '#00000000',
@@ -59,12 +78,32 @@ function createWindow() {
   mainWindow.on('close', (e) => {
     // 닫기는 한 번만 일어나므로 지연 없이 즉시 저장한다(마지막 크기가 유실되지 않게).
     clearTimeout(boundsSaveTimer);
-    saveWindowBounds(mainWindow.getBounds());
+    const current = mainWindow.getBounds();
+    lastBounds = {
+      ...lastBounds,
+      x: current.x,
+      y: current.y,
+      width: current.width,
+      wasMinimized: isMinimized,
+      ...(isMinimized ? { minimizedHeight: current.height } : { height: current.height }),
+    };
+    saveWindowBounds(lastBounds);
     if (!app.isQuitting) {
       e.preventDefault();
       mainWindow.hide();
     }
   });
+}
+
+/** 렌더러의 최소화 토글에 맞춰 창 자체의 높이를 줄이거나 되돌린다(너비·위치는 그대로).
+ *  두 모드의 높이를 각각 기억해 두므로, 어느 한쪽에서 사용자가 리사이즈해도 다른
+ *  쪽 크기는 그대로 유지된다. */
+function setMinimized(minimized) {
+  isMinimized = Boolean(minimized);
+  if (!isWindowAlive()) return;
+  const current = mainWindow.getBounds();
+  const targetHeight = isMinimized ? lastBounds.minimizedHeight : lastBounds.height;
+  mainWindow.setBounds({ x: current.x, y: current.y, width: current.width, height: targetHeight });
 }
 
 let pollTimer = null;
@@ -95,6 +134,7 @@ ipcMain.handle('miyo:hideWidget', () => {
   if (isWindowAlive()) mainWindow.hide();
   if (tray) updateTrayMenu();
 });
+ipcMain.handle('miyo:setMinimized', (_event, minimized) => setMinimized(minimized));
 
 async function handleLogin() {
   try {
