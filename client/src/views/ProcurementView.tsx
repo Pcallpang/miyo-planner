@@ -136,8 +136,11 @@ export default function ProcurementView() {
 
   function bumpAllPrices() {
     setPriceBackup((backup) => backup ?? items.map((it) => it.unitPrice));
-    setItems((prev) => prev.map((it) => ({ ...it, unitPrice: Math.round(it.unitPrice * 1.1) })));
-    showToast('info', '단가 변동에 대비해 모든 단가에 10%를 더했습니다.');
+    // 품의서에는 1원 단위를 올릴 수 없어, 10%를 더한 뒤 1원 단위는 잘라 10원 단위로 맞춘다.
+    setItems((prev) =>
+      prev.map((it) => ({ ...it, unitPrice: Math.floor((it.unitPrice * 1.1) / 10) * 10 })),
+    );
+    showToast('info', '단가 변동에 대비해 모든 단가에 10%를 더하고 1원 단위는 절삭했습니다.');
   }
 
   function resetPrices() {
