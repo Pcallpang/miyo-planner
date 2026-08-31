@@ -10,7 +10,7 @@
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     {
-      "source": "/((?!api/|privacy\\.html|manifest\\.webmanifest|sw\\.js).*)",
+      "source": "/((?!api/|privacy\\.html|manifest\\.webmanifest|sw\\.js|downloads/).*)",
       "destination": "/index.html"
     }
   ],
