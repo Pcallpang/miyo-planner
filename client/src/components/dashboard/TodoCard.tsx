@@ -1,5 +1,4 @@
-import { useState, type Dispatch, type FormEvent, type SetStateAction } from 'react';
-import { addDays, format } from 'date-fns';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import {
   CalendarClock,
   ChevronDown,
@@ -10,10 +9,7 @@ import {
   Star,
   StickyNote,
   Trash2,
-  Wand2,
-  X,
 } from 'lucide-react';
-import DateField from '../DateField';
 import EmptyMiyo from '../EmptyMiyo';
 import TodayEvents from './TodayEvents';
 import { sortTodosByDueDate } from '../../lib/todoSort';
@@ -37,42 +33,11 @@ interface Props {
 
 export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
   const [tab, setTab] = useState<TodoCategory>('업무');
-  const [templateOpen, setTemplateOpen] = useState(false);
   /** 메모를 펼쳐 놓은 할 일 id */
   const [openMemoId, setOpenMemoId] = useState<string | null>(null);
-  const [goal, setGoal] = useState('');
-  const [deadline, setDeadline] = useState('');
 
   const visible = sortTodosByDueDate(todos.filter((t) => t.category === tab));
   const countOf = (c: TodoCategory) => todos.filter((t) => t.category === c && !t.done).length;
-
-  function applyTemplate(e: FormEvent) {
-    e.preventDefault();
-    if (!goal.trim() || !deadline) return;
-    const end = new Date(`${deadline}T00:00:00`);
-    const today = format(new Date(), 'yyyy-MM-dd');
-    const steps: { offset: number; label: string }[] = [
-      { offset: -7, label: '자료 조사·준비 시작' },
-      { offset: -3, label: '중간 점검' },
-      { offset: -1, label: '최종 확인' },
-      { offset: 0, label: '제출/실행' },
-    ];
-    const items: Todo[] = steps
-      .map(({ offset, label }) => ({ due: format(addDays(end, offset), 'yyyy-MM-dd'), label }))
-      .filter(({ due }) => due >= today)
-      .map(({ due, label }) => ({
-        id: crypto.randomUUID(),
-        text: `[${goal.trim()}] ${label}`,
-        category: tab,
-        done: false,
-        dueDate: due,
-        createdAt: new Date().toISOString(),
-      }));
-    if (items.length > 0) setTodos((prev) => [...prev, ...items]);
-    setGoal('');
-    setDeadline('');
-    setTemplateOpen(false);
-  }
 
   return (
     <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
@@ -81,41 +46,7 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
           <ListChecks size={17} className="text-mint-500" />
           데일리 To-Do
         </h2>
-        <button
-          onClick={() => setTemplateOpen((v) => !v)}
-          className="flex items-center gap-1 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:border-mint-300 hover:text-mint-600"
-        >
-          {templateOpen ? <X size={12} /> : <Wand2 size={12} />}
-          역산 템플릿
-        </button>
       </div>
-
-      {templateOpen && (
-        <form onSubmit={applyTemplate} className="mb-3 space-y-2 rounded-xl bg-slate-50 p-3">
-          <input
-            className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm outline-none focus:border-mint-400"
-            placeholder="목표 (예: 수행평가 채점)"
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-          />
-          <div className="flex gap-2">
-            <DateField
-              className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm outline-none focus:border-mint-400"
-              value={deadline}
-              onChange={setDeadline}
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-mint-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-mint-600"
-            >
-              생성
-            </button>
-          </div>
-          <p className="text-[11px] text-slate-400">
-            마감일 기준 D-7 준비 · D-3 점검 · D-1 확인 · 당일 제출 To-Do를 자동 생성합니다.
-          </p>
-        </form>
-      )}
 
       <TodayEvents />
 
