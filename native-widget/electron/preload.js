@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('miyo', {
   getAppData: () => ipcRenderer.invoke('miyo:getAppData'),
   hideWidget: () => ipcRenderer.invoke('miyo:hideWidget'),
   setMinimized: (minimized) => ipcRenderer.invoke('miyo:setMinimized', minimized),
+  getWidgetPrefs: () => ipcRenderer.invoke('miyo:getWidgetPrefs'),
+  setOpacity: (value) => ipcRenderer.invoke('miyo:setOpacity', value),
   onAppDataUpdated: (callback) => {
     const listener = (_event, result) => callback(result);
     ipcRenderer.on('miyo:appDataUpdated', listener);

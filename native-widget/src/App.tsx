@@ -4,8 +4,11 @@ import { ko } from 'date-fns/locale';
 import { getDayPhase, getPhaseMessage, getNextPeriodIndex, addWeekday } from './lib/schedule';
 import { effectiveSlot } from './lib/scheduleSlot';
 import { buildSubjectColors, classColorKey } from './lib/subjectColors';
-import { getOpacity, setOpacity, getMinimized, setMinimized } from './lib/widgetPrefs';
 import type { AppDataResult } from './miyo';
+
+/** 창이 실제로 뜨는 크기와 같은 방식(메인 프로세스가 디스크에 저장)으로 opacity·최소화
+ *  여부를 저장한다 — IPC 응답이 오기 전까지 잠깐 보일 기본값. */
+const DEFAULT_OPACITY = 35;
 
 const dragStyle = { WebkitAppRegion: 'drag' } as React.CSSProperties;
 const noDragStyle = { WebkitAppRegion: 'no-drag' } as React.CSSProperties;
@@ -117,19 +120,18 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [result, setResult] = useState<AppDataResult | null>(null);
   const [now, setNow] = useState(() => new Date());
-  const [opacity, setOpacityState] = useState(() => getOpacity());
-  const [minimized, setMinimizedState] = useState(() => getMinimized());
+  const [opacity, setOpacityState] = useState(DEFAULT_OPACITY);
+  const [minimized, setMinimizedState] = useState(false);
   const [viewDate, setViewDate] = useState(() => new Date());
 
   function handleOpacityChange(value: number) {
     setOpacityState(value);
-    setOpacity(value);
+    void window.miyo.setOpacity(value);
   }
 
   function handleToggleMinimize() {
     const next = !minimized;
     setMinimizedState(next);
-    setMinimized(next);
     void window.miyo.setMinimized(next);
   }
 
@@ -145,12 +147,15 @@ export default function App() {
     setViewDate(new Date());
   }
 
-  // 창(Electron BrowserWindow) 자체의 높이는 localStorage가 아니라 메인 프로세스가
-  // 기억하므로, 시작 시 렌더러가 복원한 최소화 상태를 메인 프로세스에도 한 번 알려줘야
-  // 창 크기가 마지막으로 껐을 때와 같은 모드로 맞춰진다.
+  // opacity·최소화 여부는 메인 프로세스가 디스크에 저장해 둔 값이 원본이다(창 크기와
+  // 같은 방식) — 시작 시 한 번 읽어와 화면에 반영한다. 창 자체의 높이는 이미
+  // createWindow 시점에 같은 값으로 맞춰져 있으므로 여기서 다시 리사이즈를 요청할
+  // 필요는 없다.
   useEffect(() => {
-    void window.miyo.setMinimized(minimized);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void window.miyo.getWidgetPrefs().then((prefs) => {
+      setOpacityState(prefs.opacity);
+      setMinimizedState(prefs.minimized);
+    });
   }, []);
 
   const cardStyle: React.CSSProperties = { backgroundColor: `rgba(0,0,0,${opacity / 100})` };

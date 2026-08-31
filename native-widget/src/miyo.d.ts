@@ -28,6 +28,8 @@ declare global {
       getAppData: () => Promise<AppDataResult>;
       hideWidget: () => Promise<void>;
       setMinimized: (minimized: boolean) => Promise<void>;
+      getWidgetPrefs: () => Promise<{ opacity: number; minimized: boolean }>;
+      setOpacity: (value: number) => Promise<void>;
       onAppDataUpdated: (callback: (result: AppDataResult) => void) => () => void;
       onAuthChanged: (callback: (state: AuthState) => void) => () => void;
     };

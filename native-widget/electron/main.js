@@ -2,7 +2,7 @@ require('dotenv').config({ path: require('node:path').join(__dirname, '../.env')
 
 const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage } = require('electron');
 const path = require('node:path');
-const { loadWindowBounds, saveWindowBounds } = require('./windowBounds');
+const { loadWindowBounds, saveWindowBounds, clampOpacity } = require('./windowBounds');
 const auth = require('./auth');
 const { fetchAppData } = require('./dataFetch');
 
@@ -100,10 +100,20 @@ function createWindow() {
  *  쪽 크기는 그대로 유지된다. */
 function setMinimized(minimized) {
   isMinimized = Boolean(minimized);
+  lastBounds = { ...lastBounds, wasMinimized: isMinimized };
+  saveWindowBounds(lastBounds);
   if (!isWindowAlive()) return;
   const current = mainWindow.getBounds();
   const targetHeight = isMinimized ? lastBounds.minimizedHeight : lastBounds.height;
   mainWindow.setBounds({ x: current.x, y: current.y, width: current.width, height: targetHeight });
+}
+
+/** 배경 진하기(opacity)를 저장한다. 예전에는 렌더러의 localStorage에 저장했는데
+ *  재시작 후 복원되지 않는 문제가 있어, 창 크기와 같은 방식(메인 프로세스가
+ *  window-bounds.json에 직접 쓰기)으로 옮겼다. */
+function setOpacity(value) {
+  lastBounds = { ...lastBounds, opacity: clampOpacity(value) };
+  saveWindowBounds(lastBounds);
 }
 
 let pollTimer = null;
@@ -135,6 +145,8 @@ ipcMain.handle('miyo:hideWidget', () => {
   if (tray) updateTrayMenu();
 });
 ipcMain.handle('miyo:setMinimized', (_event, minimized) => setMinimized(minimized));
+ipcMain.handle('miyo:getWidgetPrefs', () => ({ opacity: lastBounds.opacity, minimized: isMinimized }));
+ipcMain.handle('miyo:setOpacity', (_event, value) => setOpacity(value));
 
 async function handleLogin() {
   try {
