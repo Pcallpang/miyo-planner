@@ -250,13 +250,9 @@ export default function App() {
               const isCanceled = canceledLessons.some((c) => c.date === todayKey && c.period === i);
               const makeup = makeupLessons.find((m) => m.date === todayKey && m.period === i);
               const isCurrent = phase.kind === 'period' && phase.index === i;
-              const time = settings.periodTimes[i];
               const color = slot.subject.trim() ? colors.get(classColorKey(slot.subject, slot.room)) : undefined;
               return (
-                <li
-                  key={i}
-                  className={`flex items-center gap-2 rounded-xl px-2 py-1.5 ${isCurrent ? 'bg-white/25 ring-1 ring-white/40' : ''}`}
-                >
+                <li key={i} className="flex items-center gap-2">
                   <span
                     className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold ${
                       isCurrent ? 'bg-mint-500 text-white' : 'bg-white/20 text-white/80'
@@ -264,28 +260,39 @@ export default function App() {
                   >
                     {i + 1}
                   </span>
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className={`truncate text-sm font-medium drop-shadow ${
+                  <div
+                    className={`relative flex h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-lg px-1 text-center ${
+                      isCurrent ? 'ring-2 ring-mint-300' : ''
+                    } ${isCanceled ? 'bg-white/10 opacity-60' : color ? color.bg : 'bg-white/10'}`}
+                  >
+                    {isCanceled && (
+                      <span className="absolute right-1 top-0.5 rounded bg-white/30 px-1 text-[9px] font-bold text-white">
+                        휴강
+                      </span>
+                    )}
+                    <span
+                      className={`w-full truncate text-xs font-medium drop-shadow ${
                         isCanceled ? 'text-white/50 line-through' : color ? color.text : 'text-white'
                       }`}
                     >
                       {slot.subject || '미배정'}
-                      {slot.room ? ` · ${slot.room}` : ''}
-                    </p>
+                    </span>
+                    {slot.room && (
+                      <span
+                        className={`w-full truncate text-[11px] opacity-80 ${
+                          isCanceled ? 'text-white/50' : color ? color.text : 'text-white/70'
+                        }`}
+                      >
+                        {slot.room}
+                      </span>
+                    )}
                     {makeup && (
-                      <p className="truncate text-[11px] font-medium text-violet-200">
+                      <span className="w-full truncate rounded bg-violet-400/30 px-1 text-[10px] font-medium text-violet-100">
                         보강 · {makeup.subject}
                         {makeup.room ? ` ${makeup.room}` : ''}
-                      </p>
+                      </span>
                     )}
                   </div>
-                  <span className="shrink-0 text-[11px] text-white/70">
-                    {time?.start}~{time?.end}
-                  </span>
-                  {isCanceled && (
-                    <span className="shrink-0 rounded bg-white/30 px-1 text-[9px] font-bold text-white">휴강</span>
-                  )}
                 </li>
               );
             })}
