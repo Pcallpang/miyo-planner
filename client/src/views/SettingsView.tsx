@@ -11,7 +11,7 @@ import PeriodTimesModal from '../components/PeriodTimesModal';
 /** 바탕화면 위젯(네이티브 프로그램) 설치 파일 다운로드 링크. 새 버전을 배포하면
  *  GitHub Releases에 새 태그로 올리고 이 값을 갱신한다. */
 const NATIVE_WIDGET_DOWNLOAD_URL =
-  'https://github.com/Pcallpang/miyo-planner/releases/download/native-widget-v1.0.0/Setup.1.0.0.exe';
+  'https://github.com/Pcallpang/miyo-planner/releases/download/native-widget-v1.1.0/Setup.1.1.0.exe';
 
 export default function SettingsView() {
   const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
