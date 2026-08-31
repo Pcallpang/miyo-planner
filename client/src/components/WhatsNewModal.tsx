@@ -2,7 +2,7 @@ import { X } from 'lucide-react';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
 /** 새 공지를 추가할 때마다 이 값을 올린다 — 이전 값을 본 사용자에게는 다시 뜬다. */
-export const WHATS_NEW_VERSION = '2026-08-31-3';
+export const WHATS_NEW_VERSION = '2026-09-01';
 
 const ITEMS = [
   {
@@ -12,6 +12,10 @@ const ITEMS = [
   {
     title: '정리 — 역산 템플릿 제거',
     desc: '잘 쓰이지 않던 데일리 To-Do의 "역산 템플릿" 기능을 정리했어요.',
+  },
+  {
+    title: '안내 — 초과근무 1시간 제외 계산은 보류',
+    desc: '9월 업데이트 예정으로 안내드렸던 기능인데, 이번 업데이트에는 포함하지 않기로 했어요.',
   },
 ];
 
