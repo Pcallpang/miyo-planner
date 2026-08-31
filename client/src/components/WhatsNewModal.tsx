@@ -15,12 +15,7 @@ const ITEMS = [
   },
 ];
 
-const UPCOMING = [
-  {
-    title: '초과근무 1시간 제외 계산',
-    desc: '9월부터 업데이트 예정이에요.',
-  },
-];
+const UPCOMING: { title: string; desc: string }[] = [];
 
 interface Props {
   onClose: () => void;
@@ -53,17 +48,19 @@ export default function WhatsNewModal({ onClose }: Props) {
           화면이 그대로면 새로고침하면 바로 사용할 수 있어요.
         </p>
 
-        <div className="mt-4 rounded-xl border border-dashed border-slate-200 p-3">
-          <p className="mb-2 text-xs font-semibold text-slate-400">🔜 업데이트 예정</p>
-          <ul className="space-y-2">
-            {UPCOMING.map((item) => (
-              <li key={item.title}>
-                <p className="text-sm font-medium text-slate-600">{item.title}</p>
-                <p className="mt-0.5 text-xs text-slate-400">{item.desc}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {UPCOMING.length > 0 && (
+          <div className="mt-4 rounded-xl border border-dashed border-slate-200 p-3">
+            <p className="mb-2 text-xs font-semibold text-slate-400">🔜 업데이트 예정</p>
+            <ul className="space-y-2">
+              {UPCOMING.map((item) => (
+                <li key={item.title}>
+                  <p className="text-sm font-medium text-slate-600">{item.title}</p>
+                  <p className="mt-0.5 text-xs text-slate-400">{item.desc}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <button
           type="button"
