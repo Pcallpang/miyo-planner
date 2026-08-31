@@ -24,6 +24,7 @@ import {
 } from '../lib/eisenhower';
 import TodoModal from '../components/TodoModal';
 import EmptyMiyo from '../components/EmptyMiyo';
+import { toggleTodoDone } from '../lib/todoDone';
 import { sortTodosByDueDate } from '../lib/todoSort';
 import type { Todo, TodoCategory } from '../types';
 
@@ -156,7 +157,7 @@ export default function MatrixView() {
                         <input
                           type="checkbox"
                           checked={todo.done}
-                          onChange={() => replace({ ...todo, done: !todo.done })}
+                          onChange={() => replace(toggleTodoDone(todo))}
                           className="h-4 w-4 shrink-0 accent-mint-500"
                         />
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${CATEGORY_DOT[todo.category]}`} />

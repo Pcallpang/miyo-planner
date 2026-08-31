@@ -24,6 +24,8 @@ export interface Todo {
   /** 가로축 수동 고정. 없으면 마감일 기준 자동 판정 */
   urgentOverride?: boolean;
   createdAt: string;
+  /** 완료 체크된 시각. 이 시각으로부터 3일이 지나면 자동으로 완전히 삭제된다. */
+  completedAt?: string;
 }
 
 export interface Meeting {

@@ -9,6 +9,7 @@ import NotePasteModal from './components/NotePasteModal';
 import WhatsNewModal, { WHATS_NEW_VERSION } from './components/WhatsNewModal';
 import { useApp } from './context/AppContext';
 import { useData } from './context/DataContext';
+import { useCompletedTodoPurge } from './hooks/useCompletedTodoPurge';
 import { useReminders } from './hooks/useReminders';
 import { useTodoReminders } from './hooks/useTodoReminders';
 import { useLocalStorage } from './lib/storage';
@@ -38,10 +39,11 @@ export default function App() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [seenWhatsNew, setSeenWhatsNew] = useLocalStorage('haru.whatsnew.seen', '');
   const { status, toasts, events, settings } = useApp();
-  const { data } = useData();
+  const { data, update } = useData();
 
   useReminders(events, settings.reminderMinutes);
   useTodoReminders(data.todos, settings.reminderMinutes > 0);
+  useCompletedTodoPurge(data.todos, update);
 
   // 로그인 게이트: 구글 로그인 전이면 로그인 화면만 표시
   if (status && !status.authenticated) {

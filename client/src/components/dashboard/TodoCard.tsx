@@ -2,6 +2,8 @@ import { useState, type Dispatch, type SetStateAction } from 'react';
 import {
   CalendarClock,
   ChevronDown,
+  Eye,
+  EyeOff,
   Link as LinkIcon,
   ListChecks,
   Pencil,
@@ -12,6 +14,7 @@ import {
 } from 'lucide-react';
 import EmptyMiyo from '../EmptyMiyo';
 import TodayEvents from './TodayEvents';
+import { toggleTodoDone } from '../../lib/todoDone';
 import { sortTodosByDueDate } from '../../lib/todoSort';
 import type { Todo, TodoCategory } from '../../types';
 
@@ -33,10 +36,12 @@ interface Props {
 
 export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
   const [tab, setTab] = useState<TodoCategory>('업무');
+  const [showDone, setShowDone] = useState(false);
   /** 메모를 펼쳐 놓은 할 일 id */
   const [openMemoId, setOpenMemoId] = useState<string | null>(null);
 
-  const visible = sortTodosByDueDate(todos.filter((t) => t.category === tab));
+  const byTab = todos.filter((t) => t.category === tab);
+  const visible = sortTodosByDueDate(showDone ? byTab : byTab.filter((t) => !t.done));
   const countOf = (c: TodoCategory) => todos.filter((t) => t.category === c && !t.done).length;
 
   return (
@@ -46,6 +51,13 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
           <ListChecks size={17} className="text-mint-500" />
           데일리 To-Do
         </h2>
+        <button
+          onClick={() => setShowDone((v) => !v)}
+          className="flex items-center gap-1 rounded-full border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:border-mint-300 hover:text-mint-600"
+        >
+          {showDone ? <EyeOff size={12} /> : <Eye size={12} />}
+          완료 항목 {showDone ? '숨기기' : '보기'}
+        </button>
       </div>
 
       <TodayEvents />
@@ -79,21 +91,11 @@ export default function TodoCard({ todos, setTodos, onAdd, onEdit }: Props) {
                 <input
                   type="checkbox"
                   checked={todo.done}
-                  onChange={() => {
-                    if (todo.done) {
-                      setTodos((prev) =>
-                        prev.map((t) => (t.id === todo.id ? { ...t, done: false } : t)),
-                      );
-                      return;
-                    }
-                    // 체크 표시(취소선)가 보이도록 잠깐 기다렸다가 목록에서 지운다.
+                  onChange={() =>
                     setTodos((prev) =>
-                      prev.map((t) => (t.id === todo.id ? { ...t, done: true } : t)),
-                    );
-                    window.setTimeout(() => {
-                      setTodos((prev) => prev.filter((t) => t.id !== todo.id));
-                    }, 300);
-                  }}
+                      prev.map((t) => (t.id === todo.id ? toggleTodoDone(t) : t)),
+                    )
+                  }
                   className={`h-4 w-4 shrink-0 rounded border-2 accent-mint-500 ${CATEGORY_COLORS[todo.category]}`}
                 />
                 <div
