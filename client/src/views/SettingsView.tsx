@@ -8,10 +8,11 @@ import { clearAppData, defaultSettings } from '../lib/storage';
 import SchoolPicker from '../components/SchoolPicker';
 import PeriodTimesModal from '../components/PeriodTimesModal';
 
-/** 바탕화면 위젯(네이티브 프로그램) 설치 파일 다운로드 링크. 새 버전을 배포하면
- *  GitHub Releases에 새 태그로 올리고 이 값을 갱신한다. */
-const NATIVE_WIDGET_DOWNLOAD_URL =
-  'https://github.com/Pcallpang/miyo-planner/releases/download/native-widget-v1.1.0/Setup.1.1.0.exe';
+/** 바탕화면 위젯(네이티브 프로그램) 설치 파일 다운로드 링크. GitHub Releases 대신 이
+ *  사이트 자체(client/public/downloads/)에서 직접 서빙한다 — 일부 네트워크에서
+ *  GitHub의 release-assets.githubusercontent.com 도메인이 막혀 다운로드가 안 되는
+ *  사례가 있었다. 새 버전을 배포하면 이 파일을 새로 올리고 파일명을 갱신한다. */
+const NATIVE_WIDGET_DOWNLOAD_URL = '/downloads/Setup.1.1.0.exe';
 
 export default function SettingsView() {
   const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
@@ -321,6 +322,7 @@ export default function SettingsView() {
           </div>
           <a
             href={NATIVE_WIDGET_DOWNLOAD_URL}
+            download
             className="shrink-0 rounded-xl bg-mint-500 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-mint-600"
           >
             설치 파일 다운로드
