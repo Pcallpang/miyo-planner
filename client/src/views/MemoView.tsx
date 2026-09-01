@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState, type DragEvent } from 'react';
 import { format, parseISO } from 'date-fns';
 import { GripVertical, NotebookPen, Plus, Trash2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
@@ -13,9 +13,15 @@ export default function MemoView() {
   const setMemos = (updater: (prev: MemoNote[]) => MemoNote[]) =>
     update((prev) => ({ memos: updater(prev.memos) }));
 
-  /** 드래그로 옮기는 중인 메모 id. 카드 자체는 outline이 아니라 grip 아이콘만 드래그 핸들로 쓴다. */
+  /** 드래그 중인 메모 id. */
   const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  /** 드래그 중 실시간으로 미리보는 순서(id 목록). 드래그 중이 아니면 null — 이때는 memos 원래 순서를 쓴다. */
+  const [liveOrder, setLiveOrder] = useState<string[] | null>(null);
+  const cardRefs = useRef(new Map<string, HTMLDivElement>());
+
+  const orderedMemos = liveOrder
+    ? (liveOrder.map((id) => memos.find((m) => m.id === id)).filter(Boolean) as MemoNote[])
+    : memos;
 
   function addMemo() {
     setMemos((prev) => [
@@ -34,17 +40,69 @@ export default function MemoView() {
     setMemos((prev) => prev.filter((m) => m.id !== id));
   }
 
-  function reorderMemo(targetId: string) {
+  function startDrag(id: string, e: DragEvent<HTMLSpanElement>) {
+    setDraggedId(id);
+    setLiveOrder(memos.map((m) => m.id));
+    const card = cardRefs.current.get(id);
+    if (card) {
+      const rect = card.getBoundingClientRect();
+      // 손잡이가 아니라 카드 전체가 커서를 따라 이동하는 것처럼 보이도록 드래그 미리보기 이미지를 카드로 지정한다.
+      e.dataTransfer.setDragImage(card, e.clientX - rect.left, e.clientY - rect.top);
+    }
+    e.dataTransfer.effectAllowed = 'move';
+  }
+
+  /** 드래그 중인 카드가 targetId 카드 위를 지날 때, 커서의 좌우 위치를 보고 그 카드의 앞/뒤 중 더 가까운 자리로 끼워 넣는다. */
+  function dragOverCard(targetId: string, e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
     if (!draggedId || draggedId === targetId) return;
-    setMemos((prev) => {
-      const from = prev.findIndex((m) => m.id === draggedId);
-      const to = prev.findIndex((m) => m.id === targetId);
-      if (from === -1 || to === -1) return prev;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const insertAfter = e.clientX - rect.left > rect.width / 2;
+    setLiveOrder((prev) => {
+      if (!prev) return prev;
+      const from = prev.indexOf(draggedId);
+      const targetIndex = prev.indexOf(targetId);
+      if (from === -1 || targetIndex === -1) return prev;
+      let to = insertAfter ? targetIndex + 1 : targetIndex;
+      if (to > from) to -= 1; // splice로 먼저 빼낸 뒤 넣을 자리이므로 보정
+      if (to === from) return prev;
       const next = [...prev];
       const [moved] = next.splice(from, 1);
       next.splice(to, 0, moved);
       return next;
     });
+  }
+
+  /** 카드 사이 여백 등 빈 공간에 놓아도 맨 뒤로 들어가게. */
+  function dragOverEmpty(e: DragEvent<HTMLDivElement>) {
+    if (e.target !== e.currentTarget || !draggedId) return;
+    e.preventDefault();
+    setLiveOrder((prev) => {
+      if (!prev) return prev;
+      const from = prev.indexOf(draggedId);
+      if (from === -1 || from === prev.length - 1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.push(moved);
+      return next;
+    });
+  }
+
+  function commitDrop(e: DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    if (liveOrder) {
+      setMemos((prev) => {
+        const byId = new Map(prev.map((m) => [m.id, m]));
+        return liveOrder.map((id) => byId.get(id)).filter((m): m is MemoNote => Boolean(m));
+      });
+    }
+    setDraggedId(null);
+    setLiveOrder(null);
+  }
+
+  function cancelDrag() {
+    setDraggedId(null);
+    setLiveOrder(null);
   }
 
   return (
@@ -72,59 +130,58 @@ export default function MemoView() {
           />
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {memos.map((memo, i) => (
-            <div
-              key={memo.id}
-              onDragOver={(e) => {
-                e.preventDefault();
-                if (draggedId && draggedId !== memo.id) setDragOverId(memo.id);
-              }}
-              onDragLeave={() => setDragOverId((id) => (id === memo.id ? null : id))}
-              onDrop={(e) => {
-                e.preventDefault();
-                reorderMemo(memo.id);
-                setDraggedId(null);
-                setDragOverId(null);
-              }}
-              className={`group flex flex-col rounded-2xl p-4 shadow-sm ring-1 transition ${
-                dragOverId === memo.id ? 'ring-2 ring-mint-400' : 'ring-slate-100'
-              } ${draggedId === memo.id ? 'opacity-40' : ''} ${CARD_TINTS[i % CARD_TINTS.length]}`}
-            >
-              <div className="mb-1 flex items-center">
-                <span
-                  draggable
-                  onDragStart={() => setDraggedId(memo.id)}
-                  onDragEnd={() => {
-                    setDraggedId(null);
-                    setDragOverId(null);
-                  }}
-                  className="cursor-grab rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-slate-500 active:cursor-grabbing"
-                  aria-label="메모 순서 변경"
-                >
-                  <GripVertical size={14} />
-                </span>
+        <div
+          className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          onDragOver={dragOverEmpty}
+          onDrop={commitDrop}
+        >
+          {orderedMemos.map((memo) => {
+            const tintIndex = memos.findIndex((m) => m.id === memo.id);
+            return (
+              <div
+                key={memo.id}
+                ref={(el) => {
+                  if (el) cardRefs.current.set(memo.id, el);
+                  else cardRefs.current.delete(memo.id);
+                }}
+                onDragOver={(e) => dragOverCard(memo.id, e)}
+                onDrop={commitDrop}
+                className={`group flex flex-col rounded-2xl p-4 shadow-sm ring-1 ring-slate-100 transition-opacity ${
+                  draggedId === memo.id ? 'opacity-30' : ''
+                } ${CARD_TINTS[tintIndex % CARD_TINTS.length]}`}
+              >
+                <div className="mb-1 flex items-center">
+                  <span
+                    draggable
+                    onDragStart={(e) => startDrag(memo.id, e)}
+                    onDragEnd={cancelDrag}
+                    className="cursor-grab rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-slate-500 active:cursor-grabbing"
+                    aria-label="메모 순서 변경"
+                  >
+                    <GripVertical size={14} />
+                  </span>
+                </div>
+                <textarea
+                  className="min-h-36 flex-1 resize-none bg-transparent text-sm leading-relaxed text-slate-700 outline-none placeholder:text-slate-400"
+                  placeholder="메모를 입력하세요…"
+                  value={memo.text}
+                  onChange={(e) => updateMemo(memo.id, e.target.value)}
+                />
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400">
+                    {format(parseISO(memo.updatedAt), 'MM/dd HH:mm')}
+                  </span>
+                  <button
+                    onClick={() => removeMemo(memo.id)}
+                    className="rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
+                    aria-label="메모 삭제"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
-              <textarea
-                className="min-h-36 flex-1 resize-none bg-transparent text-sm leading-relaxed text-slate-700 outline-none placeholder:text-slate-400"
-                placeholder="메모를 입력하세요…"
-                value={memo.text}
-                onChange={(e) => updateMemo(memo.id, e.target.value)}
-              />
-              <div className="mt-2 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">
-                  {format(parseISO(memo.updatedAt), 'MM/dd HH:mm')}
-                </span>
-                <button
-                  onClick={() => removeMemo(memo.id)}
-                  className="rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-rose-400"
-                  aria-label="메모 삭제"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
