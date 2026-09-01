@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { NotebookPen, Plus, Trash2 } from 'lucide-react';
+import { GripVertical, NotebookPen, Plus, Trash2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
 import EmptyMiyo from '../components/EmptyMiyo';
 import type { MemoNote } from '../types';
@@ -11,6 +12,10 @@ export default function MemoView() {
   const memos = data.memos;
   const setMemos = (updater: (prev: MemoNote[]) => MemoNote[]) =>
     update((prev) => ({ memos: updater(prev.memos) }));
+
+  /** 드래그로 옮기는 중인 메모 id. 카드 자체는 outline이 아니라 grip 아이콘만 드래그 핸들로 쓴다. */
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
 
   function addMemo() {
     setMemos((prev) => [
@@ -27,6 +32,19 @@ export default function MemoView() {
 
   function removeMemo(id: string) {
     setMemos((prev) => prev.filter((m) => m.id !== id));
+  }
+
+  function reorderMemo(targetId: string) {
+    if (!draggedId || draggedId === targetId) return;
+    setMemos((prev) => {
+      const from = prev.findIndex((m) => m.id === draggedId);
+      const to = prev.findIndex((m) => m.id === targetId);
+      if (from === -1 || to === -1) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
   }
 
   return (
@@ -58,8 +76,35 @@ export default function MemoView() {
           {memos.map((memo, i) => (
             <div
               key={memo.id}
-              className={`group flex flex-col rounded-2xl p-4 shadow-sm ring-1 ring-slate-100 ${CARD_TINTS[i % CARD_TINTS.length]}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (draggedId && draggedId !== memo.id) setDragOverId(memo.id);
+              }}
+              onDragLeave={() => setDragOverId((id) => (id === memo.id ? null : id))}
+              onDrop={(e) => {
+                e.preventDefault();
+                reorderMemo(memo.id);
+                setDraggedId(null);
+                setDragOverId(null);
+              }}
+              className={`group flex flex-col rounded-2xl p-4 shadow-sm ring-1 transition ${
+                dragOverId === memo.id ? 'ring-2 ring-mint-400' : 'ring-slate-100'
+              } ${draggedId === memo.id ? 'opacity-40' : ''} ${CARD_TINTS[i % CARD_TINTS.length]}`}
             >
+              <div className="mb-1 flex items-center">
+                <span
+                  draggable
+                  onDragStart={() => setDraggedId(memo.id)}
+                  onDragEnd={() => {
+                    setDraggedId(null);
+                    setDragOverId(null);
+                  }}
+                  className="cursor-grab rounded p-1 text-slate-300 opacity-0 transition group-hover:opacity-100 hover:text-slate-500 active:cursor-grabbing"
+                  aria-label="메모 순서 변경"
+                >
+                  <GripVertical size={14} />
+                </span>
+              </div>
               <textarea
                 className="min-h-36 flex-1 resize-none bg-transparent text-sm leading-relaxed text-slate-700 outline-none placeholder:text-slate-400"
                 placeholder="메모를 입력하세요…"
