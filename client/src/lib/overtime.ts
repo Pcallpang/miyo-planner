@@ -16,6 +16,13 @@ export const DAILY_OVERTIME_CAP_MINUTES = 4 * 60;
 export const DAILY_OVERTIME_GRACE_MINUTES = 60;
 
 /**
+ * 1시간 공제 규칙이 처음 적용되는 날짜(YYYY-MM-DD). 이 날짜보다 이전 기록은 예전 방식
+ * 그대로(공제 없이 4시간 상한만) 계산한다 — 8월처럼 이미 지난 달의 금액이 소급 변경되어
+ * "데이터가 날아간 것처럼" 보이지 않도록 하기 위함이다.
+ */
+export const GRACE_RULE_EFFECTIVE_DATE = '2026-09-01';
+
+/**
  * 종료-시작(분)에서 방과후 차감(afterSchoolMinutes)을 뺀 값. 종료가 시작보다 빠르거나
  * 차감이 전체 시간보다 크면 0(자정을 넘긴 경우는 다루지 않음).
  */
@@ -53,33 +60,46 @@ function dailyRawMinutes(logs: OvertimeLog[], date: string): number {
   return logs.filter((l) => l.date === date).reduce((sum, l) => sum + durationMinutes(l), 0);
 }
 
-/**
- * date 하루치 1시간 공제를 아침/저녁 세션에 나눠 적용한 값(4시간 상한 적용 전).
- * 공제 1시간은 아침에서 먼저 소진되고, 아침이 1시간을 못 채우면 남은 공제만큼 저녁에서
- * 마저 빠진다 — dailyCappedMinutes(공제 후 아침+저녁 합계)와 항상 일치한다.
- */
-function dailyCountedBySession(logs: OvertimeLog[], date: string): Record<OvertimeSession, number> {
-  const morning = dailySessionMinutes(logs, date, '아침');
-  const evening = dailySessionMinutes(logs, date, '저녁');
-  const morningCounted = Math.max(0, morning - DAILY_OVERTIME_GRACE_MINUTES);
-  const graceLeftForEvening = Math.max(0, DAILY_OVERTIME_GRACE_MINUTES - morning);
-  const eveningCounted = Math.max(0, evening - graceLeftForEvening);
-
-  const total = morningCounted + eveningCounted;
+/** 두 세션 몫의 합이 4시간 상한을 넘으면 같은 비율로 줄인다(합계가 정확히 상한과 맞도록 저녁으로 보정). */
+function capSessionSplit(morning: number, evening: number): Record<OvertimeSession, number> {
+  const total = morning + evening;
   const cappedTotal = Math.min(total, DAILY_OVERTIME_CAP_MINUTES);
-  if (cappedTotal === total) return { 아침: morningCounted, 저녁: eveningCounted };
-  // 4시간 상한에 걸리면 두 세션 몫을 같은 비율로 줄인다(합계가 정확히 상한과 맞도록 저녁으로 보정).
-  const scaledMorning = Math.round((morningCounted * cappedTotal) / total);
+  if (cappedTotal === total || total === 0) return { 아침: morning, 저녁: evening };
+  const scaledMorning = Math.round((morning * cappedTotal) / total);
   return { 아침: scaledMorning, 저녁: cappedTotal - scaledMorning };
 }
 
 /**
- * date의 하루 합계에 1시간 공제를 적용한 뒤 4시간 상한을 적용한 값.
- * 예) 아침 30분만 → 0분. 아침 1시간 30분만 → 30분(초과분만). 아침 1시간 30분 + 저녁 20분
- * → 50분(아침 초과분 30분 + 저녁 전액 20분, 공제 1시간은 아침에서 소진).
+ * date 하루치를 아침/저녁 세션으로 나눠 인정 시간을 계산한다(4시간 상한 적용 전은
+ * capSessionSplit에서 처리). GRACE_RULE_EFFECTIVE_DATE보다 이전 날짜는 공제 없이
+ * 예전 방식(4시간 상한만) 그대로 계산한다.
+ *
+ * 새 방식(그 날짜부터): 공제 1시간은 아침에서 먼저 소진되고, 아침이 1시간을 못 채우면
+ * 남은 공제만큼 저녁에서 마저 빠진다 — dailyCappedMinutes(공제 후 아침+저녁 합계)와
+ * 항상 일치한다.
+ */
+function dailyCountedBySession(logs: OvertimeLog[], date: string): Record<OvertimeSession, number> {
+  const morning = dailySessionMinutes(logs, date, '아침');
+  const evening = dailySessionMinutes(logs, date, '저녁');
+
+  if (date < GRACE_RULE_EFFECTIVE_DATE) {
+    return capSessionSplit(morning, evening);
+  }
+
+  const morningCounted = Math.max(0, morning - DAILY_OVERTIME_GRACE_MINUTES);
+  const graceLeftForEvening = Math.max(0, DAILY_OVERTIME_GRACE_MINUTES - morning);
+  const eveningCounted = Math.max(0, evening - graceLeftForEvening);
+  return capSessionSplit(morningCounted, eveningCounted);
+}
+
+/**
+ * date의 하루 합계에 4시간 상한을 적용한 값. GRACE_RULE_EFFECTIVE_DATE부터는 4시간
+ * 상한 전에 1시간 공제를 먼저 적용한다(예: 아침 30분만 → 0분, 아침 1시간 30분만 →
+ * 30분). 그 이전 날짜는 공제 없이 예전 방식(4시간 상한만) 그대로 계산한다.
  */
 export function dailyCappedMinutes(logs: OvertimeLog[], date: string): number {
-  const afterGrace = Math.max(0, dailyRawMinutes(logs, date) - DAILY_OVERTIME_GRACE_MINUTES);
+  const raw = dailyRawMinutes(logs, date);
+  const afterGrace = date < GRACE_RULE_EFFECTIVE_DATE ? raw : Math.max(0, raw - DAILY_OVERTIME_GRACE_MINUTES);
   return Math.min(afterGrace, DAILY_OVERTIME_CAP_MINUTES);
 }
 
