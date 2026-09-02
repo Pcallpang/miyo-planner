@@ -1,15 +1,17 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
-import { AlarmClock, ChevronDown, Coins, Pencil, Plus, Sunrise, Sunset, Trash2 } from 'lucide-react';
+import { AlarmClock, ChevronDown, Coins, PiggyBank, Pencil, Plus, Sunrise, Sunset, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import EmptyMiyo from '../EmptyMiyo';
 import {
   buildEveningPunchLog,
   buildMorningPunchLog,
   countedMinutesForLog,
+  cumulativePay,
   durationMinutes,
   estimatedPay,
   formatDuration,
   monthlyCappedTotalMinutes,
+  monthlyPayHistory,
   payableHours,
   nowHHmm,
   OVERTIME_MONTHLY_CAP_MINUTES,
@@ -21,6 +23,13 @@ const SESSION_BADGE: Record<OvertimeSession, string> = {
   아침: 'bg-sky-100 text-sky-700',
   저녁: 'bg-violet-100 text-violet-700',
 };
+
+/** "YYYY-MM" → "8월"(올해) 또는 "2025년 3월"(다른 해). */
+function formatMonthLabel(monthKey: string): string {
+  const [y, m] = monthKey.split('-').map(Number);
+  const thisYear = new Date().getFullYear();
+  return y === thisYear ? `${m}월` : `${y}년 ${m}월`;
+}
 
 interface Props {
   logs: OvertimeLog[];
@@ -39,6 +48,8 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
   const [eveningStartInput, setEveningStartInput] = useState('');
   /** 탭해서 수정·삭제 버튼을 펼친 기록. 터치 기기에는 hover가 없어 펼치는 방식을 쓴다. */
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  /** "그동안 얼마 벌었게?"를 눌러야 누적 금액·월별 내역이 펼쳐진다. */
+  const [showEarnedHistory, setShowEarnedHistory] = useState(false);
 
   const now = new Date();
   const monthLogs = logs
@@ -62,6 +73,10 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
   // 실제 지급 기준이 되는 시간 수를 금액 옆에 함께 적는다.
   const paidHours = payableHours(totalMinutes);
   const pay = settings.overtimeHourlyRate > 0 ? estimatedPay(totalMinutes, settings.overtimeHourlyRate) : null;
+
+  // "그동안 얼마 벌었게?" — 기록이 있는 모든 달(이번 달 포함)의 예상 수당을 더한 누적액과 월별 내역.
+  const payHistory = settings.overtimeHourlyRate > 0 ? monthlyPayHistory(logs, settings.overtimeHourlyRate) : [];
+  const totalEarned = settings.overtimeHourlyRate > 0 ? cumulativePay(logs, settings.overtimeHourlyRate) : 0;
 
   function recordMorning() {
     if (logs.some((l) => l.date === todayYMD() && l.session === '아침')) {
@@ -149,13 +164,41 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
         </button>
       </div>
 
-      {/* 예상 수당 */}
+      {/* 예상 수당 + 그동안 누적 */}
       {pay !== null && (
-        <div className="mb-3 flex items-center justify-end rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-          <span className="flex items-center gap-1 font-semibold text-slate-700">
-            <Coins size={12} className="text-amber-500" /> 예상 {pay.toLocaleString('ko-KR')}원
-            <span className="font-normal text-slate-400">({paidHours}시간)</span>
-          </span>
+        <div className="mb-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setShowEarnedHistory((v) => !v)}
+              className="flex items-center gap-1 font-medium text-slate-500 underline-offset-2 hover:text-mint-600 hover:underline"
+            >
+              <PiggyBank size={12} />
+              그동안 얼마 벌었게?
+            </button>
+            <span className="flex items-center gap-1 font-semibold text-slate-700">
+              <Coins size={12} className="text-amber-500" /> 예상 {pay.toLocaleString('ko-KR')}원
+              <span className="font-normal text-slate-400">({paidHours}시간)</span>
+            </span>
+          </div>
+
+          {showEarnedHistory && (
+            <div className="mt-2 border-t border-slate-200 pt-2">
+              <p className="mb-1 font-semibold text-mint-600">
+                누적 {totalEarned.toLocaleString('ko-KR')}원
+              </p>
+              <ul className="space-y-0.5">
+                {payHistory.map((m) => (
+                  <li key={m.monthKey} className="flex justify-between">
+                    <span>{formatMonthLabel(m.monthKey)}</span>
+                    <span>
+                      {m.pay.toLocaleString('ko-KR')}원 ({m.hours}시간)
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

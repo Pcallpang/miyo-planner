@@ -143,6 +143,39 @@ export function estimatedPay(minutes: number, hourlyRate: number): number {
   return Math.round(payableHours(minutes) * hourlyRate);
 }
 
+export interface MonthlyPay {
+  /** "YYYY-MM" */
+  monthKey: string;
+  minutes: number;
+  hours: number;
+  pay: number;
+}
+
+/** 로그에 기록이 있는 연/월들을 최신순("YYYY-MM")으로. */
+function monthKeysInLogs(logs: OvertimeLog[]): string[] {
+  const keys = new Set<string>();
+  for (const l of logs) keys.add(l.date.slice(0, 7));
+  return [...keys].sort().reverse();
+}
+
+/**
+ * 기록이 있는 달마다 인정 시간·예상 수당을 계산해 최신순으로 반환한다("그동안 얼마
+ * 벌었게?" 누적 내역용). 단가는 현재 설정값을 과거 달에도 그대로 적용한다(단가 변경
+ * 이력은 따로 저장하지 않는다).
+ */
+export function monthlyPayHistory(logs: OvertimeLog[], hourlyRate: number): MonthlyPay[] {
+  return monthKeysInLogs(logs).map((monthKey) => {
+    const [y, m] = monthKey.split('-').map(Number);
+    const minutes = monthlyCappedTotalMinutes(logs, new Date(y, m - 1, 1));
+    return { monthKey, minutes, hours: payableHours(minutes), pay: estimatedPay(minutes, hourlyRate) };
+  });
+}
+
+/** 기록이 있는 모든 달의 예상 수당을 더한 값("그동안 얼마 벌었게?" 배지의 총액). */
+export function cumulativePay(logs: OvertimeLog[], hourlyRate: number): number {
+  return monthlyPayHistory(logs, hourlyRate).reduce((sum, m) => sum + m.pay, 0);
+}
+
 /** 현재 시각을 "HH:mm"으로 (원터치 출퇴근 버튼용) */
 export function nowHHmm(): string {
   const now = new Date();

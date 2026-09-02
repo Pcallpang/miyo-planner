@@ -10,6 +10,8 @@ import {
   payableHours,
   buildMorningPunchLog,
   buildEveningPunchLog,
+  monthlyPayHistory,
+  cumulativePay,
   OVERTIME_MONTHLY_CAP_MINUTES,
   DAILY_OVERTIME_CAP_MINUTES,
   DAILY_OVERTIME_GRACE_MINUTES,
@@ -186,6 +188,33 @@ describe('countedMinutesForLog', () => {
     expect(morning).toBe(165);
     expect(evening).toBe(75);
     expect(morning + evening).toBe(DAILY_OVERTIME_CAP_MINUTES);
+  });
+});
+
+describe('monthlyPayHistory / cumulativePay', () => {
+  const logs: OvertimeLog[] = [
+    log({ id: '1', date: '2026-08-05', session: '아침', startTime: '07:00', endTime: '09:00' }), // 8월: 120 → 공제 후 60 → 1시간
+    log({ id: '2', date: '2026-07-10', session: '저녁', startTime: '17:00', endTime: '20:00' }), // 7월: 180 → 공제 후 120 → 2시간
+  ];
+
+  test('기록이 있는 달만, 최신순으로 반환한다', () => {
+    const history = monthlyPayHistory(logs, 10000);
+    expect(history.map((h) => h.monthKey)).toEqual(['2026-08', '2026-07']);
+  });
+
+  test('달마다 인정 시간·시간 수·예상 수당을 계산한다', () => {
+    const history = monthlyPayHistory(logs, 10000);
+    expect(history[0]).toEqual({ monthKey: '2026-08', minutes: 60, hours: 1, pay: 10000 });
+    expect(history[1]).toEqual({ monthKey: '2026-07', minutes: 120, hours: 2, pay: 20000 });
+  });
+
+  test('누적 예상 수당은 모든 달의 합이다', () => {
+    expect(cumulativePay(logs, 10000)).toBe(30000);
+  });
+
+  test('기록이 없으면 빈 배열·0원', () => {
+    expect(monthlyPayHistory([], 10000)).toEqual([]);
+    expect(cumulativePay([], 10000)).toBe(0);
   });
 });
 
