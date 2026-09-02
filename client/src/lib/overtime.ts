@@ -191,7 +191,7 @@ export function monthlyPayHistory(logs: OvertimeLog[], hourlyRate: number): Mont
   });
 }
 
-/** 기록이 있는 모든 달의 예상 수당을 더한 값("피땀머니" 배지의 총액). */
+/** 기록이 있는 모든 달의 예상 수당을 더한 값("피땀머니 누적" 배지의 총액). */
 export function cumulativePay(logs: OvertimeLog[], hourlyRate: number): number {
   return monthlyPayHistory(logs, hourlyRate).reduce((sum, m) => sum + m.pay, 0);
 }

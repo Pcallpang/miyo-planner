@@ -48,7 +48,7 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
   const [eveningStartInput, setEveningStartInput] = useState('');
   /** 탭해서 수정·삭제 버튼을 펼친 기록. 터치 기기에는 hover가 없어 펼치는 방식을 쓴다. */
   const [openActionId, setOpenActionId] = useState<string | null>(null);
-  /** "피땀머니"를 눌러야 누적 금액·월별 내역이 펼쳐진다. */
+  /** "피땀머니 누적"을 눌러야 누적 금액·월별 내역이 펼쳐진다. */
   const [showEarnedHistory, setShowEarnedHistory] = useState(false);
 
   const now = new Date();
@@ -74,7 +74,7 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
   const paidHours = payableHours(totalMinutes);
   const pay = settings.overtimeHourlyRate > 0 ? estimatedPay(totalMinutes, settings.overtimeHourlyRate) : null;
 
-  // "피땀머니" — 기록이 있는 모든 달(이번 달 포함)의 예상 수당을 더한 누적액과 월별 내역.
+  // "피땀머니 누적" — 기록이 있는 모든 달(이번 달 포함)의 예상 수당을 더한 누적액과 월별 내역.
   const payHistory = settings.overtimeHourlyRate > 0 ? monthlyPayHistory(logs, settings.overtimeHourlyRate) : [];
   const totalEarned = settings.overtimeHourlyRate > 0 ? cumulativePay(logs, settings.overtimeHourlyRate) : 0;
 
@@ -174,7 +174,7 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
               className="flex items-center gap-1 font-medium text-slate-500 underline-offset-2 hover:text-mint-600 hover:underline"
             >
               <PiggyBank size={12} />
-              피땀머니
+              피땀머니 누적
             </button>
             <span className="flex items-center gap-1 font-semibold text-slate-700">
               <Coins size={12} className="text-amber-500" /> 예상 {pay.toLocaleString('ko-KR')}원
