@@ -9,8 +9,8 @@ import {
   estimatedPay,
   formatDuration,
   monthlyCappedTotalMinutes,
+  monthlyCountedMinutes,
   payableHours,
-  monthlyTotalMinutes,
   nowHHmm,
   OVERTIME_MONTHLY_CAP_MINUTES,
   todayYMD,
@@ -48,8 +48,9 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
     })
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? 1 : -1));
 
-  const morningMinutes = monthlyTotalMinutes(logs, now, '아침');
-  const eveningMinutes = monthlyTotalMinutes(logs, now, '저녁');
+  // 실제 근무 시간이 아니라 1시간 공제·4시간 상한을 반영한 "인정 시간"을 보여준다.
+  const morningMinutes = monthlyCountedMinutes(logs, now, '아침');
+  const eveningMinutes = monthlyCountedMinutes(logs, now, '저녁');
   // 하루 4시간 상한이 적용된 값 — 아침+저녁 실제 합계가 아니라 인정되는 합계다.
   const totalMinutes = monthlyCappedTotalMinutes(logs, now);
   const ratio = totalMinutes / OVERTIME_MONTHLY_CAP_MINUTES;
@@ -151,8 +152,11 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
         </button>
       </div>
 
-      {/* 이번 달 요약 */}
-      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+      {/* 이번 달 요약 — 실제 근무 시간이 아니라 공제·상한을 반영한 인정 시간 */}
+      <div
+        className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500"
+        title="1시간 공제와 4시간 상한을 반영한 인정 시간이에요. 실제 근무한 시간과 다를 수 있어요."
+      >
         <span>아침 {formatDuration(morningMinutes)}</span>
         <span>저녁 {formatDuration(eveningMinutes)}</span>
         {pay !== null && (

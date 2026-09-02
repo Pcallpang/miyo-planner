@@ -35,9 +35,36 @@ export function monthlyTotalMinutes(logs: OvertimeLog[], monthDate: Date, sessio
     .reduce((sum, l) => sum + durationMinutes(l), 0);
 }
 
+/** date(YYYY-MM-DD)와 같은 날짜·세션인 로그의 분 합계(원본, 공제 미적용). */
+function dailySessionMinutes(logs: OvertimeLog[], date: string, session: OvertimeSession): number {
+  return logs
+    .filter((l) => l.date === date && l.session === session)
+    .reduce((sum, l) => sum + durationMinutes(l), 0);
+}
+
 /** date(YYYY-MM-DD)와 같은 날짜인 로그의 분 합계(하루 상한 미적용, 원본 합계). */
 function dailyRawMinutes(logs: OvertimeLog[], date: string): number {
   return logs.filter((l) => l.date === date).reduce((sum, l) => sum + durationMinutes(l), 0);
+}
+
+/**
+ * date 하루치 1시간 공제를 아침/저녁 세션에 나눠 적용한 값(4시간 상한 적용 전).
+ * 공제 1시간은 아침에서 먼저 소진되고, 아침이 1시간을 못 채우면 남은 공제만큼 저녁에서
+ * 마저 빠진다 — dailyCappedMinutes(공제 후 아침+저녁 합계)와 항상 일치한다.
+ */
+function dailyCountedBySession(logs: OvertimeLog[], date: string): Record<OvertimeSession, number> {
+  const morning = dailySessionMinutes(logs, date, '아침');
+  const evening = dailySessionMinutes(logs, date, '저녁');
+  const morningCounted = Math.max(0, morning - DAILY_OVERTIME_GRACE_MINUTES);
+  const graceLeftForEvening = Math.max(0, DAILY_OVERTIME_GRACE_MINUTES - morning);
+  const eveningCounted = Math.max(0, evening - graceLeftForEvening);
+
+  const total = morningCounted + eveningCounted;
+  const cappedTotal = Math.min(total, DAILY_OVERTIME_CAP_MINUTES);
+  if (cappedTotal === total) return { 아침: morningCounted, 저녁: eveningCounted };
+  // 4시간 상한에 걸리면 두 세션 몫을 같은 비율로 줄인다(합계가 정확히 상한과 맞도록 저녁으로 보정).
+  const scaledMorning = Math.round((morningCounted * cappedTotal) / total);
+  return { 아침: scaledMorning, 저녁: cappedTotal - scaledMorning };
 }
 
 /**
@@ -48,6 +75,26 @@ function dailyRawMinutes(logs: OvertimeLog[], date: string): number {
 export function dailyCappedMinutes(logs: OvertimeLog[], date: string): number {
   const afterGrace = Math.max(0, dailyRawMinutes(logs, date) - DAILY_OVERTIME_GRACE_MINUTES);
   return Math.min(afterGrace, DAILY_OVERTIME_CAP_MINUTES);
+}
+
+/**
+ * monthDate와 같은 연/월에 대해, 세션별로 "실제 산입된"(1시간 공제 + 4시간 상한 반영) 분 합계.
+ * 대시보드의 "아침 X, 저녁 Y" 표시가 실제 근무 시간이 아니라 여기서 나온 인정 시간을 보여주도록 쓴다.
+ */
+export function monthlyCountedMinutes(logs: OvertimeLog[], monthDate: Date, session: OvertimeSession): number {
+  const y = monthDate.getFullYear();
+  const m = monthDate.getMonth();
+  const dates = new Set(
+    logs
+      .filter((l) => {
+        const d = new Date(`${l.date}T00:00:00`);
+        return d.getFullYear() === y && d.getMonth() === m;
+      })
+      .map((l) => l.date),
+  );
+  let total = 0;
+  for (const date of dates) total += dailyCountedBySession(logs, date)[session];
+  return total;
 }
 
 /**
