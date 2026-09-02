@@ -11,7 +11,6 @@ import {
   formatDuration,
   monthlyCappedTotalMinutes,
   payableHours,
-  monthlyTotalMinutes,
   nowHHmm,
   OVERTIME_MONTHLY_CAP_MINUTES,
   todayYMD,
@@ -49,8 +48,6 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
     })
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? 1 : -1));
 
-  const morningMinutes = monthlyTotalMinutes(logs, now, '아침');
-  const eveningMinutes = monthlyTotalMinutes(logs, now, '저녁');
   // 하루 4시간 상한이 적용된 값 — 아침+저녁 실제 합계가 아니라 인정되는 합계다.
   const totalMinutes = monthlyCappedTotalMinutes(logs, now);
   const ratio = totalMinutes / OVERTIME_MONTHLY_CAP_MINUTES;
@@ -152,17 +149,15 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
         </button>
       </div>
 
-      {/* 이번 달 요약 */}
-      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
-        <span>아침 {formatDuration(morningMinutes)}</span>
-        <span>저녁 {formatDuration(eveningMinutes)}</span>
-        {pay !== null && (
-          <span className="ml-auto flex items-center gap-1 font-semibold text-slate-700">
+      {/* 예상 수당 */}
+      {pay !== null && (
+        <div className="mb-3 flex items-center justify-end rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          <span className="flex items-center gap-1 font-semibold text-slate-700">
             <Coins size={12} className="text-amber-500" /> 예상 {pay.toLocaleString('ko-KR')}원
             <span className="font-normal text-slate-400">({paidHours}시간)</span>
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 시간당 단가 */}
       <div className="mb-3 text-xs text-slate-400">
