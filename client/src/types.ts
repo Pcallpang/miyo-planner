@@ -7,7 +7,8 @@ export type ViewId =
   | 'procurement'
   | 'settings'
   | 'overtime'
-  | 'board';
+  | 'board'
+  | 'devlog';
 
 export type TodoCategory = '업무' | '교과' | '개인';
 

@@ -15,6 +15,7 @@ import { useTodoReminders } from './hooks/useTodoReminders';
 import { useLocalStorage } from './lib/storage';
 import BoardView from './views/BoardView';
 import DashboardView from './views/DashboardView';
+import DevLogView from './views/DevLogView';
 import MatrixView from './views/MatrixView';
 import MemoView from './views/MemoView';
 import OvertimeView from './views/OvertimeView';
@@ -31,7 +32,7 @@ const TOAST_STYLES = {
 } as const;
 
 /** 하단 탭바에 자리가 없어 "더보기" 시트로 들어가는 화면들. */
-const MORE_VIEWS: ViewId[] = ['timetable', 'procurement', 'settings', 'board'];
+const MORE_VIEWS: ViewId[] = ['timetable', 'procurement', 'settings', 'board', 'devlog'];
 
 export default function App() {
   const [view, setView] = useState<ViewId>('dashboard');
@@ -66,6 +67,7 @@ export default function App() {
           {view === 'procurement' && <ProcurementView />}
           {view === 'settings' && <SettingsView />}
           {view === 'board' && <BoardView />}
+          {view === 'devlog' && <DevLogView />}
         </main>
       </div>
 

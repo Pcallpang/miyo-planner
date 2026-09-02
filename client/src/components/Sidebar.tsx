@@ -4,6 +4,7 @@ import {
   ClipboardPaste,
   FileSpreadsheet,
   GripVertical,
+  History,
   LayoutDashboard,
   LayoutGrid,
   LogOut,
@@ -189,6 +190,20 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
                 <span className="w-4 shrink-0" />
                 <Sparkles size={17} className={`shrink-0 ${view === 'board' ? 'text-mint-500' : 'text-slate-400'}`} />
                 미요쌤에게 원해요!
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => onNavigate('devlog')}
+                className={`flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                  view === 'devlog'
+                    ? 'bg-mint-50 text-mint-700 ring-1 ring-mint-200'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <span className="w-4 shrink-0" />
+                <History size={17} className={`shrink-0 ${view === 'devlog' ? 'text-mint-500' : 'text-slate-400'}`} />
+                미요쌤의 개발 노트
               </button>
             </li>
           </ul>
