@@ -29,7 +29,7 @@ export function defaultSettings(): Settings {
     eventKeywords: [],
     overtimeHourlyRate: 0,
     morningOvertimeEndTime: '08:50',
-    eveningOvertimeStartTime: '17:50',
+    eveningOvertimeStartTime: '16:50',
     sidebarOrder: [],
   };
 }
