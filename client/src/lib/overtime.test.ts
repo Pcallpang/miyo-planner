@@ -11,6 +11,7 @@ import {
   buildEveningPunchLog,
   OVERTIME_MONTHLY_CAP_MINUTES,
   DAILY_OVERTIME_CAP_MINUTES,
+  DAILY_OVERTIME_GRACE_MINUTES,
 } from './overtime';
 import type { OvertimeLog } from '../types';
 
@@ -66,11 +67,53 @@ describe('dailyCappedMinutes / monthlyCappedTotalMinutes', () => {
     expect(DAILY_OVERTIME_CAP_MINUTES).toBe(240);
   });
 
-  test('하루 합계가 4시간 이하면 그대로 인정한다', () => {
+  test('하루 공제 상수는 60분(1시간)이다', () => {
+    expect(DAILY_OVERTIME_GRACE_MINUTES).toBe(60);
+  });
+
+  test('아침 초근만 1시간 미만이면 산입 불가능(0분)', () => {
+    const logs: OvertimeLog[] = [
+      log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:30', endTime: '08:00' }), // 30
+    ];
+    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(0);
+  });
+
+  test('저녁 초근만 1시간 미만이면 산입 불가능(0분)', () => {
+    const logs: OvertimeLog[] = [
+      log({ id: '1', date: '2026-08-18', session: '저녁', startTime: '17:00', endTime: '17:40' }), // 40
+    ];
+    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(0);
+  });
+
+  test('아침 초근만 1시간 이상이면 1시간 초과분만 산입', () => {
     const logs: OvertimeLog[] = [
       log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:00', endTime: '08:30' }), // 90
     ];
-    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(90);
+    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(30); // 90 - 60
+  });
+
+  test('저녁 초근만 1시간 이상이면 1시간 초과분만 산입', () => {
+    const logs: OvertimeLog[] = [
+      log({ id: '1', date: '2026-08-18', session: '저녁', startTime: '17:00', endTime: '19:00' }), // 120
+    ];
+    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(60); // 120 - 60
+  });
+
+  test('아침이 1시간 이상이면 저녁은 1시간 미만이어도 그대로 산입된다', () => {
+    const logs: OvertimeLog[] = [
+      log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:00', endTime: '08:30' }), // 90
+      log({ id: '2', date: '2026-08-18', session: '저녁', startTime: '17:00', endTime: '17:20' }), // 20
+    ];
+    // 아침 초과분(30) + 저녁 전액(20) = 50
+    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(50);
+  });
+
+  test('아침+저녁 둘 다 1시간 미만이면 합계에서 공제를 뺀 나머지만 산입', () => {
+    const logs: OvertimeLog[] = [
+      log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:00', endTime: '07:40' }), // 40
+      log({ id: '2', date: '2026-08-18', session: '저녁', startTime: '17:00', endTime: '17:40' }), // 40
+    ];
+    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(20); // (40+40) - 60
   });
 
   test('아침+저녁 합계가 4시간을 넘으면 4시간만 인정한다', () => {
@@ -79,16 +122,16 @@ describe('dailyCappedMinutes / monthlyCappedTotalMinutes', () => {
       log({ id: '2', date: '2026-08-18', session: '저녁', startTime: '17:50', endTime: '21:30' }), // 220
     ];
     expect(dailyRawSum(logs)).toBe(330);
-    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(240);
+    expect(dailyCappedMinutes(logs, '2026-08-18')).toBe(240); // (330-60)=270 → 240으로 캡
   });
 
-  test('월 합계는 날짜별 상한을 적용한 뒤 합산한다', () => {
+  test('월 합계는 날짜별로 공제·상한을 적용한 뒤 합산한다', () => {
     const logs: OvertimeLog[] = [
       log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:00', endTime: '08:50' }), // 110
-      log({ id: '2', date: '2026-08-18', session: '저녁', startTime: '17:50', endTime: '21:30' }), // 220 → 이 날은 240으로 캡
-      log({ id: '3', date: '2026-08-19', session: '아침', startTime: '07:00', endTime: '08:00' }), // 60, 캡 안 걸림
+      log({ id: '2', date: '2026-08-18', session: '저녁', startTime: '17:50', endTime: '21:30' }), // 220 → 이 날은 (330-60)=270 → 240으로 캡
+      log({ id: '3', date: '2026-08-19', session: '아침', startTime: '07:00', endTime: '08:00' }), // 60 → (60-60)=0
     ];
-    expect(monthlyCappedTotalMinutes(logs, new Date('2026-08-01T00:00:00'))).toBe(240 + 60);
+    expect(monthlyCappedTotalMinutes(logs, new Date('2026-08-01T00:00:00'))).toBe(240 + 0);
   });
 
   function dailyRawSum(logs: OvertimeLog[]): number {
