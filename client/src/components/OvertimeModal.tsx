@@ -20,7 +20,9 @@ export default function OvertimeModal({ editing, defaultDate, onClose, onSave }:
   const [session, setSession] = useState<OvertimeSession>(editing?.session ?? '아침');
   const [startTime, setStartTime] = useState(editing?.startTime ?? '');
   const [endTime, setEndTime] = useState(editing?.endTime ?? '');
-  const [memo, setMemo] = useState(editing?.memo ?? '');
+  const [afterSchoolInput, setAfterSchoolInput] = useState(
+    editing?.afterSchoolMinutes ? String(editing.afterSchoolMinutes) : '',
+  );
 
   function submit(e: FormEvent, close: () => void) {
     e.preventDefault();
@@ -32,13 +34,18 @@ export default function OvertimeModal({ editing, defaultDate, onClose, onSave }:
       showToast('error', '종료 시간이 시작 시간보다 늦어야 합니다.');
       return;
     }
+    const afterSchoolMinutes = Number(afterSchoolInput);
+    if (afterSchoolInput && (!Number.isFinite(afterSchoolMinutes) || afterSchoolMinutes < 0)) {
+      showToast('error', '방과후 차감 시간은 0 이상의 숫자로 입력해 주세요.');
+      return;
+    }
     const next: OvertimeLog = {
       id: editing?.id ?? crypto.randomUUID(),
       date,
       session,
       startTime,
       endTime,
-      memo: memo.trim() || undefined,
+      afterSchoolMinutes: afterSchoolMinutes > 0 ? afterSchoolMinutes : undefined,
       createdAt: editing?.createdAt ?? new Date().toISOString(),
     };
     onSave(next);
@@ -93,12 +100,16 @@ export default function OvertimeModal({ editing, defaultDate, onClose, onSave }:
           </div>
 
           <div>
-            <label className={labelCls}>메모 (선택)</label>
-            <textarea
-              className={`${inputCls} min-h-20 resize-y`}
-              placeholder="예) 수행평가 채점"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
+            <label className={labelCls}>방과후 차감 (선택, 분)</label>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              className={inputCls}
+              placeholder="예) 50 — 방과후 수업 시간만큼 자동으로 빠져요"
+              value={afterSchoolInput}
+              onChange={(e) => setAfterSchoolInput(e.target.value)}
             />
           </div>
 

@@ -15,12 +15,18 @@ export const DAILY_OVERTIME_CAP_MINUTES = 4 * 60;
  */
 export const DAILY_OVERTIME_GRACE_MINUTES = 60;
 
-/** 종료-시작(분). 종료가 시작보다 빠르면 0(자정을 넘긴 경우는 다루지 않음). */
-export function durationMinutes(log: Pick<OvertimeLog, 'startTime' | 'endTime'>): number {
+/**
+ * 종료-시작(분)에서 방과후 차감(afterSchoolMinutes)을 뺀 값. 종료가 시작보다 빠르거나
+ * 차감이 전체 시간보다 크면 0(자정을 넘긴 경우는 다루지 않음).
+ */
+export function durationMinutes(
+  log: Pick<OvertimeLog, 'startTime' | 'endTime' | 'afterSchoolMinutes'>,
+): number {
   const [sh, sm] = log.startTime.split(':').map(Number);
   const [eh, em] = log.endTime.split(':').map(Number);
   const diff = eh * 60 + em - (sh * 60 + sm);
-  return diff > 0 ? diff : 0;
+  const raw = diff > 0 ? diff : 0;
+  return Math.max(0, raw - (log.afterSchoolMinutes ?? 0));
 }
 
 /** monthDate와 같은 연/월에 속한 로그의 분 합계. session을 주면 해당 세션만 집계. */
@@ -78,23 +84,17 @@ export function dailyCappedMinutes(logs: OvertimeLog[], date: string): number {
 }
 
 /**
- * monthDate와 같은 연/월에 대해, 세션별로 "실제 산입된"(1시간 공제 + 4시간 상한 반영) 분 합계.
- * 대시보드의 "아침 X, 저녁 Y" 표시가 실제 근무 시간이 아니라 여기서 나온 인정 시간을 보여주도록 쓴다.
+ * 로그 하나의 "인정 시간"(1시간 공제 반영, 실제 근무 시간과 다를 수 있다). 기록 목록의
+ * 시작~종료 시각 아래에 이 값을 보여준다. 같은 날짜·세션에 로그가 여럿이면 그 세션의
+ * 인정 시간을 실제 시간 비율대로 나눠 갖는다(보통은 하루 세션당 로그가 하나라 그대로 배정된다).
  */
-export function monthlyCountedMinutes(logs: OvertimeLog[], monthDate: Date, session: OvertimeSession): number {
-  const y = monthDate.getFullYear();
-  const m = monthDate.getMonth();
-  const dates = new Set(
-    logs
-      .filter((l) => {
-        const d = new Date(`${l.date}T00:00:00`);
-        return d.getFullYear() === y && d.getMonth() === m;
-      })
-      .map((l) => l.date),
-  );
-  let total = 0;
-  for (const date of dates) total += dailyCountedBySession(logs, date)[session];
-  return total;
+export function countedMinutesForLog(logs: OvertimeLog[], log: OvertimeLog): number {
+  const counted = dailyCountedBySession(logs, log.date)[log.session];
+  const rawForSession = dailySessionMinutes(logs, log.date, log.session);
+  if (rawForSession === 0) return 0;
+  const raw = durationMinutes(log);
+  if (rawForSession === raw) return counted; // 흔한 경우: 그 세션에 이 로그뿐
+  return Math.round((counted * raw) / rawForSession);
 }
 
 /**

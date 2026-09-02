@@ -5,12 +5,13 @@ import EmptyMiyo from '../EmptyMiyo';
 import {
   buildEveningPunchLog,
   buildMorningPunchLog,
+  countedMinutesForLog,
   durationMinutes,
   estimatedPay,
   formatDuration,
   monthlyCappedTotalMinutes,
-  monthlyCountedMinutes,
   payableHours,
+  monthlyTotalMinutes,
   nowHHmm,
   OVERTIME_MONTHLY_CAP_MINUTES,
   todayYMD,
@@ -48,9 +49,8 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
     })
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? 1 : -1));
 
-  // 실제 근무 시간이 아니라 1시간 공제·4시간 상한을 반영한 "인정 시간"을 보여준다.
-  const morningMinutes = monthlyCountedMinutes(logs, now, '아침');
-  const eveningMinutes = monthlyCountedMinutes(logs, now, '저녁');
+  const morningMinutes = monthlyTotalMinutes(logs, now, '아침');
+  const eveningMinutes = monthlyTotalMinutes(logs, now, '저녁');
   // 하루 4시간 상한이 적용된 값 — 아침+저녁 실제 합계가 아니라 인정되는 합계다.
   const totalMinutes = monthlyCappedTotalMinutes(logs, now);
   const ratio = totalMinutes / OVERTIME_MONTHLY_CAP_MINUTES;
@@ -152,11 +152,8 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
         </button>
       </div>
 
-      {/* 이번 달 요약 — 실제 근무 시간이 아니라 공제·상한을 반영한 인정 시간 */}
-      <div
-        className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500"
-        title="1시간 공제와 4시간 상한을 반영한 인정 시간이에요. 실제 근무한 시간과 다를 수 있어요."
-      >
+      {/* 이번 달 요약 */}
+      <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
         <span>아침 {formatDuration(morningMinutes)}</span>
         <span>저녁 {formatDuration(eveningMinutes)}</span>
         {pay !== null && (
@@ -287,12 +284,13 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
                   {log.session}
                 </span>
                 <span className="shrink-0 text-xs text-slate-400">{log.date.slice(5).replace('-', '/')}</span>
-                {/* 시각과 소요시간을 각각 한 줄씩 — 좁은 화면에서도 분까지 다 보인다. */}
+                {/* 시각과 소요시간을 각각 한 줄씩 — 좁은 화면에서도 분까지 다 보인다.
+                    아랫줄은 실제 근무 시간이 아니라 1시간 공제·4시간 상한을 반영한 인정 시간이다. */}
                 <span className="min-w-0 flex-1 text-xs">
                   <span className="block text-slate-600">
                     {log.startTime} ~ {log.endTime}
                   </span>
-                  <span className="block text-slate-400">{formatDuration(durationMinutes(log))}</span>
+                  <span className="block text-slate-400">{formatDuration(countedMinutesForLog(logs, log))}</span>
                 </span>
                 <ChevronDown
                   size={13}

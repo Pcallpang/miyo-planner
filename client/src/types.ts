@@ -245,7 +245,8 @@ export interface OvertimeLog {
   session: OvertimeSession;
   startTime: string; // HH:mm
   endTime: string; // HH:mm
-  memo?: string;
+  /** 방과후 수업 등으로 겹치는 시간(분) — 초과근무 시간 계산 시 자동으로 빠진다. */
+  afterSchoolMinutes?: number;
   createdAt: string;
 }
 

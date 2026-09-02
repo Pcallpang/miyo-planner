@@ -3,7 +3,7 @@ import {
   durationMinutes,
   monthlyTotalMinutes,
   monthlyCappedTotalMinutes,
-  monthlyCountedMinutes,
+  countedMinutesForLog,
   dailyCappedMinutes,
   formatDuration,
   estimatedPay,
@@ -39,6 +39,14 @@ describe('durationMinutes', () => {
 
   test('시작과 종료가 같으면 0을 반환한다', () => {
     expect(durationMinutes(log({ startTime: '08:00', endTime: '08:00' }))).toBe(0);
+  });
+
+  test('방과후 차감(afterSchoolMinutes)만큼 자동으로 빠진다', () => {
+    expect(durationMinutes(log({ startTime: '17:00', endTime: '19:00', afterSchoolMinutes: 50 }))).toBe(70); // 120-50
+  });
+
+  test('방과후 차감이 전체 시간보다 크면 0을 반환한다', () => {
+    expect(durationMinutes(log({ startTime: '17:00', endTime: '17:30', afterSchoolMinutes: 50 }))).toBe(0); // 30-50 → 0
   });
 });
 
@@ -140,22 +148,21 @@ describe('dailyCappedMinutes / monthlyCappedTotalMinutes', () => {
   }
 });
 
-describe('monthlyCountedMinutes', () => {
-  test('아침만 1시간 이상이면 초과분만 아침 몫으로 잡히고 저녁은 0', () => {
+describe('countedMinutesForLog', () => {
+  test('아침만 1시간 이상이면 그 로그는 초과분만 인정된다', () => {
     const logs: OvertimeLog[] = [
       log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:00', endTime: '08:30' }), // 90
     ];
-    expect(monthlyCountedMinutes(logs, new Date('2026-08-01T00:00:00'), '아침')).toBe(30);
-    expect(monthlyCountedMinutes(logs, new Date('2026-08-01T00:00:00'), '저녁')).toBe(0);
+    expect(countedMinutesForLog(logs, logs[0])).toBe(30);
   });
 
-  test('아침 1시간 이상 + 저녁 20분 → 아침은 초과분, 저녁은 전액', () => {
+  test('아침 1시간 이상 + 저녁 20분 → 아침 로그는 초과분, 저녁 로그는 전액', () => {
     const logs: OvertimeLog[] = [
       log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:00', endTime: '08:30' }), // 90
       log({ id: '2', date: '2026-08-18', session: '저녁', startTime: '17:00', endTime: '17:20' }), // 20
     ];
-    expect(monthlyCountedMinutes(logs, new Date('2026-08-01T00:00:00'), '아침')).toBe(30);
-    expect(monthlyCountedMinutes(logs, new Date('2026-08-01T00:00:00'), '저녁')).toBe(20);
+    expect(countedMinutesForLog(logs, logs[0])).toBe(30);
+    expect(countedMinutesForLog(logs, logs[1])).toBe(20);
   });
 
   test('둘 다 1시간 미만이면 공제가 아침에서 먼저 빠지고 남은 만큼 저녁에서 빠진다', () => {
@@ -164,18 +171,18 @@ describe('monthlyCountedMinutes', () => {
       log({ id: '2', date: '2026-08-18', session: '저녁', startTime: '17:00', endTime: '17:40' }), // 40
     ];
     // 공제 60분 중 40분은 아침에서, 남은 20분은 저녁에서 소진 → 아침 0, 저녁 20
-    expect(monthlyCountedMinutes(logs, new Date('2026-08-01T00:00:00'), '아침')).toBe(0);
-    expect(monthlyCountedMinutes(logs, new Date('2026-08-01T00:00:00'), '저녁')).toBe(20);
+    expect(countedMinutesForLog(logs, logs[0])).toBe(0);
+    expect(countedMinutesForLog(logs, logs[1])).toBe(20);
   });
 
-  test('하루 4시간 상한에 걸리면 두 세션 몫을 비율대로 줄여도 합계는 상한과 일치한다', () => {
+  test('하루 4시간 상한에 걸리면 두 로그 몫을 비율대로 줄여도 합계는 상한과 일치한다', () => {
     const logs: OvertimeLog[] = [
       log({ id: '1', date: '2026-08-18', session: '아침', startTime: '07:00', endTime: '11:40' }), // 280
       log({ id: '2', date: '2026-08-18', session: '저녁', startTime: '17:00', endTime: '18:40' }), // 100
     ];
     // 공제 후: 아침 220, 저녁 100, 합 320 → 240으로 캡, 비율 0.75 → 아침 165, 저녁 75
-    const morning = monthlyCountedMinutes(logs, new Date('2026-08-01T00:00:00'), '아침');
-    const evening = monthlyCountedMinutes(logs, new Date('2026-08-01T00:00:00'), '저녁');
+    const morning = countedMinutesForLog(logs, logs[0]);
+    const evening = countedMinutesForLog(logs, logs[1]);
     expect(morning).toBe(165);
     expect(evening).toBe(75);
     expect(morning + evening).toBe(DAILY_OVERTIME_CAP_MINUTES);
