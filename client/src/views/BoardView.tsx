@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CheckCircle2, Circle, Heart, Sparkles, Trash2 } from 'lucide-react';
+import { CheckCircle2, Circle, Heart, History, Sparkles, Trash2 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import EmptyMiyo from '../components/EmptyMiyo';
+import { DEV_LOG } from '../data/devLog';
 import type { FeatureRequest } from '../types';
 
 const MAX_LEN = 400; // 서버(server/routes/board.js)의 글자수 제한과 맞춘다
@@ -204,6 +205,31 @@ export default function BoardView() {
           ))}
         </ul>
       )}
+
+      <div className="mb-5 mt-10">
+        <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
+          <History size={18} className="text-mint-500" />
+          미요쌤의 개발 현황
+        </h2>
+        <p className="mt-0.5 text-xs text-slate-400">최근에 어떤 게 새로 생기고 바뀌었는지 여기서 확인할 수 있어요.</p>
+      </div>
+
+      <ul className="space-y-2">
+        {DEV_LOG.map((entry, i) => (
+          <li
+            key={`${entry.date}-${i}`}
+            className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100"
+          >
+            <span className="mt-0.5 shrink-0 rounded-lg bg-slate-50 px-2 py-1 text-[11px] font-semibold text-slate-400">
+              {format(parseISO(entry.date), 'MM/dd')}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-700">{entry.title}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{entry.desc}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
