@@ -1,6 +1,38 @@
 import { describe, expect, test } from 'vitest';
-import { canceledCountByDate, countLessonsUntil, weeklyOccurrences } from './subjectProgress';
+import { adjustCanceledProgress, canceledCountByDate, countLessonsUntil, weeklyOccurrences } from './subjectProgress';
 import type { CanceledLesson, Timetable } from '../types';
+
+describe('휴강 변경 시 현재 차시 반영', () => {
+  const progress = { subject: '수학', className: '1-3', currentLesson: 8, totalLessons: 30 };
+  const time = { start: '09:00', end: '09:50' };
+  const now = new Date('2026-09-04T10:00:00');
+
+  test('지난 날짜의 휴강은 현재와 총 차시를 줄이고 해제하면 복원한다', () => {
+    const canceled = adjustCanceledProgress(progress, -1, '2026-09-03', time, now);
+    expect(canceled).toEqual({ ...progress, currentLesson: 7, totalLessons: 29 });
+    expect(adjustCanceledProgress(canceled, 1, '2026-09-03', time, now)).toEqual(progress);
+  });
+
+  test('오늘 수업도 종료 시각부터 현재 차시에 반영한다', () => {
+    expect(adjustCanceledProgress(progress, -1, '2026-09-04', time,
+      new Date('2026-09-04T09:50:00')).currentLesson).toBe(7);
+  });
+
+  test('진행 중이거나 미래의 수업은 총 차시만 바꾼다', () => {
+    for (const [date, at] of [
+      ['2026-09-04', new Date('2026-09-04T09:49:00')],
+      ['2026-09-07', now],
+    ] as const) {
+      expect(adjustCanceledProgress(progress, -1, date, time, at))
+        .toEqual({ ...progress, totalLessons: 29 });
+    }
+  });
+
+  test('현재 차시는 0 아래로 내려가지 않는다', () => {
+    expect(adjustCanceledProgress({ ...progress, currentLesson: 0 }, -1,
+      '2026-09-03', undefined, now).currentLesson).toBe(0);
+  });
+});
 
 describe('weeklyOccurrences', () => {
   test('과목+반 조합이 배정된 요일마다 교시 수를 센다', () => {

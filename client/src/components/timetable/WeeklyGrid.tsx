@@ -6,7 +6,7 @@ import { api } from '../../lib/api';
 import { useApp } from '../../context/AppContext';
 import { useData } from '../../context/DataContext';
 import { getDayPhase } from '../../lib/schedule';
-import { effectiveSlot } from '../../lib/subjectProgress';
+import { adjustCanceledProgress, effectiveSlot } from '../../lib/subjectProgress';
 import { buildSubjectColors, classColorKey } from '../../lib/subjectColors';
 import TimetableCellModal from './TimetableCellModal';
 import SwapConfirmModal from './SwapConfirmModal';
@@ -70,10 +70,11 @@ export default function WeeklyGrid() {
 
   /**
    * 학교 행사 등으로 특정 날짜 하나만 휴강 처리하거나, 휴강을 다시 취소한다. 그 (과목, 반)의
-   * 차시 계획표 총 차시도 바로 ±1 반영한다 — 정확한 값은 차시 계획표의 계산 버튼을 다시
+   * 차시 계획표 총 차시와 이미 종료된 수업의 현재 차시도 바로 ±1 반영한다 — 정확한 값은 차시 계획표의 계산 버튼을 다시
    * 누르면 언제든 학사일정 기준으로 재계산된다.
    */
   function toggleCanceled(dateKey: string, period: number, subject: string, className: string) {
+    const changedAt = new Date();
     update((prev) => {
       const exists = prev.canceledLessons.some((c) => c.date === dateKey && c.period === period);
       const delta = exists ? 1 : -1;
@@ -83,7 +84,7 @@ export default function WeeklyGrid() {
           : [...prev.canceledLessons, { date: dateKey, period }],
         subjectProgress: prev.subjectProgress.map((p) =>
           p.subject === subject && p.className === className
-            ? { ...p, totalLessons: Math.max(0, p.totalLessons + delta) }
+            ? adjustCanceledProgress(p, delta, dateKey, settings.periodTimes[period], changedAt)
             : p,
         ),
       };

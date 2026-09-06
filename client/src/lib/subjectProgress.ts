@@ -1,4 +1,22 @@
-import type { CanceledLesson, PeriodSlot, SwapOverride, Timetable } from '../types';
+import type { CanceledLesson, PeriodSlot, PeriodTime, SubjectProgress, SwapOverride, Timetable } from '../types';
+
+/** 휴강 변경은 총 차시와, 이미 종료된 수업의 현재 차시에 함께 반영한다. */
+export function adjustCanceledProgress(
+  progress: SubjectProgress,
+  delta: number,
+  date: string,
+  periodTime: PeriodTime | undefined,
+  now: Date,
+): SubjectProgress {
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const ended = date < today || (date === today && !!periodTime &&
+    now.getTime() >= new Date(`${date}T${periodTime.end}:00`).getTime());
+  return {
+    ...progress,
+    totalLessons: Math.max(0, progress.totalLessons + delta),
+    currentLesson: ended ? Math.max(0, progress.currentLesson + delta) : progress.currentLesson,
+  };
+}
 
 /** 시간표에서 그 (과목, 반) 조합이 배정된 요일(1~5)별 교시 수. 같은 요일에 두 번 있으면 2. */
 export function weeklyOccurrences(
