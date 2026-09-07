@@ -2,12 +2,12 @@ import { X } from 'lucide-react';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
 /** 새 공지를 추가할 때마다 이 값을 올린다 — 이전 값을 본 사용자에게는 다시 뜬다. */
-export const WHATS_NEW_VERSION = '2026-09-02-overtime';
+export const WHATS_NEW_VERSION = '2026-09-07-color-theme';
 
 const ITEMS = [
   {
-    title: '필독!',
-    desc: '퇴근 시간을 16:50으로 수정해주세요. 1시간 자동 공제되게 수정했습니다. 이전에 기록한 초과근무는 직접 수정하세요. 방과후는 수정에서 직접 빼시면 됩니다. 자세한 내용은 개발자노트를 확인해주세요.',
+    title: '추가 — 색상 테마 고르기',
+    desc: '환경 설정에 "색상 테마" 항목이 생겼어요. 민트·블루·퍼플·핑크·오렌지·노랑 중 마음에 드는 색을 고르면 앱 전체 강조 색과 모바일 브라우저 주소창 색까지 바로 바뀌고, 다음에 다시 들어와도 그대로 유지돼요.',
   },
 ];
 
