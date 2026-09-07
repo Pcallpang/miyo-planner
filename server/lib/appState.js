@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = {
   overtimeHourlyRate: 0,
   morningOvertimeEndTime: '08:50',
   eveningOvertimeStartTime: '17:50',
+  colorTheme: 'mint',
 };
 
 export function defaultAppState() {

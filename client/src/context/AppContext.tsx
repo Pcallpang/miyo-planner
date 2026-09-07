@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { addMonths, endOfMonth, startOfMonth } from 'date-fns';
 import { api } from '../lib/api';
+import { applyColorTheme } from '../lib/colorTheme';
 import { useData } from './DataContext';
 import type { CalendarInfo, GEvent, ServerStatus, Settings } from '../types';
 
@@ -133,6 +134,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       showToast('error', e instanceof Error ? e.message : '연동 해제에 실패했습니다.');
     }
   }, [refreshStatus, showToast]);
+
+  // 저장된 색상 테마를 적용 — 앱 시작 시(서버에서 값이 로드된 뒤 포함)와
+  // 사용자가 설정에서 바꿀 때마다 실행되어 새로고침 후에도 바로 반영된다.
+  useEffect(() => {
+    applyColorTheme(settings.colorTheme);
+  }, [settings.colorTheme]);
 
   // 초기 상태 확인 + OAuth 콜백 처리
   useEffect(() => {

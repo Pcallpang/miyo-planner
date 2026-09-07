@@ -90,6 +90,8 @@ export interface Settings {
   eveningOvertimeStartTime: string;
   /** 사이드바 "나의 하루" 항목 순서. 비어 있으면 기본 순서를 쓴다. */
   sidebarOrder: string[];
+  /** 앱 전체를 리스킨하는 색상 테마. 기본값은 'mint' */
+  colorTheme: 'mint' | 'blue' | 'purple' | 'pink' | 'orange';
 }
 
 /** 나이스 학교 식별 정보 */

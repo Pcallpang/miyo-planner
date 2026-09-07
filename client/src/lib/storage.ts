@@ -31,6 +31,7 @@ export function defaultSettings(): Settings {
     morningOvertimeEndTime: '08:50',
     eveningOvertimeStartTime: '16:50',
     sidebarOrder: [],
+    colorTheme: 'mint',
   };
 }
 

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Clock, LogOut, Settings as SettingsIcon, Unplug } from 'lucide-react';
+import { Check, Clock, LogOut, Settings as SettingsIcon, Unplug } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { api } from '../lib/api';
 import { defaultAppData } from '../lib/appData';
+import { applyColorTheme, COLOR_THEME_IDS, COLOR_THEMES } from '../lib/colorTheme';
 import { clearAppData, defaultSettings } from '../lib/storage';
 import SchoolPicker from '../components/SchoolPicker';
 import PeriodTimesModal from '../components/PeriodTimesModal';
@@ -186,6 +187,35 @@ export default function SettingsView() {
           </div>
 
           <SchoolPicker />
+        </div>
+      </section>
+
+      <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+        <h3 className="mb-2 text-base font-bold text-slate-800">색상 테마</h3>
+        <div className={rowCls}>
+          <div>
+            <p className={labelCls}>앱 색상</p>
+            <p className={descCls}>앱 전체에 적용될 강조 색상을 고릅니다.</p>
+          </div>
+          <div className="flex gap-2">
+            {COLOR_THEME_IDS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                aria-label={id}
+                onClick={() => {
+                  setSettings((prev) => ({ ...prev, colorTheme: id }));
+                  applyColorTheme(id);
+                }}
+                className="relative h-8 w-8 shrink-0 rounded-full ring-1 ring-slate-200 transition hover:scale-105"
+                style={{ backgroundColor: COLOR_THEMES[id]['500'] }}
+              >
+                {settings.colorTheme === id && (
+                  <Check size={16} className="absolute inset-0 m-auto text-white drop-shadow" />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
