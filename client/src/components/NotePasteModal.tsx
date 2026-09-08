@@ -120,7 +120,7 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
     );
   }
 
-  async function registerOne(index: number, refresh = true): Promise<boolean> {
+  async function registerOne(index: number): Promise<boolean> {
     const card = cards?.[index];
     if (!card || card.status.state === 'done') return true;
     const ev = card.event;
@@ -195,7 +195,7 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
       setCards((prev) =>
         prev ? prev.map((c, i) => (i === index ? { ...c, status: { state: 'done' } } : c)) : prev,
       );
-      if (refresh && card.toCalendar) await refreshEvents();
+      if (card.toCalendar) await refreshEvents();
       return true;
     } catch (e) {
       setCards((prev) =>
@@ -209,16 +209,6 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
       );
       return false;
     }
-  }
-
-  async function registerAll() {
-    if (!cards) return;
-    let ok = 0;
-    for (let i = 0; i < cards.length; i++) {
-      if (await registerOne(i, false)) ok++;
-    }
-    await refreshEvents();
-    showToast(ok === cards.length ? 'success' : 'error', `${cards.length}건 중 ${ok}건 등록되었습니다.`);
   }
 
   const inputCls =
@@ -461,8 +451,8 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
-          {!cards ? (
+        {!cards && (
+          <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
             <button
               onClick={() => void analyze()}
               disabled={analyzing || retryIn > 0}
@@ -477,20 +467,8 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
               )}
               {analyzing ? '분석 중…' : retryIn > 0 ? `${retryIn}초 후 재시도 가능` : 'Gemini로 일정 추출'}
             </button>
-          ) : (
-            <button
-              onClick={() => void registerAll()}
-              disabled={
-                cards.every((c) => c.status.state === 'done') ||
-                (!connected && cards.some((c) => c.status.state !== 'done' && c.toCalendar))
-              }
-              className="flex items-center gap-2 rounded-xl bg-mint-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-40"
-            >
-              <CalendarPlus size={16} />
-              모두 등록
-            </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
