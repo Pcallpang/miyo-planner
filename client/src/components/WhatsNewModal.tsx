@@ -2,12 +2,12 @@ import { X } from 'lucide-react';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
 /** 새 공지를 추가할 때마다 이 값을 올린다 — 이전 값을 본 사용자에게는 다시 뜬다. */
-export const WHATS_NEW_VERSION = '2026-09-07-color-theme';
+export const WHATS_NEW_VERSION = '2026-09-08-note-paste-destinations';
 
 const ITEMS = [
   {
-    title: '추가 — 색상 테마 고르기',
-    desc: '환경 설정에 "색상 테마" 항목이 생겼어요. 민트·블루·퍼플·핑크·오렌지·노랑 중 마음에 드는 색을 고르면 앱 전체 강조 색과 모바일 브라우저 주소창 색까지 바로 바뀌고, 다음에 다시 들어와도 그대로 유지돼요.',
+    title: '추가 — 쪽지 붙여넣기, 캘린더·회의록&일정·TO-DO 골라서 등록',
+    desc: '학교 안내문을 붙여넣어 찾은 일정마다 캘린더·회의록&일정·데일리 To-Do 중 원하는 곳에 체크해서 등록할 수 있어요. TO-DO를 고르면 업무/교과/개인 카테고리도 바로 정할 수 있습니다.',
   },
 ];
 
