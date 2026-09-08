@@ -17,6 +17,9 @@ type CardStatus = { state: 'idle' | 'saving' | 'done' } | { state: 'error'; mess
 interface Card {
   event: ParsedEvent;
   status: CardStatus;
+  toCalendar: boolean;
+  toTodo: boolean;
+  todoCategory: TodoCategory;
 }
 
 const TODO_BADGE: Record<TodoCategory, string> = {
@@ -24,6 +27,8 @@ const TODO_BADGE: Record<TodoCategory, string> = {
   교과: 'bg-emerald-100 text-emerald-700',
   개인: 'bg-amber-100 text-amber-700',
 };
+
+const TODO_CATEGORIES: TodoCategory[] = ['업무', '교과', '개인'];
 
 export default function NotePasteModal({ onClose }: { onClose: () => void }) {
   const { status, settings, showToast, refreshEvents } = useApp();
@@ -78,7 +83,15 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
       setAddedTodos(todayTodos);
       // 오늘이 아닌(미래·날짜 미정) 할 일은 사용자가 원하면 추가하도록 따로 보여준다
       setOtherTodos(todos.filter((t) => t.dueDate !== today).map((todo) => ({ todo, added: false })));
-      setCards(events.map((event) => ({ event, status: { state: 'idle' } })));
+      setCards(
+        events.map((event) => ({
+          event,
+          status: { state: 'idle' },
+          toCalendar: true,
+          toTodo: false,
+          todoCategory: '업무',
+        })),
+      );
     } catch (e) {
       if (e instanceof ApiError && e.status === 429) {
         setRetryIn(e.retryAfter && e.retryAfter > 0 ? e.retryAfter : 30);
@@ -120,10 +133,26 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
     );
   }
 
+  function updateCard(index: number, patch: Partial<Pick<Card, 'toCalendar' | 'toTodo' | 'todoCategory'>>) {
+    setCards((prev) =>
+      prev ? prev.map((c, i) => (i === index ? { ...c, ...patch, status: { state: 'idle' } } : c)) : prev,
+    );
+  }
+
   async function registerOne(index: number, refresh = true): Promise<boolean> {
     const card = cards?.[index];
     if (!card || card.status.state === 'done') return true;
     const ev = card.event;
+    if (!card.toCalendar && !card.toTodo) {
+      setCards((prev) =>
+        prev
+          ? prev.map((c, i) =>
+              i === index ? { ...c, status: { state: 'error', message: '캘린더 또는 TO-DO를 선택해 주세요.' } } : c,
+            )
+          : prev,
+      );
+      return false;
+    }
     if (!ev.title.trim() || !ev.date) {
       setCards((prev) =>
         prev
@@ -138,20 +167,37 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
       prev ? prev.map((c, i) => (i === index ? { ...c, status: { state: 'saving' } } : c)) : prev,
     );
     try {
-      await api.createEvent({
-        title: ev.title.trim(),
-        date: ev.date,
-        allDay: ev.allDay || !ev.startTime,
-        startTime: ev.allDay ? null : ev.startTime,
-        endTime: ev.allDay ? null : ev.endTime,
-        location: ev.location ?? '',
-        description: ev.memo,
-        calendarId: settings.calendarId,
-      });
+      if (card.toCalendar) {
+        await api.createEvent({
+          title: ev.title.trim(),
+          date: ev.date,
+          allDay: ev.allDay || !ev.startTime,
+          startTime: ev.allDay ? null : ev.startTime,
+          endTime: ev.allDay ? null : ev.endTime,
+          location: ev.location ?? '',
+          description: ev.memo,
+          calendarId: settings.calendarId,
+        });
+      }
+      if (card.toTodo) {
+        update((prev) => ({
+          todos: [
+            ...prev.todos,
+            {
+              id: crypto.randomUUID(),
+              text: ev.title.trim(),
+              category: card.todoCategory,
+              done: false,
+              dueDate: ev.date,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        }));
+      }
       setCards((prev) =>
         prev ? prev.map((c, i) => (i === index ? { ...c, status: { state: 'done' } } : c)) : prev,
       );
-      if (refresh) await refreshEvents();
+      if (refresh && card.toCalendar) await refreshEvents();
       return true;
     } catch (e) {
       setCards((prev) =>
@@ -201,7 +247,7 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
             <>
               <p className="text-sm text-slate-500">
                 학교에서 받은 안내문·공지·쪽지를 그대로 붙여넣으면 Gemini가 일정을 추출해 드립니다.
-                추출 결과를 확인·수정한 뒤 직접 등록 버튼을 눌러야 캘린더에 반영됩니다.
+                캘린더·TO-DO 여부를 확인·수정한 뒤 직접 등록 버튼을 눌러야 반영됩니다.
               </p>
               <textarea
                 className="min-h-48 w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm outline-none transition focus:border-mint-400 focus:bg-white focus:ring-2 focus:ring-mint-100"
@@ -310,7 +356,7 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
                   연동&rsquo;을 진행해 주세요.
                 </p>
               )}
-              {cards.map(({ event: ev, status: st }, i) => (
+              {cards.map(({ event: ev, status: st, toCalendar, toTodo, todoCategory }, i) => (
                 <div
                   key={i}
                   className={`rounded-2xl border p-4 ${
@@ -370,6 +416,48 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
                   </div>
                   {ev.memo && <p className="mt-2 text-xs leading-relaxed text-slate-500">{ev.memo}</p>}
 
+                  <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <label className="flex items-center gap-1.5 text-sm text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={toCalendar}
+                        onChange={(e) => updateCard(i, { toCalendar: e.target.checked })}
+                        disabled={st.state === 'done'}
+                        className="h-4 w-4 accent-mint-500"
+                      />
+                      <CalendarPlus size={14} className="text-slate-400" />
+                      캘린더
+                    </label>
+                    <label className="flex items-center gap-1.5 text-sm text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={toTodo}
+                        onChange={(e) => updateCard(i, { toTodo: e.target.checked })}
+                        disabled={st.state === 'done'}
+                        className="h-4 w-4 accent-mint-500"
+                      />
+                      <ListChecks size={14} className="text-slate-400" />
+                      TO-DO
+                    </label>
+                    {toTodo && (
+                      <div className="flex items-center gap-1">
+                        {TODO_CATEGORIES.map((cat) => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => updateCard(i, { todoCategory: cat })}
+                            disabled={st.state === 'done'}
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold transition ${
+                              todoCategory === cat ? TODO_BADGE[cat] : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                            }`}
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="mt-3 flex items-center justify-end gap-2">
                     {st.state === 'error' && (
                       <span className="text-xs text-rose-500">{st.message}</span>
@@ -381,7 +469,7 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
                     ) : (
                       <button
                         onClick={() => void registerOne(i)}
-                        disabled={!connected || st.state === 'saving'}
+                        disabled={(!connected && toCalendar) || st.state === 'saving'}
                         className="flex items-center gap-1.5 rounded-xl bg-mint-500 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-40"
                       >
                         {st.state === 'saving' ? (
@@ -389,7 +477,7 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
                         ) : (
                           <CalendarPlus size={15} />
                         )}
-                        캘린더에 등록
+                        등록
                       </button>
                     )}
                   </div>
@@ -418,7 +506,10 @@ export default function NotePasteModal({ onClose }: { onClose: () => void }) {
           ) : (
             <button
               onClick={() => void registerAll()}
-              disabled={!connected || cards.every((c) => c.status.state === 'done')}
+              disabled={
+                cards.every((c) => c.status.state === 'done') ||
+                (!connected && cards.some((c) => c.status.state !== 'done' && c.toCalendar))
+              }
               className="flex items-center gap-2 rounded-xl bg-mint-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-mint-600 disabled:opacity-40"
             >
               <CalendarPlus size={16} />
