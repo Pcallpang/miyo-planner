@@ -211,7 +211,7 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
 
         {/* 미요 실험실 바로가기 */}
         <a
-          href="https://pcallpang.github.io/miyo-lab/"
+          href="https://pcallpang.github.io/meyo-lab/"
           target="_blank"
           rel="noreferrer"
           className="mt-6 flex flex-col items-center gap-1.5 rounded-2xl bg-mint-50 p-3 text-center transition hover:bg-mint-100"

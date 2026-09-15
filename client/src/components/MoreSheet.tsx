@@ -123,7 +123,7 @@ export default function MoreSheet({ onNavigate, onClose, onOpenNote }: Props) {
             스마트 자리배치
           </button>
           <a
-            href="https://pcallpang.github.io/miyo-lab/"
+            href="https://pcallpang.github.io/meyo-lab/"
             target="_blank"
             rel="noreferrer"
             onClick={close}
