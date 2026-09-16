@@ -165,10 +165,21 @@ export async function listMessengerAlerts(userId) {
   const { rows } = await pool.query(
     `SELECT id, source, sender, received_at AS "receivedAt", body_excerpt AS "bodyExcerpt", events, todos,
             created_at AS "createdAt"
-       FROM messenger_alerts WHERE user_id=$1 ORDER BY created_at DESC`,
+       FROM messenger_alerts
+      WHERE user_id=$1 AND (jsonb_array_length(events) > 0 OR jsonb_array_length(todos) > 0)
+      ORDER BY created_at DESC`,
     [userId],
   );
   return rows;
+}
+
+/** 이미 저장된 동일 쪽지인지 저비용으로 확인한다 (Gemini 호출 전에 먼저 쓴다). */
+export async function messengerAlertExists(userId, dedupHash) {
+  const { rows } = await pool.query(
+    'SELECT 1 FROM messenger_alerts WHERE user_id=$1 AND dedup_hash=$2 LIMIT 1',
+    [userId, dedupHash],
+  );
+  return rows.length > 0;
 }
 
 /** 본인 소유 카드만 지운다. 삭제된 행 수(0이면 이미 없었거나 권한 없음). */

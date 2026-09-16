@@ -166,10 +166,13 @@ export default function MessengerAlertModal({ onClose }: { onClose: () => void }
           ],
         }));
       }
-      const updatedCards = cards.map((c) =>
-        `${c.alertId}:${c.index}` === key ? { ...c, status: { state: 'done' } as CardStatus } : c,
-      );
-      setCards(updatedCards);
+      let updatedCards: EventCard[] = [];
+      setCards((prev) => {
+        updatedCards = prev.map((c) =>
+          `${c.alertId}:${c.index}` === key ? { ...c, status: { state: 'done' } as CardStatus } : c,
+        );
+        return updatedCards;
+      });
       if (card.toCalendar) await refreshEvents();
       await dismissIfDone(card.alertId, updatedCards, addedTodoKeys);
     } catch (e) {
@@ -198,8 +201,11 @@ export default function MessengerAlertModal({ onClose }: { onClose: () => void }
           },
         ],
       }));
-      const updatedKeys = new Set(addedTodoKeys).add(`${alertId}:${todoIndex}`);
-      setAddedTodoKeys(updatedKeys);
+      let updatedKeys: Set<string> = new Set();
+      setAddedTodoKeys((prev) => {
+        updatedKeys = new Set(prev).add(`${alertId}:${todoIndex}`);
+        return updatedKeys;
+      });
       await dismissIfDone(alertId, cards, updatedKeys);
     } catch (e) {
       // 이 컴포넌트에는 TO-DO 단위 에러 UI가 없다 — 실패 시 added 처리하지 않고
