@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   LogOut,
+  MessageCircle,
   NotebookPen,
   School,
   Settings,
@@ -35,12 +36,14 @@ interface Props {
   view: ViewId;
   onNavigate: (v: ViewId) => void;
   onOpenNote: () => void;
+  onOpenMessengerAlerts: () => void;
+  messengerAlertCount: number;
 }
 
 /** 자리배치 앱 주소 — 서버가 내려주지 못했을 때의 폴백. */
 const SEATING_FALLBACK_URL = 'https://sn-aseating.vercel.app';
 
-export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
+export default function Sidebar({ view, onNavigate, onOpenNote, onOpenMessengerAlerts, messengerAlertCount }: Props) {
   const { status, refreshStatus, showToast, settings, setSettings } = useApp();
   const [draggingId, setDraggingId] = useState<SidebarItemId | null>(null);
 
@@ -112,6 +115,18 @@ export default function Sidebar({ view, onNavigate, onOpenNote }: Props) {
         >
           <ClipboardPaste size={16} />
           쪽지 붙여넣기
+        </button>
+        <button
+          onClick={onOpenMessengerAlerts}
+          className="relative mb-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-mint-200 bg-white px-4 py-2.5 text-sm font-semibold text-mint-700 shadow-sm transition hover:bg-mint-50"
+        >
+          <MessageCircle size={16} />
+          메신저 알리미
+          {messengerAlertCount > 0 && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[11px] font-bold text-white">
+              {messengerAlertCount}
+            </span>
+          )}
         </button>
       </div>
 

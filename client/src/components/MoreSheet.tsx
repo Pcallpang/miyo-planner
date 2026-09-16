@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Armchair, ClipboardPaste, FileSpreadsheet, History, LogOut, Settings, Sparkles, Table, X } from 'lucide-react';
+import {
+  Armchair,
+  ClipboardPaste,
+  FileSpreadsheet,
+  History,
+  LogOut,
+  MessageCircle,
+  Settings,
+  Sparkles,
+  Table,
+  X,
+} from 'lucide-react';
 import { api } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import type { ViewId } from '../types';
@@ -12,10 +23,18 @@ interface Props {
   onNavigate: (v: ViewId) => void;
   onClose: () => void;
   onOpenNote: () => void;
+  onOpenMessengerAlerts: () => void;
+  messengerAlertCount: number;
 }
 
 /** 하단 탭바의 "더보기"를 누르면 아래에서 올라오는 시트. */
-export default function MoreSheet({ onNavigate, onClose, onOpenNote }: Props) {
+export default function MoreSheet({
+  onNavigate,
+  onClose,
+  onOpenNote,
+  onOpenMessengerAlerts,
+  messengerAlertCount,
+}: Props) {
   const { status, refreshStatus, showToast } = useApp();
   const [open, setOpen] = useState(false);
 
@@ -100,6 +119,21 @@ export default function MoreSheet({ onNavigate, onClose, onOpenNote }: Props) {
           >
             <ClipboardPaste size={18} className="text-slate-400" />
             쪽지 붙여넣기
+          </button>
+          <button
+            onClick={() => {
+              onOpenMessengerAlerts();
+              close();
+            }}
+            className="relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-slate-600 hover:bg-slate-100"
+          >
+            <MessageCircle size={18} className="text-slate-400" />
+            메신저 알리미
+            {messengerAlertCount > 0 && (
+              <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[11px] font-bold text-white">
+                {messengerAlertCount}
+              </span>
+            )}
           </button>
           <button
             onClick={() => navigate('timetable')}

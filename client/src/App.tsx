@@ -4,12 +4,14 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import LoginScreen from './components/LoginScreen';
 import MobileTabBar from './components/MobileTabBar';
+import MessengerAlertModal from './components/MessengerAlertModal';
 import MoreSheet from './components/MoreSheet';
 import NotePasteModal from './components/NotePasteModal';
 import WhatsNewModal, { WHATS_NEW_VERSION } from './components/WhatsNewModal';
 import { useApp } from './context/AppContext';
 import { useData } from './context/DataContext';
 import { useCompletedTodoPurge } from './hooks/useCompletedTodoPurge';
+import { useMessengerAlerts } from './hooks/useMessengerAlerts';
 import { useReminders } from './hooks/useReminders';
 import { useTodoReminders } from './hooks/useTodoReminders';
 import { useLocalStorage } from './lib/storage';
@@ -37,10 +39,12 @@ const MORE_VIEWS: ViewId[] = ['timetable', 'procurement', 'settings', 'board', '
 export default function App() {
   const [view, setView] = useState<ViewId>('dashboard');
   const [noteOpen, setNoteOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [seenWhatsNew, setSeenWhatsNew] = useLocalStorage('haru.whatsnew.seen', '');
   const { status, toasts, events, settings } = useApp();
   const { data, update } = useData();
+  const { alerts: messengerAlerts } = useMessengerAlerts(Boolean(status?.authenticated));
 
   useReminders(events, settings.reminderMinutes);
   useTodoReminders(data.todos, settings.reminderMinutes > 0);
@@ -53,7 +57,13 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar view={view} onNavigate={setView} onOpenNote={() => setNoteOpen(true)} />
+      <Sidebar
+        view={view}
+        onNavigate={setView}
+        onOpenNote={() => setNoteOpen(true)}
+        onOpenMessengerAlerts={() => setAlertsOpen(true)}
+        messengerAlertCount={messengerAlerts.length}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
@@ -79,13 +89,20 @@ export default function App() {
       />
 
       {noteOpen && <NotePasteModal onClose={() => setNoteOpen(false)} />}
+      {alertsOpen && <MessengerAlertModal onClose={() => setAlertsOpen(false)} />}
 
       {seenWhatsNew !== WHATS_NEW_VERSION && (
         <WhatsNewModal onClose={() => setSeenWhatsNew(WHATS_NEW_VERSION)} />
       )}
 
       {moreOpen && (
-        <MoreSheet onNavigate={setView} onClose={() => setMoreOpen(false)} onOpenNote={() => setNoteOpen(true)} />
+        <MoreSheet
+          onNavigate={setView}
+          onClose={() => setMoreOpen(false)}
+          onOpenNote={() => setNoteOpen(true)}
+          onOpenMessengerAlerts={() => setAlertsOpen(true)}
+          messengerAlertCount={messengerAlerts.length}
+        />
       )}
 
       {/* 토스트 */}
