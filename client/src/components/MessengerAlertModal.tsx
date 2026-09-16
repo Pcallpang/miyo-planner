@@ -70,16 +70,20 @@ export default function MessengerAlertModal({ onClose }: { onClose: () => void }
     };
   }, []);
 
-  function remainingCount(alertId: string): number {
+  // cardsSnapshot/addedTodoKeysSnapshot은 호출부가 방금 계산한 최신 값을 넘긴다.
+  // 컴포넌트 state(cards/addedTodoKeys)를 클로저로 직접 읽지 않는 것이 핵심 —
+  // setCards/setAddedTodoKeys 직후 같은 함수 안에서 호출해도 그 값이 그대로 반영되어야
+  // "마지막 항목 처리 → 자동 해제"가 stale closure 없이 항상 성립한다.
+  function remainingCount(alertId: string, cardsSnapshot: EventCard[], addedTodoKeysSnapshot: Set<string>): number {
     const alert = alerts?.find((a) => a.id === alertId);
     if (!alert) return 0;
-    const pendingEvents = cards.filter((c) => c.alertId === alertId && c.status.state !== 'done').length;
-    const pendingTodos = alert.todos.filter((_, i) => !addedTodoKeys.has(`${alertId}:${i}`)).length;
+    const pendingEvents = cardsSnapshot.filter((c) => c.alertId === alertId && c.status.state !== 'done').length;
+    const pendingTodos = alert.todos.filter((_, i) => !addedTodoKeysSnapshot.has(`${alertId}:${i}`)).length;
     return pendingEvents + pendingTodos;
   }
 
-  async function dismissIfDone(alertId: string) {
-    if (remainingCount(alertId) > 0) return;
+  async function dismissIfDone(alertId: string, cardsSnapshot: EventCard[], addedTodoKeysSnapshot: Set<string>) {
+    if (remainingCount(alertId, cardsSnapshot, addedTodoKeysSnapshot) > 0) return;
     try {
       await api.dismissMessengerAlert(alertId);
     } catch {
@@ -162,9 +166,12 @@ export default function MessengerAlertModal({ onClose }: { onClose: () => void }
           ],
         }));
       }
-      setCards((prev) => prev.map((c) => (`${c.alertId}:${c.index}` === key ? { ...c, status: { state: 'done' } } : c)));
+      const updatedCards = cards.map((c) =>
+        `${c.alertId}:${c.index}` === key ? { ...c, status: { state: 'done' } as CardStatus } : c,
+      );
+      setCards(updatedCards);
       if (card.toCalendar) await refreshEvents();
-      await dismissIfDone(card.alertId);
+      await dismissIfDone(card.alertId, updatedCards, addedTodoKeys);
     } catch (e) {
       setCards((prev) =>
         prev.map((c) =>
@@ -176,22 +183,29 @@ export default function MessengerAlertModal({ onClose }: { onClose: () => void }
     }
   }
 
-  function addTodo(alertId: string, todoIndex: number, todo: MessengerAlert['todos'][number]) {
-    update((prev) => ({
-      todos: [
-        ...prev.todos,
-        {
-          id: crypto.randomUUID(),
-          text: todo.text,
-          category: todo.category,
-          done: false,
-          dueDate: todo.dueDate ?? undefined,
-          createdAt: new Date().toISOString(),
-        },
-      ],
-    }));
-    setAddedTodoKeys((prev) => new Set(prev).add(`${alertId}:${todoIndex}`));
-    void dismissIfDone(alertId);
+  async function addTodo(alertId: string, todoIndex: number, todo: MessengerAlert['todos'][number]) {
+    try {
+      update((prev) => ({
+        todos: [
+          ...prev.todos,
+          {
+            id: crypto.randomUUID(),
+            text: todo.text,
+            category: todo.category,
+            done: false,
+            dueDate: todo.dueDate ?? undefined,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      }));
+      const updatedKeys = new Set(addedTodoKeys).add(`${alertId}:${todoIndex}`);
+      setAddedTodoKeys(updatedKeys);
+      await dismissIfDone(alertId, cards, updatedKeys);
+    } catch (e) {
+      // 이 컴포넌트에는 TO-DO 단위 에러 UI가 없다 — 실패 시 added 처리하지 않고
+      // 콘솔에만 남겨 사용자가 버튼을 다시 눌러 재시도할 수 있게 한다.
+      console.error(e);
+    }
   }
 
   const inputCls =
@@ -377,7 +391,7 @@ export default function MessengerAlertModal({ onClose }: { onClose: () => void }
                         <span className="min-w-0 flex-1 truncate text-sm text-slate-700">{todo.text}</span>
                         {todo.dueDate && <span className="shrink-0 text-xs text-slate-400">{todo.dueDate.slice(5).replace('-', '/')}</span>}
                         <button
-                          onClick={() => addTodo(alert.id, i, todo)}
+                          onClick={() => void addTodo(alert.id, i, todo)}
                           className="flex shrink-0 items-center gap-1 rounded-lg bg-mint-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-mint-600"
                         >
                           <ListChecks size={12} />
