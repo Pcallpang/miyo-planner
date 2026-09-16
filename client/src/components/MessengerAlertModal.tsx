@@ -166,7 +166,15 @@ export default function MessengerAlertModal({ onClose }: { onClose: () => void }
           ],
         }));
       }
-      let updatedCards: EventCard[] = [];
+      // setCards의 updater가 이 시점에 아직 flush되지 않았을 수도 있으므로(특히
+      // toCalendar가 false라 위에서 await를 거치지 않은 경로), updatedCards의
+      // 폴백 시드는 빈 배열이 아니라 "현재 클로저의 cards + 이번 변경"으로 잡는다.
+      // 이렇게 하면 최악의 경우에도 concurrency fix 이전 동작과 최소한 동일하게
+      // 안전하다 — dismissIfDone이 아직 등록되지 않은 다른 카드를 done으로 잘못
+      // 세지 않는다.
+      let updatedCards: EventCard[] = cards.map((c) =>
+        `${c.alertId}:${c.index}` === key ? { ...c, status: { state: 'done' } as CardStatus } : c,
+      );
       setCards((prev) => {
         updatedCards = prev.map((c) =>
           `${c.alertId}:${c.index}` === key ? { ...c, status: { state: 'done' } as CardStatus } : c,
@@ -201,7 +209,9 @@ export default function MessengerAlertModal({ onClose }: { onClose: () => void }
           },
         ],
       }));
-      let updatedKeys: Set<string> = new Set();
+      // registerCard와 동일한 이유로, 폴백 시드는 빈 Set이 아니라 현재 클로저의
+      // addedTodoKeys + 이번 항목으로 잡는다.
+      let updatedKeys: Set<string> = new Set(addedTodoKeys).add(`${alertId}:${todoIndex}`);
       setAddedTodoKeys((prev) => {
         updatedKeys = new Set(prev).add(`${alertId}:${todoIndex}`);
         return updatedKeys;
