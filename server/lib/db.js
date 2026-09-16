@@ -147,3 +147,34 @@ export async function unvoteFeatureRequest(requestId, userId) {
     [requestId, userId],
   );
 }
+
+/** 신규 브리티 쪽지를 저장한다. 이미 있던 쪽지(동일 dedupHash)면 null을 반환한다. */
+export async function insertMessengerAlert(userId, { source = 'brity', dedupHash, sender, receivedAt, bodyExcerpt, events, todos }) {
+  const { rows } = await pool.query(
+    `INSERT INTO messenger_alerts (user_id, source, dedup_hash, sender, received_at, body_excerpt, events, todos)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+     ON CONFLICT (user_id, dedup_hash) DO NOTHING
+     RETURNING id, source, sender, received_at AS "receivedAt", body_excerpt AS "bodyExcerpt", events, todos,
+               created_at AS "createdAt"`,
+    [userId, source, dedupHash, sender ?? null, receivedAt ?? null, bodyExcerpt, JSON.stringify(events), JSON.stringify(todos)],
+  );
+  return rows[0] || null;
+}
+
+export async function listMessengerAlerts(userId) {
+  const { rows } = await pool.query(
+    `SELECT id, source, sender, received_at AS "receivedAt", body_excerpt AS "bodyExcerpt", events, todos,
+            created_at AS "createdAt"
+       FROM messenger_alerts WHERE user_id=$1 ORDER BY created_at DESC`,
+    [userId],
+  );
+  return rows;
+}
+
+/** 본인 소유 카드만 지운다. 삭제된 행 수(0이면 이미 없었거나 권한 없음). */
+export async function deleteMessengerAlert(id, userId) {
+  const { rowCount } = await pool.query(
+    'DELETE FROM messenger_alerts WHERE id=$1 AND user_id=$2', [id, userId],
+  );
+  return rowCount;
+}
