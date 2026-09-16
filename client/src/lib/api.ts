@@ -5,6 +5,7 @@ import type {
   FeatureRequest,
   GEvent,
   Meal,
+  MessengerAlert,
   ParsedEvent,
   ParsedTodo,
   ProcurementItem,
@@ -139,6 +140,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ text }),
     }),
+
+  listMessengerAlerts: () => request<{ alerts: MessengerAlert[] }>('/api/messenger-alert'),
+
+  dismissMessengerAlert: (id: string) =>
+    request<{ ok: boolean }>(`/api/messenger-alert/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   searchSchools: (name: string) =>
     request<{ schools: School[] }>(`/api/school/search?name=${encodeURIComponent(name)}`),

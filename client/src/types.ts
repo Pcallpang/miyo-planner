@@ -160,6 +160,17 @@ export interface ParsedTodo {
   dueDate: string | null;
 }
 
+export interface MessengerAlert {
+  id: string;
+  source: string;
+  sender: string | null;
+  receivedAt: string | null;
+  bodyExcerpt: string;
+  events: ParsedEvent[];
+  todos: ParsedTodo[];
+  createdAt: string;
+}
+
 export interface ServerStatus {
   googleConfigured: boolean;
   /** 본인 키 또는 서버 기본 키로 Gemini 사용 가능한지 */
