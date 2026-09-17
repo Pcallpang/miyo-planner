@@ -111,6 +111,14 @@ export default function MessengerAlertModal({ onClose, onAlertsChanged }: Props)
     onAlertsChanged?.();
   }
 
+  /** 일정·할 일이 하나도 없는(확인만 하면 되는) 항목들을 한 번에 무시한다. */
+  async function dismissAllReadOnly(ids: string[]) {
+    await Promise.allSettled(ids.map((id) => api.dismissMessengerAlert(id)));
+    setAlerts((prev) => (prev ? prev.filter((a) => !ids.includes(a.id)) : prev));
+    setCards((prev) => prev.filter((c) => !ids.includes(c.alertId)));
+    onAlertsChanged?.();
+  }
+
   function updateCard(key: string, patch: Partial<EventCard>) {
     setCards((prev) =>
       prev.map((c) => (`${c.alertId}:${c.index}` === key ? { ...c, ...patch, status: { state: 'idle' } } : c)),
@@ -236,47 +244,13 @@ export default function MessengerAlertModal({ onClose, onAlertsChanged }: Props)
   const inputCls =
     'rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm outline-none transition focus:border-mint-400 focus:ring-2 focus:ring-mint-100';
 
-  return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-900/30 p-4" onClick={onClose}>
-      <div
-        className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-            <MessageCircle size={18} className="text-mint-500" />
-            메신저 알리미
-          </h2>
-          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
-            <X size={18} />
-          </button>
-        </div>
+  // 등록할 일정·할 일이 감지된 것(위)과, 확인만 하면 되는 일반 메시지(아래)를
+  // 나눠서 보여준다 — 안 그러면 사소한 메시지들 사이에서 진짜 등록해야 할
+  // 항목을 놓치기 쉽다.
+  const actionableAlerts = alerts?.filter((a) => a.events.length > 0 || a.todos.length > 0) ?? [];
+  const readOnlyAlerts = alerts?.filter((a) => a.events.length === 0 && a.todos.length === 0) ?? [];
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
-          <p className="text-sm text-slate-500">
-            브리티 메신저에서 자동으로 감지된 쪽지입니다. 확인·수정 후 직접 등록 버튼을 눌러야
-            반영됩니다.
-          </p>
-          {loadError && (
-            <div className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-rose-500">
-              <AlertTriangle size={15} />
-              <span>{loadError}</span>
-            </div>
-          )}
-          {alerts && alerts.length === 0 && (
-            <div className="flex flex-col items-center gap-2 py-10 text-slate-400">
-              <Inbox size={28} />
-              <p className="text-sm">확인 대기 중인 쪽지가 없습니다.</p>
-            </div>
-          )}
-          {!connected && alerts && alerts.length > 0 && (
-            <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
-              구글 계정이 연동되어 있지 않아 캘린더에는 등록할 수 없습니다. 먼저 상단의 &lsquo;구글 계정
-              연동&rsquo;을 진행해 주세요.
-            </p>
-          )}
-
-          {alerts?.map((alert) => {
+  function renderAlertCard(alert: MessengerAlert) {
             const alertCards = cards.filter((c) => c.alertId === alert.id);
             return (
               <div key={alert.id} className="rounded-2xl border border-slate-200 p-4">
@@ -433,8 +407,76 @@ export default function MessengerAlertModal({ onClose, onAlertsChanged }: Props)
                   )}
                 </div>
               </div>
-            );
-          })}
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-900/30 p-4" onClick={onClose}>
+      <div
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
+            <MessageCircle size={18} className="text-mint-500" />
+            메신저 알리미
+          </h2>
+          <button onClick={onClose} className="rounded-lg p-1 text-slate-400 hover:bg-slate-100">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          <p className="text-sm text-slate-500">
+            브리티 메신저에서 자동으로 감지된 쪽지입니다. 확인·수정 후 직접 등록 버튼을 눌러야
+            반영됩니다.
+          </p>
+          {loadError && (
+            <div className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm text-rose-500">
+              <AlertTriangle size={15} />
+              <span>{loadError}</span>
+            </div>
+          )}
+          {alerts && alerts.length === 0 && (
+            <div className="flex flex-col items-center gap-2 py-10 text-slate-400">
+              <Inbox size={28} />
+              <p className="text-sm">확인 대기 중인 쪽지가 없습니다.</p>
+            </div>
+          )}
+          {!connected && alerts && alerts.length > 0 && (
+            <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              구글 계정이 연동되어 있지 않아 캘린더에는 등록할 수 없습니다. 먼저 상단의 &lsquo;구글 계정
+              연동&rsquo;을 진행해 주세요.
+            </p>
+          )}
+
+          {actionableAlerts.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                <CalendarPlus size={13} className="text-mint-500" />
+                등록할 내용 있음 ({actionableAlerts.length})
+              </h3>
+              {actionableAlerts.map(renderAlertCard)}
+            </div>
+          )}
+
+          {readOnlyAlerts.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+                  <MessageCircle size={13} className="text-slate-400" />
+                  확인만 하면 됨 ({readOnlyAlerts.length})
+                </h3>
+                <button
+                  onClick={() => void dismissAllReadOnly(readOnlyAlerts.map((a) => a.id))}
+                  className="text-xs font-medium text-slate-400 underline-offset-2 hover:underline"
+                >
+                  전체 무시
+                </button>
+              </div>
+              {readOnlyAlerts.map(renderAlertCard)}
+            </div>
+          )}
         </div>
       </div>
     </div>
