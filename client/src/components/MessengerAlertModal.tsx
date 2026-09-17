@@ -28,7 +28,14 @@ const TODO_BADGE: Record<TodoCategory, string> = {
   개인: 'bg-amber-100 text-amber-700',
 };
 
-export default function MessengerAlertModal({ onClose }: { onClose: () => void }) {
+interface Props {
+  onClose: () => void;
+  /** 알림 하나가 처리·무시돼서 대기 목록이 바뀔 때마다 호출한다 — 사이드바/더보기의
+   *  숫자 배지가 다음 자동 확인(15초)까지 기다리지 않고 바로 갱신되게 하기 위해서다. */
+  onAlertsChanged?: () => void;
+}
+
+export default function MessengerAlertModal({ onClose, onAlertsChanged }: Props) {
   const { status, settings, refreshEvents } = useApp();
   const { update } = useData();
   useEscapeKey(onClose);
@@ -90,6 +97,7 @@ export default function MessengerAlertModal({ onClose }: { onClose: () => void }
       /* 실패해도 다음에 열 때 다시 시도하면 된다 — 사용자를 막지 않는다. */
     }
     setAlerts((prev) => (prev ? prev.filter((a) => a.id !== alertId) : prev));
+    onAlertsChanged?.();
   }
 
   async function ignoreAlert(alertId: string) {
@@ -100,6 +108,7 @@ export default function MessengerAlertModal({ onClose }: { onClose: () => void }
     }
     setAlerts((prev) => (prev ? prev.filter((a) => a.id !== alertId) : prev));
     setCards((prev) => prev.filter((c) => c.alertId !== alertId));
+    onAlertsChanged?.();
   }
 
   function updateCard(key: string, patch: Partial<EventCard>) {

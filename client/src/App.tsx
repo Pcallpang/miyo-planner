@@ -44,7 +44,7 @@ export default function App() {
   const [seenWhatsNew, setSeenWhatsNew] = useLocalStorage('haru.whatsnew.seen', '');
   const { status, toasts, events, settings } = useApp();
   const { data, update } = useData();
-  const { alerts: messengerAlerts } = useMessengerAlerts(Boolean(status?.authenticated));
+  const { alerts: messengerAlerts, refresh: refreshMessengerAlerts } = useMessengerAlerts(Boolean(status?.authenticated));
 
   useReminders(events, settings.reminderMinutes);
   useTodoReminders(data.todos, settings.reminderMinutes > 0);
@@ -89,7 +89,9 @@ export default function App() {
       />
 
       {noteOpen && <NotePasteModal onClose={() => setNoteOpen(false)} />}
-      {alertsOpen && <MessengerAlertModal onClose={() => setAlertsOpen(false)} />}
+      {alertsOpen && (
+        <MessengerAlertModal onClose={() => setAlertsOpen(false)} onAlertsChanged={refreshMessengerAlerts} />
+      )}
 
       {seenWhatsNew !== WHATS_NEW_VERSION && (
         <WhatsNewModal onClose={() => setSeenWhatsNew(WHATS_NEW_VERSION)} />

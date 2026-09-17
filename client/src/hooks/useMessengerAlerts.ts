@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import type { MessengerAlert } from '../types';
 
-const POLL_MS = 60_000;
+const POLL_MS = 15_000;
 
-/** 로그인 상태일 때만(enabled) 60초마다 메신저 알리미 대기 카드를 폴링한다. */
+/** 로그인 상태일 때만(enabled) 15초마다 메신저 알리미 대기 카드를 폴링한다. */
 export function useMessengerAlerts(enabled: boolean) {
   const [alerts, setAlerts] = useState<MessengerAlert[]>([]);
 
