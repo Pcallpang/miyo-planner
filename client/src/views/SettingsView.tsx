@@ -15,6 +15,11 @@ import PeriodTimesModal from '../components/PeriodTimesModal';
  *  사례가 있었다. 새 버전을 배포하면 이 파일을 새로 올리고 파일명을 갱신한다. */
 const NATIVE_WIDGET_DOWNLOAD_URL = '/downloads/Setup.1.1.0.exe';
 
+/** 스트레칭펫(+메신저 알리미) 설치 파일 다운로드 링크. 위와 같은 이유로
+ *  이 사이트에서 직접 서빙한다. 새 버전을 배포하면 이 파일을 새로 올리고
+ *  파일명(과 이 상수)을 갱신한다. */
+const STRETCH_PET_DOWNLOAD_URL = '/downloads/StretchPet.0.3.0.exe';
+
 export default function SettingsView() {
   const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
     useApp();
@@ -339,24 +344,45 @@ export default function SettingsView() {
 
       <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
         <h3 className="mb-2 text-base font-bold text-slate-800">바탕화면 위젯</h3>
-        <div className={rowCls}>
-          <div>
-            <p className={labelCls}>오늘의 시간표 위젯 (설치형 프로그램)</p>
-            <p className={descCls}>
-              오늘의 시간표를 바탕화면에 계속 띄워주는 별도 Windows 프로그램이에요. 브라우저를
-              닫아도 계속 켜져 있고, 창 안 톱니바퀴 아이콘으로 배경 진하기를 조절할 수 있어요.
-              다운로드한 설치 파일을 실행하면 &ldquo;Windows에서 PC를 보호했습니다&rdquo;라는
-              경고가 뜰 수 있는데, &ldquo;추가 정보 → 실행&rdquo;을 누르면 넘어가요(직접 만든
-              프로그램이라 문제없어요 — 유료 인증서가 없어서 뜨는 안내일 뿐이에요).
-            </p>
+        <div className="divide-y divide-slate-100">
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>오늘의 시간표 위젯 (설치형 프로그램)</p>
+              <p className={descCls}>
+                오늘의 시간표를 바탕화면에 계속 띄워주는 별도 Windows 프로그램이에요. 브라우저를
+                닫아도 계속 켜져 있고, 창 안 톱니바퀴 아이콘으로 배경 진하기를 조절할 수 있어요.
+                다운로드한 설치 파일을 실행하면 &ldquo;Windows에서 PC를 보호했습니다&rdquo;라는
+                경고가 뜰 수 있는데, &ldquo;추가 정보 → 실행&rdquo;을 누르면 넘어가요(직접 만든
+                프로그램이라 문제없어요 — 유료 인증서가 없어서 뜨는 안내일 뿐이에요).
+              </p>
+            </div>
+            <a
+              href={NATIVE_WIDGET_DOWNLOAD_URL}
+              download
+              className="shrink-0 rounded-xl bg-mint-500 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-mint-600"
+            >
+              설치 파일 다운로드
+            </a>
           </div>
-          <a
-            href={NATIVE_WIDGET_DOWNLOAD_URL}
-            download
-            className="shrink-0 rounded-xl bg-mint-500 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-mint-600"
-          >
-            설치 파일 다운로드
-          </a>
+          <div className={rowCls}>
+            <div>
+              <p className={labelCls}>스트레칭펫 + 메신저 알리미 (설치형 프로그램)</p>
+              <p className={descCls}>
+                화면 위 캐릭터가 스트레칭 시간을 알려주고, 브리티 메신저로 오는 새 대화·쪽지·
+                워크스페이스 소식을 자동으로 감지해서 &lsquo;메신저 알리미&rsquo; 목록에 올려주는
+                프로그램이에요. 설치 후 캐릭터를 우클릭 → &lsquo;미요플래너 로그인&rsquo;으로 이
+                계정과 연결한 뒤 &lsquo;메신저 알리미&rsquo;를 켜면 됩니다. 설치 경고가 뜨면
+                위와 마찬가지로 &ldquo;추가 정보 → 실행&rdquo;을 눌러주세요.
+              </p>
+            </div>
+            <a
+              href={STRETCH_PET_DOWNLOAD_URL}
+              download
+              className="shrink-0 rounded-xl bg-mint-500 px-4 py-2 text-center text-sm font-semibold text-white transition hover:bg-mint-600"
+            >
+              설치 파일 다운로드
+            </a>
+          </div>
         </div>
       </section>
 
