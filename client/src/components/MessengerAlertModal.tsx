@@ -425,6 +425,12 @@ export default function MessengerAlertModal({ onClose, onAlertsChanged }: Props)
                       </div>
                     ),
                   )}
+
+                  {alertCards.length === 0 && alert.todos.length === 0 && (
+                    <p className="text-xs text-slate-400">
+                      일정·할 일로 등록할 내용은 감지되지 않았습니다. 확인하셨다면 무시를 눌러주세요.
+                    </p>
+                  )}
                 </div>
               </div>
             );

@@ -166,7 +166,7 @@ export async function listMessengerAlerts(userId) {
     `SELECT id, source, sender, received_at AS "receivedAt", body_excerpt AS "bodyExcerpt", events, todos,
             created_at AS "createdAt"
        FROM messenger_alerts
-      WHERE user_id=$1 AND (jsonb_array_length(events) > 0 OR jsonb_array_length(todos) > 0)
+      WHERE user_id=$1
       ORDER BY created_at DESC`,
     [userId],
   );

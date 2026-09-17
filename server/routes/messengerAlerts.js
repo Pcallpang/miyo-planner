@@ -27,8 +27,10 @@ router.post('/ingest', async (req, res) => {
     }
     const { events, todos } = await extractFromNote(req.userId, maskedBody);
     const hasSchedule = events.length > 0 || todos.length > 0;
-    // 일정이 없어도 저장해 둔다(dedup 표식) — 그래야 같은 쪽지가 재전송돼도 또 Gemini를
-    // 호출하지 않는다. listMessengerAlerts가 이런 빈 항목은 화면에서 걸러낸다.
+    // 일정/할 일이 없어도 항상 저장해서 목록에 띄운다 — 선생님이 "이 메시지는
+    // 이미 확인했지만 등록할 건 없더라"를 스스로 판단하고 무시할 수 있어야
+    // 한다. 자동으로 걸러버리면 "감지는 됐는데 안 보여서 놓친 건지" 알 방법이
+    // 없어진다(사용자 요청으로 명시적 절충).
     const saved = await insertMessengerAlert(req.userId, {
       dedupHash,
       sender: maskedSender,
@@ -38,7 +40,7 @@ router.post('/ingest', async (req, res) => {
       todos,
     });
     res.json({
-      stored: Boolean(saved) && hasSchedule,
+      stored: Boolean(saved),
       reason: hasSchedule ? undefined : 'no-schedule-found',
     });
   } catch (e) {
