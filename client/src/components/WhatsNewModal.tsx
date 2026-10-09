@@ -2,9 +2,13 @@ import { X } from 'lucide-react';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
 /** 새 공지를 추가할 때마다 이 값을 올린다 — 이전 값을 본 사용자에게는 다시 뜬다. */
-export const WHATS_NEW_VERSION = '2026-10-09-overtime-month-detail';
+export const WHATS_NEW_VERSION = '2026-10-09-stretchpet-opacity';
 
 const ITEMS = [
+  {
+    title: '추가 — 스트레칭펫 캐릭터의 투명도를 내 마음대로 조절해요',
+    desc: '스트레칭펫 캐릭터를 우클릭하고 "투명도 조절..."을 누르면 캐릭터 아래에 슬라이더가 떠요. 막대를 움직이면 바로 투명해지고, "확인"을 누르면 저장돼서 다시 켜도 그대로예요(30~100%). 스트레칭 "준비" 시간도 10초에서 5초로 줄였어요. 설정 > 바탕화면 위젯에서 새 버전을 받을 수 있어요.',
+  },
   {
     title: '추가 — 지난달 초과근무를 날짜별로 확인할 수 있어요',
     desc: '초과근무 카드에서 "피땀머니 누적"을 누른 뒤 10월·9월·8월 같은 월 줄을 누르면, 그 달의 일자별 초과근무 내역(아침·저녁 시각과 인정 시간)이 팝업으로 뜹니다. 월이 바뀌어도 지난달 기록을 다시 볼 수 있어요.',
