@@ -11,6 +11,7 @@ import {
   buildMorningPunchLog,
   buildEveningPunchLog,
   monthlyPayHistory,
+  monthlyDailyBreakdown,
   cumulativePay,
   OVERTIME_MONTHLY_CAP_MINUTES,
   DAILY_OVERTIME_CAP_MINUTES,
@@ -231,6 +232,41 @@ describe('monthlyPayHistory / cumulativePay', () => {
   test('기록이 없으면 빈 배열·0원', () => {
     expect(monthlyPayHistory([], 10000)).toEqual([]);
     expect(cumulativePay([], 10000)).toBe(0);
+  });
+});
+
+describe('monthlyDailyBreakdown', () => {
+  const logs: OvertimeLog[] = [
+    log({ id: '1', date: '2026-09-18', session: '저녁', startTime: '17:00', endTime: '17:20' }), // 20
+    log({ id: '2', date: '2026-09-18', session: '아침', startTime: '07:00', endTime: '08:30' }), // 90
+    log({ id: '3', date: '2026-09-02', session: '아침', startTime: '07:00', endTime: '08:00' }), // 60 → 0
+    log({ id: '4', date: '2026-10-01', session: '아침', startTime: '07:00', endTime: '09:00' }), // 다른 달
+  ];
+
+  test('해당 달의 날짜만, 최신 날짜가 먼저 오도록 반환한다', () => {
+    const days = monthlyDailyBreakdown(logs, '2026-09');
+    expect(days.map((d) => d.date)).toEqual(['2026-09-18', '2026-09-02']);
+  });
+
+  test('하루 안의 기록은 시작 시각 순(아침 → 저녁)으로 정렬한다', () => {
+    const days = monthlyDailyBreakdown(logs, '2026-09');
+    expect(days[0].logs.map((l) => l.id)).toEqual(['2', '1']);
+  });
+
+  test('날짜별 인정 시간은 dailyCappedMinutes와 같다', () => {
+    const days = monthlyDailyBreakdown(logs, '2026-09');
+    expect(days[0].countedMinutes).toBe(50); // 아침 초과분 30 + 저녁 20
+    expect(days[1].countedMinutes).toBe(0);
+  });
+
+  test('날짜별 인정 시간의 합은 월 합계와 같다', () => {
+    const days = monthlyDailyBreakdown(logs, '2026-09');
+    const sum = days.reduce((s, d) => s + d.countedMinutes, 0);
+    expect(sum).toBe(monthlyCappedTotalMinutes(logs, new Date(2026, 8, 1)));
+  });
+
+  test('기록이 없는 달은 빈 배열', () => {
+    expect(monthlyDailyBreakdown(logs, '2026-06')).toEqual([]);
   });
 });
 

@@ -191,6 +191,35 @@ export function monthlyPayHistory(logs: OvertimeLog[], hourlyRate: number): Mont
   });
 }
 
+export interface DailyOvertime {
+  /** "YYYY-MM-DD" */
+  date: string;
+  /** 그날의 기록(시작 시각 순 — 아침이 먼저) */
+  logs: OvertimeLog[];
+  /** 그날 인정되는 합계(1시간 공제·4시간 상한 반영) */
+  countedMinutes: number;
+}
+
+/**
+ * monthKey("YYYY-MM") 달의 일자별 내역을 최신 날짜부터 반환한다(지난달 내역 보기용).
+ * 날짜별 인정 시간의 합은 monthlyCappedTotalMinutes와 항상 같다.
+ */
+export function monthlyDailyBreakdown(logs: OvertimeLog[], monthKey: string): DailyOvertime[] {
+  const byDate = new Map<string, OvertimeLog[]>();
+  for (const l of logs) {
+    if (!l.date.startsWith(`${monthKey}-`)) continue;
+    byDate.set(l.date, [...(byDate.get(l.date) ?? []), l]);
+  }
+  return [...byDate.keys()]
+    .sort()
+    .reverse()
+    .map((date) => ({
+      date,
+      logs: byDate.get(date)!.sort((a, b) => (a.startTime < b.startTime ? -1 : a.startTime > b.startTime ? 1 : 0)),
+      countedMinutes: dailyCappedMinutes(logs, date),
+    }));
+}
+
 /** 기록이 있는 모든 달의 예상 수당을 더한 값("피땀머니 누적" 배지의 총액). */
 export function cumulativePay(logs: OvertimeLog[], hourlyRate: number): number {
   return monthlyPayHistory(logs, hourlyRate).reduce((sum, m) => sum + m.pay, 0);

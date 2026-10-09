@@ -1,7 +1,8 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
-import { AlarmClock, ChevronDown, Coins, PiggyBank, Pencil, Plus, Sunrise, Sunset, Trash2 } from 'lucide-react';
+import { AlarmClock, ChevronDown, ChevronRight, Coins, PiggyBank, Pencil, Plus, Sunrise, Sunset, Trash2 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import EmptyMiyo from '../EmptyMiyo';
+import OvertimeMonthModal from '../OvertimeMonthModal';
 import {
   buildEveningPunchLog,
   buildMorningPunchLog,
@@ -16,6 +17,7 @@ import {
   nowHHmm,
   OVERTIME_MONTHLY_CAP_MINUTES,
   todayYMD,
+  type MonthlyPay,
 } from '../../lib/overtime';
 import type { OvertimeLog, OvertimeSession } from '../../types';
 
@@ -50,6 +52,8 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
   const [openActionId, setOpenActionId] = useState<string | null>(null);
   /** "피땀머니 누적"을 눌러야 누적 금액·월별 내역이 펼쳐진다. */
   const [showEarnedHistory, setShowEarnedHistory] = useState(false);
+  /** 월 줄을 눌러 일자별 내역 팝업으로 보고 있는 달. */
+  const [monthDetail, setMonthDetail] = useState<MonthlyPay | null>(null);
 
   const now = new Date();
   const monthLogs = logs
@@ -189,11 +193,19 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
               </p>
               <ul className="space-y-0.5">
                 {payHistory.map((m) => (
-                  <li key={m.monthKey} className="flex justify-between">
-                    <span>{formatMonthLabel(m.monthKey)}</span>
-                    <span>
-                      {m.pay.toLocaleString('ko-KR')}원 ({m.hours}시간)
-                    </span>
+                  <li key={m.monthKey}>
+                    {/* 월 줄을 누르면 그 달의 일자별 내역 팝업이 열린다. */}
+                    <button
+                      type="button"
+                      onClick={() => setMonthDetail(m)}
+                      className="flex w-full items-center justify-between rounded-md py-0.5 hover:bg-slate-100"
+                    >
+                      <span>{formatMonthLabel(m.monthKey)}</span>
+                      <span className="flex items-center gap-0.5">
+                        {m.pay.toLocaleString('ko-KR')}원 ({m.hours}시간)
+                        <ChevronRight size={12} className="text-slate-300" />
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -369,6 +381,8 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
       >
         <Plus size={16} /> 직접 입력
       </button>
+
+      {monthDetail && <OvertimeMonthModal month={monthDetail} logs={logs} onClose={() => setMonthDetail(null)} />}
     </section>
   );
 }
