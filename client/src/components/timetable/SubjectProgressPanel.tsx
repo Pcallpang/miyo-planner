@@ -167,16 +167,36 @@ export default function SubjectProgressPanel() {
     { label: '학기끝', from: termStart?.start ?? null, to: termEnd?.start ?? null },
   ];
 
-  function applyMilestone(from: string, to: string) {
+  /** resetNotes: 1-2차 지필처럼 차시를 처음부터 다시 쓰는 구간 — 지금 구간의 차시별 메모를 비운다. */
+  function applyMilestone(from: string, to: string, resetNotes: boolean) {
     const today = format(new Date(), 'yyyy-MM-dd');
-    update((prev) => ({
-      subjectProgress: prev.subjectProgress.map((p) => {
-        if (!classes.some((c) => classKey(c) === classKey(p))) return p;
-        const occurrences = weeklyOccurrences(timetable, p.subject, p.className);
-        const adjustmentByDate = lessonAdjustmentByDate(timetable, canceledLessons, swapOverrides, p.subject, p.className);
-        return { ...p, ...milestoneProgress(occurrences, from, to, today, noClassDates, adjustmentByDate), countFrom: from };
-      }),
-    }));
+    update((prev) => {
+      const next: Partial<typeof prev> = {
+        subjectProgress: prev.subjectProgress.map((p) => {
+          if (!classes.some((c) => classKey(c) === classKey(p))) return p;
+          const occurrences = weeklyOccurrences(timetable, p.subject, p.className);
+          const adjustmentByDate = lessonAdjustmentByDate(timetable, canceledLessons, swapOverrides, p.subject, p.className);
+          return { ...p, ...milestoneProgress(occurrences, from, to, today, noClassDates, adjustmentByDate), countFrom: from };
+        }),
+      };
+      if (resetNotes) {
+        const notes = { ...prev.subjectLessonNotes };
+        for (const c of classes) delete notes[c.subject];
+        next.subjectLessonNotes = notes;
+      }
+      return next;
+    });
+  }
+
+  function onMilestoneClick(label: string, from: string, to: string) {
+    // 1-2차 지필은 1차 때 적은 차시 메모를 지우고 새로 시작한다. 이미 이 구간이면(다시 눌러도)
+    // 지금 적어 둔 메모를 지우지 않는다.
+    const isRestartInterval = label === '1-2차 지필';
+    const alreadyInInterval =
+      classes.length > 0 && classes.every((c) => subjectProgress.find((p) => classKey(p) === classKey(c))?.countFrom === from);
+    const resetNotes = isRestartInterval && !alreadyInInterval;
+    if (resetNotes && !window.confirm('1-2차 지필 차시를 새로 시작합니다.\n과목별 차시 계획 메모가 모두 지워집니다. 계속할까요?')) return;
+    applyMilestone(from, to, resetNotes);
   }
 
   function setProgress(entry: SubjectClass, field: 'currentLesson' | 'totalLessons', value: number) {
@@ -218,7 +238,7 @@ export default function SubjectProgressPanel() {
                 key={m.label}
                 type="button"
                 disabled={!m.from || !m.to}
-                onClick={() => m.from && m.to && applyMilestone(m.from, m.to)}
+                onClick={() => m.from && m.to && onMilestoneClick(m.label, m.from, m.to)}
                 title={
                   m.from && m.to
                     ? '학사일정 기준으로 전체 반별 과목의 총 차시를 계산합니다'
