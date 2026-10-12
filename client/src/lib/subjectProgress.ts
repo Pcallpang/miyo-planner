@@ -126,6 +126,24 @@ export function canceledCountByDate(
 }
 
 /**
+ * 구간 버튼(from~to)을 눌렀을 때의 총 차시와 현재 차시. 현재 차시는 구간 시작일부터
+ * 오늘 전날까지 지난 수업 수라서, 구간이 아직 시작 전이면 0, 구간이 끝났으면 총 차시다.
+ * 1-2차 지필처럼 앞 구간이 끝난 다음날부터 시작하는 구간은 1차시부터 다시 센다.
+ */
+export function milestoneProgress(
+  occurrences: Record<number, number>,
+  from: string,
+  to: string,
+  today: string,
+  noClassDates: Set<string>,
+  adjustmentByDate: Record<string, number> = {},
+): { totalLessons: number; currentLesson: number } {
+  const totalLessons = Math.max(1, countLessonsUntil(occurrences, from, to, noClassDates, adjustmentByDate));
+  const elapsed = countLessonsUntil(occurrences, from, today, noClassDates, adjustmentByDate);
+  return { totalLessons, currentLesson: Math.max(0, Math.min(elapsed, totalLessons)) };
+}
+
+/**
  * fromInclusive부터 toExclusive 전날까지, noClassDates에 없는 평일만 세어 그날 요일에
  * 배정된 교시 수(occurrences)만큼 더한다. "오늘부터 시험 전날까지" 총 차시 계산에 쓴다 —
  * fromInclusive는 포함, toExclusive(시험일 등 기준일)는 제외된다. adjustmentByDate에 그

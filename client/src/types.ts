@@ -190,6 +190,9 @@ export interface SubjectProgress {
   className: string; // 시간표의 반(구 "교실" 칸)과 매칭. 반을 안 적었으면 빈 문자열
   currentLesson: number; // 0부터 시작
   totalLessons: number;
+  /** 차시를 세기 시작하는 날(YYYY-MM-DD). 구간 버튼(1차 지필·1-2차 지필·학기끝)을 누르면
+   *  그 구간의 시작일이 저장된다. 없으면 개학일부터 센다. */
+  countFrom?: string;
 }
 
 /** 시간표는 요일마다 반복되지만, 학교 행사 등으로 특정 날짜 하루만 수업이 없어질 수 있다.

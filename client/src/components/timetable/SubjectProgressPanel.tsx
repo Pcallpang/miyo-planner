@@ -3,7 +3,7 @@ import { addDays, format } from 'date-fns';
 import { useData } from '../../context/DataContext';
 import { useApp } from '../../context/AppContext';
 import { api } from '../../lib/api';
-import { addDay, countLessonsUntil, lessonAdjustmentByDate, weeklyOccurrences } from '../../lib/subjectProgress';
+import { addDay, countLessonsUntil, lessonAdjustmentByDate, milestoneProgress, weeklyOccurrences } from '../../lib/subjectProgress';
 import { buildSubjectColors } from '../../lib/subjectColors';
 import { isNonClassSubject } from '../../lib/nonClassSubjects';
 import LessonDetailPanel from './LessonDetailPanel';
@@ -146,7 +146,8 @@ export default function SubjectProgressPanel() {
         if (!classes.some((c) => classKey(c) === classKey(p))) return p;
         const occurrences = weeklyOccurrences(timetable, p.subject, p.className);
         const adjustmentByDate = lessonAdjustmentByDate(timetable, canceledLessons, swapOverrides, p.subject, p.className);
-        const elapsed = countLessonsUntil(occurrences, termStart.start, today, noClassDates, adjustmentByDate);
+        // 구간 버튼으로 시작일을 정해 뒀으면(예: 1-2차 지필) 그날부터, 아니면 개학일부터 센다.
+        const elapsed = countLessonsUntil(occurrences, p.countFrom ?? termStart.start, today, noClassDates, adjustmentByDate);
         const caughtUp = Math.min(elapsed, p.totalLessons);
         if (caughtUp <= p.currentLesson) return p;
         changed = true;
@@ -157,26 +158,23 @@ export default function SubjectProgressPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classesKey, termStart?.start, schoolSchedule.length, canceledLessons, swapOverrides]);
 
-  // 1차 지필·학기끝은 둘 다 개학날부터 세므로, 오늘까지 이미 지난 차시도 함께 계산해
-  // 현재 차시(진도율)에 반영한다. 1-2차 지필은 개학날이 기준이 아니라 구간 자체이므로
-  // 지난 차시를 새로 매기지 않는다.
-  const milestones: { label: string; from: string | null; to: string | null; computeCurrent: boolean }[] = [
-    { label: '1차 지필', from: termStart?.start ?? null, to: exam1?.start ?? null, computeCurrent: true },
-    { label: '1-2차 지필', from: exam1 ? addDay(exam1.end) : null, to: exam2?.start ?? null, computeCurrent: false },
-    { label: '학기끝', from: termStart?.start ?? null, to: termEnd?.start ?? null, computeCurrent: true },
+  // 구간마다 시작일부터 오늘까지 지난 차시를 현재 차시로 센다. 1-2차 지필은 1차 지필이
+  // 끝난 다음날부터 시작하므로 1차시부터 다시 흐른다. 시작일은 과목 진도에 저장해 두어
+  // 날짜가 지나갈 때의 자동 따라잡기도 같은 시작일부터 센다.
+  const milestones: { label: string; from: string | null; to: string | null }[] = [
+    { label: '1차 지필', from: termStart?.start ?? null, to: exam1?.start ?? null },
+    { label: '1-2차 지필', from: exam1 ? addDay(exam1.end) : null, to: exam2?.start ?? null },
+    { label: '학기끝', from: termStart?.start ?? null, to: termEnd?.start ?? null },
   ];
 
-  function applyMilestone(from: string, to: string, computeCurrent: boolean) {
+  function applyMilestone(from: string, to: string) {
     const today = format(new Date(), 'yyyy-MM-dd');
     update((prev) => ({
       subjectProgress: prev.subjectProgress.map((p) => {
         if (!classes.some((c) => classKey(c) === classKey(p))) return p;
         const occurrences = weeklyOccurrences(timetable, p.subject, p.className);
         const adjustmentByDate = lessonAdjustmentByDate(timetable, canceledLessons, swapOverrides, p.subject, p.className);
-        const total = Math.max(1, countLessonsUntil(occurrences, from, to, noClassDates, adjustmentByDate));
-        if (!computeCurrent) return { ...p, totalLessons: total };
-        const elapsed = countLessonsUntil(occurrences, from, today, noClassDates, adjustmentByDate);
-        return { ...p, totalLessons: total, currentLesson: Math.max(0, Math.min(elapsed, total)) };
+        return { ...p, ...milestoneProgress(occurrences, from, to, today, noClassDates, adjustmentByDate), countFrom: from };
       }),
     }));
   }
@@ -220,7 +218,7 @@ export default function SubjectProgressPanel() {
                 key={m.label}
                 type="button"
                 disabled={!m.from || !m.to}
-                onClick={() => m.from && m.to && applyMilestone(m.from, m.to, m.computeCurrent)}
+                onClick={() => m.from && m.to && applyMilestone(m.from, m.to)}
                 title={
                   m.from && m.to
                     ? '학사일정 기준으로 전체 반별 과목의 총 차시를 계산합니다'

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { adjustCanceledProgress, canceledCountByDate, countLessonsUntil, weeklyOccurrences } from './subjectProgress';
+import { adjustCanceledProgress, canceledCountByDate, countLessonsUntil, milestoneProgress, weeklyOccurrences } from './subjectProgress';
 import type { CanceledLesson, Timetable } from '../types';
 
 describe('휴강 변경 시 현재 차시 반영', () => {
@@ -103,6 +103,36 @@ describe('countLessonsUntil', () => {
     expect(
       countLessonsUntil(occurrences, '2026-08-24', '2026-08-25', new Set(), { '2026-08-24': 5 }),
     ).toBe(0);
+  });
+});
+
+describe('milestoneProgress', () => {
+  // 2026-08-24는 월요일. 월 2교시 + 수 1교시 = 주 3차시
+  const occurrences = { 1: 2, 3: 1 };
+
+  test('1-2차 구간은 시작일(1차 지필 끝난 다음날)부터 1차시로 다시 센다', () => {
+    // 구간 8/31(월)~9/14(월, 제외): 2주 = 6차시. 오늘 9/2(수) → 월(8/31) 2차시만 지남
+    expect(
+      milestoneProgress(occurrences, '2026-08-31', '2026-09-14', '2026-09-02', new Set()),
+    ).toEqual({ totalLessons: 6, currentLesson: 2 });
+  });
+
+  test('구간이 아직 시작 전이면 현재 차시는 0', () => {
+    expect(
+      milestoneProgress(occurrences, '2026-08-31', '2026-09-14', '2026-08-26', new Set()),
+    ).toEqual({ totalLessons: 6, currentLesson: 0 });
+  });
+
+  test('구간이 끝났으면 현재 차시는 총 차시를 넘지 않는다', () => {
+    expect(
+      milestoneProgress(occurrences, '2026-08-31', '2026-09-14', '2026-10-01', new Set()),
+    ).toEqual({ totalLessons: 6, currentLesson: 6 });
+  });
+
+  test('수업이 하나도 없는 구간도 총 차시는 최소 1', () => {
+    expect(
+      milestoneProgress(occurrences, '2026-08-28', '2026-08-31', '2026-08-30', new Set()),
+    ).toEqual({ totalLessons: 1, currentLesson: 0 });
   });
 });
 
