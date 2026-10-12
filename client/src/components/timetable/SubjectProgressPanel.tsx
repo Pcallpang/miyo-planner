@@ -195,7 +195,9 @@ export default function SubjectProgressPanel() {
     const alreadyInInterval =
       classes.length > 0 && classes.every((c) => subjectProgress.find((p) => classKey(p) === classKey(c))?.countFrom === from);
     const resetNotes = isRestartInterval && !alreadyInInterval;
-    if (resetNotes && !window.confirm('1-2차 지필 차시를 새로 시작합니다.\n과목별 차시 계획 메모가 모두 지워집니다. 계속할까요?')) return;
+    // 지울 메모가 실제로 있을 때만 경고한다(이미 비어 있으면 바로 진행).
+    const hasNotes = classes.some((c) => (subjectLessonNotes[c.subject] ?? []).some((n) => n.trim() !== ''));
+    if (resetNotes && hasNotes && !window.confirm('1-2차 지필 차시를 새로 시작합니다.\n과목별 차시 계획 메모가 모두 지워집니다. 계속할까요?')) return;
     applyMilestone(from, to, resetNotes);
   }
 
