@@ -130,8 +130,8 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
     }
   }
 
-  /** 직접 고친 미리보기 글까지 개요로 담아, 에듀파인 품의등록에 제목·개요 입력을 맡기는 AI 요청문을 복사한다. */
-  async function copyAiPrompt() {
+  /** 직접 고친 미리보기 글까지 개요로 담아, 에듀파인 품의등록에 제목·개요 입력을 맡기는 Aside 요청문을 복사한다. */
+  async function copyAsidePrompt() {
     try {
       await navigator.clipboard.writeText(buildAsidePurchasePrompt({ body: previewText }, items));
       setPromptCopied(true);
@@ -321,36 +321,38 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 border-t border-slate-100 px-6 py-4">
           {docType === 'purchase' && items.length > 0 && (
-            <p className="mr-auto text-xs text-slate-400">
-              AI 요청문을 Aside(또는 Aside에 연결한 Claude·Codex)에 붙여넣으면 에듀파인 품의등록에 제목·개요를 입력해요.
+            <p className="mr-auto min-w-0 flex-1 basis-64 text-xs text-slate-400">
+              요청문을 Aside(또는 Aside에 연결한 Claude·Codex)에 붙여넣으면 에듀파인 품의등록에 제목·개요를 입력해요.
               예산 선택·품목 내역·저장은 직접 해 주세요.
             </p>
           )}
-          <button
-            onClick={onClose}
-            className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
-          >
-            닫기
-          </button>
-          {docType === 'purchase' && items.length > 0 && (
+          <div className="flex shrink-0 items-center gap-2">
+            {docType === 'purchase' && items.length > 0 && (
+              <button
+                onClick={() => void copyAsidePrompt()}
+                title="K-에듀파인 품의등록에 제목·개요 입력을 맡기는 요청문을 복사합니다"
+                className="flex items-center gap-2 rounded-xl border border-mint-200 bg-mint-50 px-5 py-2.5 text-sm font-semibold text-mint-700 transition hover:bg-mint-100"
+              >
+                {promptCopied ? <Check size={16} /> : <Bot size={16} />}
+                {promptCopied ? '복사됨' : 'Aside 요청문 복사'}
+              </button>
+            )}
             <button
-              onClick={() => void copyAiPrompt()}
-              title="K-에듀파인 품의등록에 제목·개요 입력을 맡기는 요청문을 복사합니다"
-              className="flex items-center gap-2 rounded-xl border border-mint-200 bg-mint-50 px-5 py-2.5 text-sm font-semibold text-mint-700 transition hover:bg-mint-100"
+              onClick={() => void copyResult()}
+              className="flex items-center gap-2 rounded-xl bg-mint-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-mint-600"
             >
-              {promptCopied ? <Check size={16} /> : <Bot size={16} />}
-              {promptCopied ? '복사됨' : 'AI 요청문 복사'}
+              {copied ? <Check size={16} /> : <Clipboard size={16} />}
+              {copied ? '복사됨' : '복사'}
             </button>
-          )}
-          <button
-            onClick={() => void copyResult()}
-            className="flex items-center gap-2 rounded-xl bg-mint-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-mint-600"
-          >
-            {copied ? <Check size={16} /> : <Clipboard size={16} />}
-            {copied ? '복사됨' : '복사'}
-          </button>
+            <button
+              onClick={onClose}
+              className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
+            >
+              닫기
+            </button>
+          </div>
         </div>
       </div>
     </div>
