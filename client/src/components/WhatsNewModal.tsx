@@ -2,9 +2,13 @@ import { X } from 'lucide-react';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 
 /** 새 공지를 추가할 때마다 이 값을 올린다 — 이전 값을 본 사용자에게는 다시 뜬다. */
-export const WHATS_NEW_VERSION = '2026-10-09-stretchpet-opacity';
+export const WHATS_NEW_VERSION = '2026-10-12-stretchpet-single-instance';
 
 const ITEMS = [
+  {
+    title: '수정 — 스트레칭펫이 두 마리씩 뜨지 않아요',
+    desc: '스트레칭펫을 켤 때 한 번 더 누르면 캐릭터가 두 마리 뜨던 문제를 고쳤어요. 새 버전은 몇 번을 눌러도 한 마리만 떠요. 이미 두 마리가 떠 있다면 작업표시줄 오른쪽 아래 아이콘에서 모두 "종료"하고, 예전 파일은 지운 뒤 설정 > 바탕화면 위젯에서 새 버전을 받아 실행하세요.',
+  },
   {
     title: '추가 — 스트레칭펫 캐릭터의 투명도를 내 마음대로 조절해요',
     desc: '스트레칭펫 캐릭터를 우클릭하고 "투명도 조절..."을 누르면 캐릭터 아래에 슬라이더가 떠요. 막대를 움직이면 바로 투명해지고, "확인"을 누르면 저장돼서 다시 켜도 그대로예요(30~100%). 스트레칭 "준비" 시간도 10초에서 5초로 줄였어요. 설정 > 바탕화면 위젯에서 새 버전을 받을 수 있어요.',
