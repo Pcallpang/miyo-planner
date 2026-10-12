@@ -102,7 +102,7 @@ export interface PurchaseDraftFields {
 }
 
 /** "배송비"는 실제 구매 품목이 아니므로 "외 N종" 요약 대상에서 제외한다. */
-function itemSummary(items: ProcurementItem[]): string {
+export function itemSummary(items: ProcurementItem[]): string {
   if (items.length === 0) return '[품목 내역을 먼저 담아 주세요]';
   const goods = items.filter((it) => it.name.trim() !== '배송비');
   const list = goods.length > 0 ? goods : items;

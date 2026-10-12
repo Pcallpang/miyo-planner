@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Clipboard, FileText, RotateCcw, X } from 'lucide-react';
+import { Bot, Check, Clipboard, FileText, RotateCcw, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useEscapeKey } from '../hooks/useEscapeKey';
 import DateField from './DateField';
 import { buildEventDraft, buildPurchaseDraft } from '../lib/draftTemplate';
+import { buildAsidePurchasePrompt } from '../lib/asidePrompt';
 import type { ProcurementItem } from '../types';
 
 const inputCls =
@@ -47,6 +48,7 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
 
   const [docType, setDocType] = useState<DocType>(items.length > 0 ? 'purchase' : 'event');
   const [copied, setCopied] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
 
   // 행사 기안문 필드
   const [basis, setBasis] = useState('');
@@ -125,6 +127,17 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
       setTimeout(() => setCopied(false), 1500);
     } catch {
       showToast('error', '복사에 실패했습니다. 직접 선택해 복사해 주세요.');
+    }
+  }
+
+  /** 직접 고친 미리보기 글까지 개요로 담아, 에듀파인 품의등록에 제목·개요 입력을 맡기는 AI 요청문을 복사한다. */
+  async function copyAiPrompt() {
+    try {
+      await navigator.clipboard.writeText(buildAsidePurchasePrompt({ body: previewText }, items));
+      setPromptCopied(true);
+      setTimeout(() => setPromptCopied(false), 1500);
+    } catch {
+      showToast('error', '복사에 실패했습니다. 잠시 후 다시 시도해 주세요.');
     }
   }
 
@@ -308,13 +321,29 @@ export default function DraftDocumentModal({ items, onClose }: Props) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 px-6 py-4">
+          {docType === 'purchase' && items.length > 0 && (
+            <p className="mr-auto text-xs text-slate-400">
+              AI 요청문을 Aside(또는 Aside에 연결한 Claude·Codex)에 붙여넣으면 에듀파인 품의등록에 제목·개요를 입력해요.
+              예산 선택·품목 내역·저장은 직접 해 주세요.
+            </p>
+          )}
           <button
             onClick={onClose}
             className="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
           >
             닫기
           </button>
+          {docType === 'purchase' && items.length > 0 && (
+            <button
+              onClick={() => void copyAiPrompt()}
+              title="K-에듀파인 품의등록에 제목·개요 입력을 맡기는 요청문을 복사합니다"
+              className="flex items-center gap-2 rounded-xl border border-mint-200 bg-mint-50 px-5 py-2.5 text-sm font-semibold text-mint-700 transition hover:bg-mint-100"
+            >
+              {promptCopied ? <Check size={16} /> : <Bot size={16} />}
+              {promptCopied ? '복사됨' : 'AI 요청문 복사'}
+            </button>
+          )}
           <button
             onClick={() => void copyResult()}
             className="flex items-center gap-2 rounded-xl bg-mint-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-mint-600"
