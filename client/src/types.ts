@@ -229,7 +229,17 @@ export interface MakeupLesson {
  *  전혀 영향을 주지 않는다. */
 export type LunchAfterPeriod = Record<number, number>; // day -> 0-based period index
 
+export interface OnboardingProgress {
+  autoShow?: boolean;
+  step: number;
+  started: boolean;
+  completed: boolean;
+  checked: string[];
+}
+
 export interface AppData {
+  /** 신규 계정 생성 시에만 추가. 없는 기존 계정은 자동 안내하지 않는다. */
+  onboarding?: OnboardingProgress;
   todos: Todo[];
   meetings: Meeting[];
   memos: MemoNote[];

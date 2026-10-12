@@ -38,3 +38,10 @@ body {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* Keep the live form clear of the guided-tour callout. */
+main.setup-tour-layout { padding-bottom: 55vh; }
+main.setup-tour-layout [id^="setup-"] { scroll-margin-top: 90px; }
+@media (min-width: 1280px) {
+  main.setup-tour-layout { padding-right: 380px; padding-bottom: 60vh; }
+}

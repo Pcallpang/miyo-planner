@@ -39,7 +39,7 @@ export function defaultAppState() {
 const KEYS = [
   'todos', 'meetings', 'memos', 'timetable', 'settings', 'holidays', 'overtimeLogs', 'overtimePunches',
   'subjectProgress', 'canceledLessons', 'swapOverrides', 'makeupLessons', 'lunchAfterPeriod',
-  'subjectLessonNotes', 'subjectColors', 'ddays',
+  'subjectLessonNotes', 'subjectColors', 'ddays', 'onboarding',
 ];
 
 export function mergeAppState(existing, patch) {

@@ -25,9 +25,16 @@ export async function initDb() {
 
 export async function upsertUser({ googleSub, email, name }) {
   const { rows } = await pool.query(
-    `INSERT INTO users (google_sub, email, name) VALUES ($1,$2,$3)
+    `WITH signed_in AS (
+     INSERT INTO users (google_sub, email, name) VALUES ($1,$2,$3)
      ON CONFLICT (google_sub) DO UPDATE SET email=EXCLUDED.email, name=EXCLUDED.name
-     RETURNING id, email, name`,
+     RETURNING id, email, name, (xmax = 0) AS is_new
+     ), initialized AS (
+       INSERT INTO app_state (user_id, state)
+       SELECT id, '{"onboarding":{"autoShow":true,"step":0,"started":false,"completed":false,"checked":[]}}'::jsonb
+       FROM signed_in WHERE is_new
+       ON CONFLICT (user_id) DO NOTHING
+     ) SELECT id, email, name FROM signed_in`,
     [googleSub, email, name],
   );
   return rows[0];

@@ -20,7 +20,7 @@ const NATIVE_WIDGET_DOWNLOAD_URL = '/downloads/Setup.1.1.0.exe';
  *  파일명(과 이 상수)을 갱신한다. */
 const STRETCH_PET_DOWNLOAD_URL = '/downloads/StretchPet.0.3.0.exe';
 
-export default function SettingsView() {
+export default function SettingsView({ onOpenGuide }: { onOpenGuide?: () => void }) {
   const { status, settings, setSettings, calendars, connectGoogle, disconnectGoogle, showToast, refreshStatus } =
     useApp();
   const { update } = useData();
@@ -90,6 +90,10 @@ export default function SettingsView() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
+      {onOpenGuide && <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-mint-50 p-5">
+        <div><h2 className="font-bold text-slate-800">처음 사용 안내</h2><p className="mt-1 text-sm text-slate-500">학교·시간표부터 구글 캘린더와 Gemini 연결까지 함께 설정해요.</p></div>
+        <button onClick={onOpenGuide} className="rounded-xl bg-mint-600 px-4 py-2 text-sm font-semibold text-white hover:bg-mint-700">안내 열기</button>
+      </section>}
       <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
         <h2 className="mb-2 flex items-center gap-2 text-lg font-bold text-slate-800">
           <SettingsIcon size={18} className="text-mint-500" />
@@ -97,6 +101,7 @@ export default function SettingsView() {
         </h2>
 
         <div className="divide-y divide-slate-100">
+          <div id="setup-periods" tabIndex={-1} className="scroll-mt-6 divide-y divide-slate-100">
           <div className={rowCls}>
             <div>
               <p className={labelCls}>교시 수</p>
@@ -126,6 +131,7 @@ export default function SettingsView() {
             </button>
           </div>
 
+          </div>
           <div className={rowCls}>
             <div>
               <p className={labelCls}>주 시작 요일</p>
@@ -148,7 +154,7 @@ export default function SettingsView() {
             </div>
           </div>
 
-          <div className={rowCls}>
+          <div id="setup-alerts" tabIndex={-1} className={`${rowCls} scroll-mt-6`}>
             <div>
               <p className={labelCls}>일정 알림</p>
               <p className={descCls}>
@@ -191,7 +197,7 @@ export default function SettingsView() {
             </select>
           </div>
 
-          <SchoolPicker />
+          <div id="setup-school" tabIndex={-1} className="scroll-mt-6"><SchoolPicker /></div>
         </div>
       </section>
 
@@ -228,6 +234,7 @@ export default function SettingsView() {
         <h3 className="mb-2 text-base font-bold text-slate-800">구글 캘린더 연동</h3>
 
         <div className="divide-y divide-slate-100">
+          <div id="setup-calendar" tabIndex={-1} className="scroll-mt-6 divide-y divide-slate-100">
           <div className={rowCls}>
             <div>
               <p className={labelCls}>연동 상태</p>
@@ -281,7 +288,8 @@ export default function SettingsView() {
             </select>
           </div>
 
-          <div className="py-4">
+          </div>
+          <div id="setup-gemini" tabIndex={-1} className="scroll-mt-6 py-4">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className={labelCls}>Gemini API 키</p>

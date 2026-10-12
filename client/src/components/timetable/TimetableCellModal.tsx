@@ -52,7 +52,7 @@ export default function TimetableCellModal({
   const labelCls = 'mb-1.5 block text-sm font-semibold text-slate-700';
 
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-slate-900/30 p-4" onClick={onClose}>
+    <div data-setup-dialog className="fixed inset-0 z-40 grid place-items-center bg-slate-900/30 p-4" onClick={onClose}>
       <div
         className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}

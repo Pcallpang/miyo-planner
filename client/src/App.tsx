@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import LoginScreen from './components/LoginScreen';
+import SetupGuide from './components/SetupGuide';
+import { shouldShowOnboarding } from './lib/onboarding';
 import MobileTabBar from './components/MobileTabBar';
 import MessengerAlertModal from './components/MessengerAlertModal';
 import MoreSheet from './components/MoreSheet';
@@ -41,9 +43,25 @@ export default function App() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [guideDismissed, setGuideDismissed] = useState(false);
+  const [manualGuideOpen, setManualGuideOpen] = useState(false);
   const [seenWhatsNew, setSeenWhatsNew] = useLocalStorage('haru.whatsnew.seen', '');
   const { status, toasts, events, settings } = useApp();
-  const { data, update } = useData();
+  const { data, update, loading: dataLoading } = useData();
+  const guideActive = !!status?.authenticated && shouldShowOnboarding(data.onboarding, dataLoading);
+  const guideVisible = !!status?.authenticated && !dataLoading && !data.onboarding?.completed && (guideActive || manualGuideOpen) && !guideDismissed;
+
+  useEffect(() => {
+    // 처음 설정을 마친 직후 이전 업데이트 팝업이 이어서 뜨지 않게 한다.
+    if (guideVisible) setSeenWhatsNew(WHATS_NEW_VERSION);
+  }, [guideVisible, setSeenWhatsNew]);
+
+  function openGuide() {
+    update({ onboarding: { autoShow: !data.onboarding?.completed && data.onboarding?.autoShow === true, step: data.onboarding?.completed ? 0 : (data.onboarding?.step ?? 0), started: true, completed: false, checked: data.onboarding?.checked ?? [] } });
+    setManualGuideOpen(true);
+    setGuideDismissed(false);
+    setSeenWhatsNew(WHATS_NEW_VERSION);
+  }
   const { alerts: messengerAlerts, refresh: refreshMessengerAlerts } = useMessengerAlerts(Boolean(status?.authenticated));
 
   useReminders(events, settings.reminderMinutes);
@@ -67,7 +85,14 @@ export default function App() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <Header />
-        <main className="flex-1 px-6 py-6 pb-24 lg:px-8 lg:pb-6">
+        <main className={`flex-1 px-6 py-6 pb-24 lg:px-8 lg:pb-6 ${guideVisible && data.onboarding?.started ? 'setup-tour-layout' : ''}`}>
+          {guideVisible && <SetupGuide onDismiss={() => {
+            setGuideDismissed(true);
+            setSeenWhatsNew(WHATS_NEW_VERSION);
+          }} onNavigate={setView} />}
+          {guideActive && guideDismissed && (
+            <button onClick={openGuide} className="mb-5 rounded-xl bg-mint-50 px-4 py-3 text-sm font-semibold text-mint-700">처음 사용 안내 이어하기 →</button>
+          )}
           {view === 'dashboard' && <DashboardView />}
           {view === 'matrix' && <MatrixView />}
           {view === 'timetable' && <TimetableView />}
@@ -75,7 +100,7 @@ export default function App() {
           {view === 'memo' && <MemoView />}
           {view === 'overtime' && <OvertimeView />}
           {view === 'procurement' && <ProcurementView />}
-          {view === 'settings' && <SettingsView />}
+          {view === 'settings' && <SettingsView onOpenGuide={openGuide} />}
           {view === 'board' && <BoardView />}
           {view === 'devlog' && <DevLogView />}
         </main>
@@ -93,7 +118,7 @@ export default function App() {
         <MessengerAlertModal onClose={() => setAlertsOpen(false)} onAlertsChanged={refreshMessengerAlerts} />
       )}
 
-      {seenWhatsNew !== WHATS_NEW_VERSION && (
+      {status?.authenticated && !dataLoading && !guideActive && !guideVisible && seenWhatsNew !== WHATS_NEW_VERSION && (
         <WhatsNewModal onClose={() => setSeenWhatsNew(WHATS_NEW_VERSION)} />
       )}
 

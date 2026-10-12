@@ -304,7 +304,7 @@ export default function WeeklyGrid() {
   }
 
   return (
-    <section className="min-w-0 flex-1 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+    <section id="setup-timetable" tabIndex={-1} className="min-w-0 flex-1 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-slate-500">
           {format(weekStart, 'yyyy년 M월', { locale: ko })}

@@ -45,3 +45,15 @@ test('mergeAppState는 빈 patch에 기존을 그대로 반환', () => {
   assert.equal(mergeAppState(base, null), base);
   assert.deepEqual(mergeAppState(base, {}), base);
 });
+
+test('기존 계정은 데이터가 비어 있어도 자동 안내 대상이 아니다', () => {
+  assert.equal(mergeAppState(defaultAppState(), null).onboarding, undefined);
+});
+
+test('계정별 안내 진행 상태를 저장하고 다른 설정 저장에도 유지한다', () => {
+  const progress = { step: 3, started: true, completed: false, checked: ['school', 'periods'] };
+  const state = mergeAppState(defaultAppState(), { onboarding: progress });
+  assert.deepEqual(state.onboarding, progress);
+  assert.deepEqual(mergeAppState(state, { todos: [] }).onboarding, progress);
+  assert.equal(mergeAppState(state, { onboarding: { ...progress, completed: true } }).onboarding.completed, true);
+});
