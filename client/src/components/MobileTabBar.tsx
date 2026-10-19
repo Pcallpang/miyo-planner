@@ -1,4 +1,5 @@
 import { AlarmClock, LayoutDashboard, LayoutGrid, MoreHorizontal, NotebookPen, School } from 'lucide-react';
+import { useDevLogUnread } from '../lib/devLogSeen';
 import type { ViewId } from '../types';
 
 const TABS: { id: ViewId; label: string; icon: typeof LayoutDashboard }[] = [
@@ -18,6 +19,7 @@ interface Props {
 
 /** lg 미만 화면에서 사이드바 대신 쓰는 하단 고정 탭바. */
 export default function MobileTabBar({ view, onNavigate, onMore, moreActive }: Props) {
+  const devLogUnread = useDevLogUnread();
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-30 flex border-t border-slate-200/70 bg-white/95 backdrop-blur lg:hidden"
@@ -45,7 +47,12 @@ export default function MobileTabBar({ view, onNavigate, onMore, moreActive }: P
           moreActive ? 'text-mint-600' : 'text-slate-400'
         }`}
       >
-        <MoreHorizontal size={20} className={moreActive ? 'text-mint-500' : 'text-slate-400'} />
+        <span className="relative">
+          <MoreHorizontal size={20} className={moreActive ? 'text-mint-500' : 'text-slate-400'} />
+          {devLogUnread && (
+            <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-rose-500" aria-label="새 소식" />
+          )}
+        </span>
         <span className="w-full truncate text-center">더보기</span>
       </button>
     </nav>

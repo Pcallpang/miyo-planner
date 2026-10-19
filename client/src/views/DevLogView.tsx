@@ -1,9 +1,15 @@
 import { format, parseISO } from 'date-fns';
 import { History } from 'lucide-react';
+import { useEffect } from 'react';
 import { DEV_LOG } from '../data/devLog';
+import { markDevLogSeen } from '../lib/devLogSeen';
 
-/** "미요쌤의 개발 노트" — 최근 업데이트 이력을 보여주는 읽기 전용 화면. */
+/** "미요쌤의 개발 노트" — 최근 업데이트 이력을 보여주는 읽기 전용 화면. 열면 새 소식 배지가 꺼진다. */
 export default function DevLogView() {
+  useEffect(() => {
+    markDevLogSeen();
+  }, []);
+
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-5">

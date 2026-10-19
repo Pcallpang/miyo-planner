@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { useApp } from '../context/AppContext';
+import { useDevLogUnread } from '../lib/devLogSeen';
+import NewBadge from './NewBadge';
 import type { ViewId } from '../types';
 
 /** 자리배치 앱 주소 — 서버가 내려주지 못했을 때의 폴백. */
@@ -36,6 +38,7 @@ export default function MoreSheet({
   messengerAlertCount,
 }: Props) {
   const { status, refreshStatus, showToast } = useApp();
+  const devLogUnread = useDevLogUnread();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -186,6 +189,7 @@ export default function MoreSheet({
           >
             <History size={18} className="text-slate-400" />
             미요쌤의 개발 노트
+            {devLogUnread && <NewBadge />}
           </button>
         </div>
 

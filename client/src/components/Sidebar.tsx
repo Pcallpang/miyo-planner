@@ -18,6 +18,8 @@ import {
 import { api } from '../lib/api';
 import { useApp } from '../context/AppContext';
 import { resolveSidebarOrder, type SidebarItemId } from '../lib/sidebarOrder';
+import { useDevLogUnread } from '../lib/devLogSeen';
+import NewBadge from './NewBadge';
 import type { ViewId } from '../types';
 
 /** 항목 정의(라벨·아이콘). 실제 렌더 순서는 settings.sidebarOrder로 정해진다. */
@@ -46,6 +48,8 @@ const SEATING_FALLBACK_URL = 'https://sn-aseating.vercel.app';
 export default function Sidebar({ view, onNavigate, onOpenNote, onOpenMessengerAlerts, messengerAlertCount }: Props) {
   const { status, refreshStatus, showToast, settings, setSettings } = useApp();
   const [draggingId, setDraggingId] = useState<SidebarItemId | null>(null);
+
+  const devLogUnread = useDevLogUnread();
 
   const order = resolveSidebarOrder(settings.sidebarOrder);
 
@@ -219,6 +223,7 @@ export default function Sidebar({ view, onNavigate, onOpenNote, onOpenMessengerA
                 <span className="w-4 shrink-0" />
                 <History size={17} className={`shrink-0 ${view === 'devlog' ? 'text-mint-500' : 'text-slate-400'}`} />
                 미요쌤의 개발 노트
+                {devLogUnread && <NewBadge />}
               </button>
             </li>
           </ul>
