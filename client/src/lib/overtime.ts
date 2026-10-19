@@ -3,7 +3,7 @@ import type { OvertimeLog, OvertimeSession } from '../types';
 /** 국내 학교에서 흔히 쓰는 월 초과근무 수당 지급 상한(57시간) */
 export const OVERTIME_MONTHLY_CAP_MINUTES = 57 * 60;
 
-/** 하루 초과근무 인정 상한(4시간). 아침+저녁 합산이 이를 넘으면 초과분은 합계에서 제외한다. */
+/** 하루 초과근무 인정 상한(4시간). 아침+저녁 합산이 이를 넘으면 초과분은 합계에서 제외한다. DAILY_CAP_REPEAL_DATE 이전 기록에만 적용. */
 export const DAILY_OVERTIME_CAP_MINUTES = 4 * 60;
 
 /**
@@ -21,6 +21,17 @@ export const DAILY_OVERTIME_GRACE_MINUTES = 60;
  * "데이터가 날아간 것처럼" 보이지 않도록 하기 위함이다.
  */
 export const GRACE_RULE_EFFECTIVE_DATE = '2026-09-01';
+
+/**
+ * 하루 4시간 상한이 폐지되는 날짜(YYYY-MM-DD). 이 날짜부터는 하루 상한 없이(월 57시간 상한만
+ * 유지) 계산하고, 이전 기록은 예전 방식 그대로 4시간 상한을 적용한다.
+ */
+export const DAILY_CAP_REPEAL_DATE = '2026-10-01';
+
+/** date에 적용되는 하루 인정 상한(분). 폐지일 이후는 상한 없음(Infinity). */
+function dailyCapFor(date: string): number {
+  return date < DAILY_CAP_REPEAL_DATE ? DAILY_OVERTIME_CAP_MINUTES : Infinity;
+}
 
 /**
  * 종료-시작(분)에서 방과후 차감(afterSchoolMinutes)을 뺀 값. 종료가 시작보다 빠르거나
@@ -61,9 +72,9 @@ function dailyRawMinutes(logs: OvertimeLog[], date: string): number {
 }
 
 /** 두 세션 몫의 합이 4시간 상한을 넘으면 같은 비율로 줄인다(합계가 정확히 상한과 맞도록 저녁으로 보정). */
-function capSessionSplit(morning: number, evening: number): Record<OvertimeSession, number> {
+function capSessionSplit(morning: number, evening: number, date: string): Record<OvertimeSession, number> {
   const total = morning + evening;
-  const cappedTotal = Math.min(total, DAILY_OVERTIME_CAP_MINUTES);
+  const cappedTotal = Math.min(total, dailyCapFor(date));
   if (cappedTotal === total || total === 0) return { 아침: morning, 저녁: evening };
   const scaledMorning = Math.round((morning * cappedTotal) / total);
   return { 아침: scaledMorning, 저녁: cappedTotal - scaledMorning };
@@ -83,13 +94,13 @@ function dailyCountedBySession(logs: OvertimeLog[], date: string): Record<Overti
   const evening = dailySessionMinutes(logs, date, '저녁');
 
   if (date < GRACE_RULE_EFFECTIVE_DATE) {
-    return capSessionSplit(morning, evening);
+    return capSessionSplit(morning, evening, date);
   }
 
   const morningCounted = Math.max(0, morning - DAILY_OVERTIME_GRACE_MINUTES);
   const graceLeftForEvening = Math.max(0, DAILY_OVERTIME_GRACE_MINUTES - morning);
   const eveningCounted = Math.max(0, evening - graceLeftForEvening);
-  return capSessionSplit(morningCounted, eveningCounted);
+  return capSessionSplit(morningCounted, eveningCounted, date);
 }
 
 /**
@@ -100,7 +111,7 @@ function dailyCountedBySession(logs: OvertimeLog[], date: string): Record<Overti
 export function dailyCappedMinutes(logs: OvertimeLog[], date: string): number {
   const raw = dailyRawMinutes(logs, date);
   const afterGrace = date < GRACE_RULE_EFFECTIVE_DATE ? raw : Math.max(0, raw - DAILY_OVERTIME_GRACE_MINUTES);
-  return Math.min(afterGrace, DAILY_OVERTIME_CAP_MINUTES);
+  return Math.min(afterGrace, dailyCapFor(date));
 }
 
 /**
@@ -134,7 +145,9 @@ export function monthlyCappedTotalMinutes(logs: OvertimeLog[], monthDate: Date):
   );
   let total = 0;
   for (const date of dates) total += dailyCappedMinutes(logs, date);
-  return total;
+  // 하루 상한이 사라진 달부터는 월 57시간 상한이 유일한 안전장치라 합계에도 적용한다.
+  const monthStart = `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  return monthStart >= DAILY_CAP_REPEAL_DATE ? Math.min(total, OVERTIME_MONTHLY_CAP_MINUTES) : total;
 }
 
 /** "12시간 30분" 형식. 0분이면 "0분". */

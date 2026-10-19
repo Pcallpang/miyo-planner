@@ -17,6 +17,7 @@ import {
   DAILY_OVERTIME_CAP_MINUTES,
   DAILY_OVERTIME_GRACE_MINUTES,
   GRACE_RULE_EFFECTIVE_DATE,
+  DAILY_CAP_REPEAL_DATE,
 } from './overtime';
 import type { OvertimeLog } from '../types';
 
@@ -362,5 +363,35 @@ describe('buildEveningPunchLog', () => {
   test('현재 시각이 시작 시각과 같거나 이전이면 null을 반환한다', () => {
     expect(buildEveningPunchLog('2026-08-18', '17:50', '17:50')).toBeNull();
     expect(buildEveningPunchLog('2026-08-18', '17:00', '17:50')).toBeNull();
+  });
+});
+
+describe('10월부터 하루 4시간 상한 폐지', () => {
+  test('폐지일은 2026-10-01이다', () => {
+    expect(DAILY_CAP_REPEAL_DATE).toBe('2026-10-01');
+  });
+
+  test('9월 30일까지는 4시간 상한이 그대로 적용된다', () => {
+    const logs = [
+      log({ id: '1', date: '2026-09-30', session: '아침', startTime: '06:00', endTime: '08:50' }), // 170
+      log({ id: '2', date: '2026-09-30', session: '저녁', startTime: '17:50', endTime: '21:30' }), // 220
+    ];
+    expect(dailyCappedMinutes(logs, '2026-09-30')).toBe(240); // 390-60=330 → 240
+  });
+
+  test('10월 1일부터는 하루 상한 없이 1시간 공제만 적용된다', () => {
+    const logs = [
+      log({ id: '1', date: '2026-10-01', session: '아침', startTime: '06:00', endTime: '08:50' }),
+      log({ id: '2', date: '2026-10-01', session: '저녁', startTime: '17:50', endTime: '21:30' }),
+    ];
+    expect(dailyCappedMinutes(logs, '2026-10-01')).toBe(330); // 390-60
+    expect(countedMinutesForLog(logs, logs[0]) + countedMinutesForLog(logs, logs[1])).toBe(330);
+  });
+
+  test('10월 월 합계는 57시간에서 멈춘다', () => {
+    const logs = Array.from({ length: 20 }, (_, i) =>
+      log({ id: String(i), date: `2026-10-${String(i + 1).padStart(2, '0')}`, session: '저녁', startTime: '17:50', endTime: '22:50' }),
+    ); // 하루 300-60=240분 × 20일 = 4800분
+    expect(monthlyCappedTotalMinutes(logs, new Date('2026-10-15T00:00:00'))).toBe(OVERTIME_MONTHLY_CAP_MINUTES);
   });
 });

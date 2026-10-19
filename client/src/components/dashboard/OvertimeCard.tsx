@@ -63,7 +63,7 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
     })
     .sort((a, b) => (a.date + a.startTime < b.date + b.startTime ? 1 : -1));
 
-  // 하루 4시간 상한이 적용된 값 — 아침+저녁 실제 합계가 아니라 인정되는 합계다.
+  // 공제·상한(9월까지 하루 4시간, 10월부터 월 57시간)이 적용된 값 — 실제 합계가 아니라 인정되는 합계다.
   const totalMinutes = monthlyCappedTotalMinutes(logs, now);
   const ratio = totalMinutes / OVERTIME_MONTHLY_CAP_MINUTES;
   const capColor =
@@ -335,7 +335,7 @@ export default function OvertimeCard({ logs, setLogs, onAdd, onEdit }: Props) {
                 </span>
                 <span className="shrink-0 text-xs text-slate-400">{log.date.slice(5).replace('-', '/')}</span>
                 {/* 시각과 소요시간을 각각 한 줄씩 — 좁은 화면에서도 분까지 다 보인다.
-                    아랫줄은 실제 근무 시간이 아니라 1시간 공제·4시간 상한을 반영한 인정 시간이다. */}
+                    아랫줄은 실제 근무 시간이 아니라 1시간 공제(9월까지는 4시간 상한 포함)를 반영한 인정 시간이다. */}
                 <span className="min-w-0 flex-1 text-xs">
                   <span className="block text-slate-600">
                     {log.startTime} ~ {log.endTime}
